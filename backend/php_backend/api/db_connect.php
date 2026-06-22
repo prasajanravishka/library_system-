@@ -18,7 +18,7 @@
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, x-api-key");
+header("Access-Control-Allow-Headers: Content-Type, x-api-key, X-API-Key");
 header("Content-Type: application/json; charset=UTF-8");
 
 // Handle preflight OPTIONS requests
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // ── API Key Configuration ───────────────────────────────────────────────────
 
-define('API_KEY', 'smartlib-secure-key-2026');
+define('API_KEY', 'LIBRARY_SECRET_API_KEY_2026');
 
 /**
  * Validate the API key from the x-api-key header.
@@ -38,7 +38,7 @@ define('API_KEY', 'smartlib-secure-key-2026');
 function validateApiKey(): void {
     $headers = getallheaders();
     // Header keys may vary in case across servers
-    $apiKey = $headers['x-api-key'] ?? $headers['X-Api-Key'] ?? $headers['X-API-KEY'] ?? '';
+    $apiKey = $headers['x-api-key'] ?? $headers['X-Api-Key'] ?? $headers['X-API-KEY'] ?? $headers['X-API-Key'] ?? '';
 
     if ($apiKey !== API_KEY) {
         http_response_code(401);
@@ -55,7 +55,7 @@ validateApiKey();
 
 // ── Database Configuration ──────────────────────────────────────────────────
 
-define('DB_HOST', 'localhost');
+define('DB_HOST', '127.0.0.1');
 define('DB_NAME', 'smart_library');
 define('DB_USER', 'root');
 define('DB_PASS', '');
@@ -67,8 +67,6 @@ define('DB_CHARSET', 'utf8mb4');
  * Throws are caught by the calling endpoint's try/catch.
  */
 function getDbConnection(): PDO {
-    $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
-
     $options = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -76,7 +74,18 @@ function getDbConnection(): PDO {
         PDO::ATTR_PERSISTENT         => true,
     ];
 
-    return new PDO($dsn, DB_USER, DB_PASS, $options);
+    // 1. Connect to MySQL without specifying a database
+    $dsnWithoutDb = "mysql:host=" . DB_HOST . ";charset=" . DB_CHARSET;
+    $tempPdo = new PDO($dsnWithoutDb, DB_USER, DB_PASS, $options);
+
+    // 2. Create the database if it doesn't exist
+    $tempPdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` CHARACTER SET " . DB_CHARSET . " COLLATE utf8mb4_unicode_ci");
+
+    // 3. Connect to the specific database
+    $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+    $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+
+    return $pdo;
 }
 
 // Initialize the global PDO connection

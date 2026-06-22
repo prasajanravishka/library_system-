@@ -13,6 +13,25 @@
 
 require_once __DIR__ . '/db_connect.php';
 
+// Auto-create borrow_records table if it doesn't exist
+try {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `borrow_records` (
+            `borrow_id` INT AUTO_INCREMENT PRIMARY KEY,
+            `user_id` INT NOT NULL,
+            `book_id` INT NOT NULL,
+            `borrow_date` DATE NOT NULL,
+            `due_date` DATE NOT NULL,
+            `return_date` DATE NULL,
+            `status` ENUM('borrowed', 'returned', 'overdue', 'lost') DEFAULT 'borrowed',
+            FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+            FOREIGN KEY (`book_id`) REFERENCES `books`(`book_id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+} catch (PDOException $e) {
+    // Ignore if it fails due to existing table, permissions, or missing parent tables
+}
+
 $action = $_GET['action'] ?? '';
 
 try {

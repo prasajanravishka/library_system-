@@ -2,15 +2,23 @@
 ════════════════════════════════════════════════════════════════════════════
 Smart Library — Python FastAPI Backend (AI/Vision Only)
 Port: 8001
+Host: 0.0.0.0 (accessible from mobile emulators and physical devices)
 ════════════════════════════════════════════════════════════════════════════
 This service is dedicated exclusively to AI image processing (OCR/Vision).
 All standard CRUD operations are handled by the PHP backend on port 8000.
+
+Architecture:
+- PHP Backend (Port 8000): User authentication, CRUD operations, borrow/return
+- Python Backend (Port 8001): OCR processing, image analysis, AI/Vision tasks
+
+Both services require valid API Key in X-API-Key header for authentication.
 ════════════════════════════════════════════════════════════════════════════
 """
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import APIKeyHeader
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -22,7 +30,14 @@ from vision_modules.feature_matcher import analyze_cover, detect_spine_region
 load_dotenv()
 
 # ── API Key Configuration ────────────────────────────────────────────────────
-API_KEY = os.getenv("API_KEY", "smartlib-secure-key-2026")
+API_KEY = os.getenv("API_KEY", "LIBRARY_SECRET_API_KEY_2026")
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+def get_api_key(api_key: str = Security(api_key_header)):
+    if api_key != API_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden — invalid or missing API key")
+    return api_key
 
 # ── App Setup ────────────────────────────────────────────────────────────────
 
@@ -41,26 +56,6 @@ app.add_middleware(
 )
 
 
-# ── API Key Middleware ───────────────────────────────────────────────────────
-
-@app.middleware("http")
-async def verify_api_key(request: Request, call_next):
-    """Enforce API key authentication on all endpoints (except docs)."""
-    # Allow docs and OpenAPI schema to be accessed freely
-    if request.url.path in ["/", "/docs", "/openapi.json", "/redoc"]:
-        return await call_next(request)
-
-    api_key = request.headers.get("x-api-key", "")
-    if api_key != API_KEY:
-        return JSONResponse(
-            status_code=401,
-            content={
-                "status": "error",
-                "message": "Unauthorized — invalid or missing API key",
-            },
-        )
-    return await call_next(request)
-
 
 # ── Health Check ─────────────────────────────────────────────────────────────
 
@@ -77,7 +72,7 @@ def root():
 # ── Scan Book (OCR + LLM Parsing) ───────────────────────────────────────────
 
 @app.post("/api/scan-book")
-async def scan_book(file: UploadFile = File(...)):
+async def scan_book(file: UploadFile = File(...), api_key: str = Security(get_api_key)):
     """
     Receive an image of a book cover, process with OpenCV + Tesseract OCR,
     optionally parse with LLM, and return structured book information.
@@ -136,7 +131,7 @@ async def scan_book(file: UploadFile = File(...)):
 # ── Analyze Cover (Features only, no OCR) ────────────────────────────────────
 
 @app.post("/api/analyze-cover")
-async def analyze_cover_endpoint(file: UploadFile = File(...)):
+async def analyze_cover_endpoint(file: UploadFile = File(...), api_key: str = Security(get_api_key)):
     """
     Analyze a book cover image without OCR.
     Returns dominant colors, sharpness score, and keypoint count.
@@ -160,7 +155,7 @@ async def analyze_cover_endpoint(file: UploadFile = File(...)):
 # ── Detect Spines (Shelf scanning) ──────────────────────────────────────────
 
 @app.post("/api/detect-spines")
-async def detect_spines_endpoint(file: UploadFile = File(...)):
+async def detect_spines_endpoint(file: UploadFile = File(...), api_key: str = Security(get_api_key)):
     """
     Detect book spines in a shelf image using edge detection.
     Returns bounding boxes for each detected spine region.

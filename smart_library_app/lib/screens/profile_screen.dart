@@ -5,6 +5,10 @@ import '../core/app_theme.dart';
 import '../providers/providers.dart';
 import '../widgets/glass_card.dart';
 import 'login_screen.dart';
+import 'account_settings_screen.dart';
+import 'reading_history_screen.dart';
+import 'notifications_screen.dart';
+import 'support_screen.dart';
 
 /// Profile & Settings screen — user details, stats, reading history, and logout.
 class ProfileScreen extends ConsumerWidget {
@@ -221,25 +225,33 @@ class ProfileScreen extends ConsumerWidget {
                   _buildListTile(
                     Icons.settings_rounded,
                     'Account Settings',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountSettingsScreen()));
+                    },
                   ),
                   _buildDivider(),
                   _buildListTile(
                     Icons.history_rounded,
                     'Reading History',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ReadingHistoryScreen()));
+                    },
                   ),
                   _buildDivider(),
                   _buildListTile(
                     Icons.notifications_none_rounded,
                     'Notifications',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                    },
                   ),
                   _buildDivider(),
                   _buildListTile(
                     Icons.help_outline_rounded,
                     'Help & Support',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen()));
+                    },
                   ),
                 ],
               ),
@@ -289,9 +301,13 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _buildStatTile(String label, String value, Color color, [IconData? icon]) {
     return Expanded(
-      child: GlassCard(
-        enableBlur: false,
+      child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E2130), // Dark card background
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
+        ),
         child: Column(
           children: [
             if (icon != null) ...[
@@ -303,10 +319,17 @@ class ProfileScreen extends ConsumerWidget {
               style: AppTextStyles.statValue.copyWith(
                 color: color,
                 fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 4),
-            Text(label, style: AppTextStyles.bodySmall),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+              ),
+            ),
           ],
         ),
       ),

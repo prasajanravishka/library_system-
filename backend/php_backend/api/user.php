@@ -24,6 +24,10 @@ try {
             `password_hash` VARCHAR(255) NOT NULL,
             `role` ENUM('student', 'faculty', 'staff') DEFAULT 'student',
             `account_status` ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
+            `profile_image_url` VARCHAR(255) DEFAULT NULL,
+            `rank` VARCHAR(50) DEFAULT 'Bronze',
+            `badge_icon` VARCHAR(50) DEFAULT 'military_tech',
+            `total_books_read` INT DEFAULT 0,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");

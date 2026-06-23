@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../core/app_constants.dart';
 
@@ -9,18 +10,18 @@ import '../core/app_constants.dart';
 ///
 /// Both backends require `x-api-key` header authentication.
 class ApiService {
-  static const String _phpBase = AppConstants.phpBaseUrl;
-  static const String _pyBase = AppConstants.pyBaseUrl;
+  static String get _phpBase => AppConstants.phpBaseUrl;
+  static String get _pyBase => AppConstants.pyBaseUrl;
 
   /// Standard headers with API key for JSON requests.
   static Map<String, String> get _headers => {
     'Content-Type': 'application/json',
-    'x-api-key': AppConstants.apiKey,
+    'X-API-Key': AppConstants.apiKey,
   };
 
   /// Headers with API key only (for multipart / non-JSON).
   static Map<String, String> get _authHeaders => {
-    'x-api-key': AppConstants.apiKey,
+    'X-API-Key': AppConstants.apiKey,
   };
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -31,41 +32,88 @@ class ApiService {
 
   /// Login as a Student via user.php?action=login
   Future<Map<String, dynamic>> login(String studentId, String password) async {
-    final url = Uri.parse('$_phpBase/api/user.php?action=login');
-    final response = await http.post(
-      url,
-      headers: _headers,
-      body: jsonEncode({
-        'student_id': studentId,
-        'password': password,
-      }),
-    );
+    try {
+      final url = Uri.parse('$_phpBase/api/user.php?action=login');
+      final response = await http.post(
+        url,
+        headers: _headers,
+        body: jsonEncode({'student_id': studentId, 'password': password}),
+      );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      final body = jsonDecode(response.body);
-      throw Exception(body['message'] ?? 'Login failed');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final body = jsonDecode(response.body);
+        throw Exception(body['message'] ?? 'Login failed');
+      }
+    } on SocketException catch (_) {
+      throw Exception(
+        'Server unreachable. Ensure the PHP backend is running on port 8000 and bound to 0.0.0.0',
+      );
+    } catch (e) {
+      if (e.toString().contains('Connection refused')) {
+        throw Exception(
+          'Connection refused. Start the PHP server with: php -S 0.0.0.0:8000',
+        );
+      }
+      rethrow;
     }
   }
 
   /// Login as a Librarian via admin.php?action=login
-  Future<Map<String, dynamic>> loginAdmin(String username, String password) async {
-    final url = Uri.parse('$_phpBase/api/admin.php?action=login');
-    final response = await http.post(
-      url,
-      headers: _headers,
-      body: jsonEncode({
-        'username': username,
-        'password': password,
-      }),
-    );
+  Future<Map<String, dynamic>> loginAdmin(
+    String username,
+    String password,
+  ) async {
+    try {
+      final url = Uri.parse('$_phpBase/api/admin.php?action=login');
+      final response = await http.post(
+        url,
+        headers: _headers,
+        body: jsonEncode({'username': username, 'password': password}),
+      );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      final body = jsonDecode(response.body);
-      throw Exception(body['message'] ?? 'Login failed');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final body = jsonDecode(response.body);
+        throw Exception(body['message'] ?? 'Login failed');
+      }
+    } on SocketException catch (_) {
+      throw Exception(
+        'Server unreachable. Ensure the PHP backend is running on port 8000 and bound to 0.0.0.0',
+      );
+    } catch (e) {
+      if (e.toString().contains('Connection refused')) {
+        throw Exception(
+          'Connection refused. Start the PHP server with: php -S 0.0.0.0:8000',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  /// ── Testing ──────────────────────────────────────────────────────────────
+
+  /// Test end-to-end connectivity with MySQL database via PHP backend
+  Future<bool> testUserDatabaseConnection() async {
+    try {
+      final url = Uri.parse('$_phpBase/api/test_users.php');
+      final response = await http.get(url, headers: _authHeaders);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('✅ Database Connection Test SUCCESS!');
+        print('Users returned: ${data['users']}');
+        return true;
+      } else {
+        print('❌ Database Connection Test FAILED with status: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('❌ Database Connection Test ERROR: $e');
+      return false;
     }
   }
 
@@ -83,7 +131,9 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getUserDashboard(int userId) async {
-    final url = Uri.parse('$_phpBase/api/get_dashboard.php?action=user_dashboard&user_id=$userId');
+    final url = Uri.parse(
+      '$_phpBase/api/get_dashboard.php?action=user_dashboard&user_id=$userId',
+    );
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -96,7 +146,9 @@ class ApiService {
   // ── User Library (Borrow History) ───────────────────────────────────────
 
   Future<Map<String, dynamic>> getUserLibrary(int userId) async {
-    final url = Uri.parse('$_phpBase/api/borrow.php?action=history&user_id=$userId');
+    final url = Uri.parse(
+      '$_phpBase/api/borrow.php?action=history&user_id=$userId',
+    );
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -109,7 +161,9 @@ class ApiService {
   // ── User Profile ────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getUserProfile(int userId) async {
-    final url = Uri.parse('$_phpBase/api/user.php?action=profile&user_id=$userId');
+    final url = Uri.parse(
+      '$_phpBase/api/user.php?action=profile&user_id=$userId',
+    );
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -122,7 +176,9 @@ class ApiService {
   // ── Book Search ─────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> searchBooks(String query) async {
-    final url = Uri.parse('$_phpBase/api/user.php?action=search&q=${Uri.encodeComponent(query)}');
+    final url = Uri.parse(
+      '$_phpBase/api/user.php?action=search&q=${Uri.encodeComponent(query)}',
+    );
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -178,8 +234,13 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> updateBook(int bookId, Map<String, dynamic> updates) async {
-    final url = Uri.parse('$_phpBase/api/admin.php?action=update_book&book_id=$bookId');
+  Future<Map<String, dynamic>> updateBook(
+    int bookId,
+    Map<String, dynamic> updates,
+  ) async {
+    final url = Uri.parse(
+      '$_phpBase/api/admin.php?action=update_book&book_id=$bookId',
+    );
     final response = await http.put(
       url,
       headers: _headers,
@@ -213,10 +274,7 @@ class ApiService {
     final response = await http.post(
       url,
       headers: _headers,
-      body: jsonEncode({
-        'user_id': userId,
-        'book_id': bookId,
-      }),
+      body: jsonEncode({'user_id': userId, 'book_id': bookId}),
     );
 
     if (response.statusCode == 200) {
@@ -232,10 +290,7 @@ class ApiService {
     final response = await http.post(
       url,
       headers: _headers,
-      body: jsonEncode({
-        'user_id': userId,
-        'book_id': bookId,
-      }),
+      body: jsonEncode({'user_id': userId, 'book_id': bookId}),
     );
 
     if (response.statusCode == 200) {
@@ -260,7 +315,9 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> toggleUserStatus(int userId) async {
-    final url = Uri.parse('$_phpBase/api/admin.php?action=toggle_user&user_id=$userId');
+    final url = Uri.parse(
+      '$_phpBase/api/admin.php?action=toggle_user&user_id=$userId',
+    );
     final response = await http.put(url, headers: _headers);
 
     if (response.statusCode == 200) {
@@ -275,53 +332,139 @@ class ApiService {
   // ══════════════════════════════════════════════════════════════════════════
 
   /// OCR scan: send image to Python backend for text extraction + LLM parsing
+  /// Extract book information from image using OCR and LLM parsing
+  /// Sends image to Python backend at /api/scan-book with API key authentication
+  /// Handles connection errors gracefully with user-friendly messages
   Future<Map<String, dynamic>> extractBookInfo(String imagePath) async {
-    final url = Uri.parse('$_pyBase/api/scan-book');
-    final request = http.MultipartRequest('POST', url)
-      ..headers.addAll(_authHeaders)
-      ..files.add(await http.MultipartFile.fromPath('file', imagePath));
+    try {
+      final url = Uri.parse('$_pyBase/api/scan-book');
+      final request = http.MultipartRequest('POST', url)
+        ..headers.addAll({'X-API-Key': AppConstants.apiKey})
+        ..files.add(await http.MultipartFile.fromPath('file', imagePath));
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception(
+          'Request timeout: Backend took too long to respond.',
+        ),
+      );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to process image');
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else if (response.statusCode == 403) {
+        throw Exception('Authentication failed: Invalid or missing API key.');
+      } else if (response.statusCode == 400) {
+        throw Exception(
+          'Invalid request: Please ensure the file is a valid image.',
+        );
+      } else if (response.statusCode >= 500) {
+        throw Exception(
+          'Server error: Backend service encountered an error. Try again later.',
+        );
+      } else {
+        throw Exception(
+          'Failed to process image (Status: ${response.statusCode})',
+        );
+      }
+    } on SocketException catch (_) {
+      throw Exception(
+        'Network error: Cannot connect to backend. Ensure it is running at $_pyBase',
+      );
+    } catch (e) {
+      if (e.toString().contains('Connection refused')) {
+        throw Exception(
+          'Connection refused: Backend is not running at $_pyBase',
+        );
+      } else if (e.toString().contains('timeout')) {
+        throw Exception(
+          'Connection timeout: Backend took too long to respond at $_pyBase',
+        );
+      } else if (e.toString().contains('No host found')) {
+        throw Exception(
+          'Network error: Cannot resolve backend address $_pyBase',
+        );
+      }
+      rethrow;
     }
   }
 
   /// Analyze cover image quality and features (no OCR)
+  /// Returns image quality metrics, dominant colors, and feature points
   Future<Map<String, dynamic>> analyzeCover(String imagePath) async {
-    final url = Uri.parse('$_pyBase/api/analyze-cover');
-    final request = http.MultipartRequest('POST', url)
-      ..headers.addAll(_authHeaders)
-      ..files.add(await http.MultipartFile.fromPath('file', imagePath));
+    try {
+      final url = Uri.parse('$_pyBase/api/analyze-cover');
+      final request = http.MultipartRequest('POST', url)
+        ..headers.addAll(_authHeaders)
+        ..files.add(await http.MultipartFile.fromPath('file', imagePath));
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception(
+          'Request timeout: Backend took too long to respond.',
+        ),
+      );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to analyze cover');
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else if (response.statusCode == 403) {
+        throw Exception('Authentication failed: Invalid or missing API key.');
+      } else if (response.statusCode >= 500) {
+        throw Exception('Server error: Backend service is unavailable.');
+      } else {
+        throw Exception(
+          'Failed to analyze cover (Status: ${response.statusCode})',
+        );
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error: Cannot connect to backend at $_pyBase');
+    } catch (e) {
+      if (!e.toString().contains('Exception:')) {
+        return {'status': 'error', 'message': e.toString()};
+      }
+      rethrow;
     }
   }
 
   /// Detect book spines in a shelf image
+  /// Identifies and analyzes individual book spines for bulk scanning
   Future<Map<String, dynamic>> detectSpines(String imagePath) async {
-    final url = Uri.parse('$_pyBase/api/detect-spines');
-    final request = http.MultipartRequest('POST', url)
-      ..headers.addAll(_authHeaders)
-      ..files.add(await http.MultipartFile.fromPath('file', imagePath));
+    try {
+      final url = Uri.parse('$_pyBase/api/detect-spines');
+      final request = http.MultipartRequest('POST', url)
+        ..headers.addAll(_authHeaders)
+        ..files.add(await http.MultipartFile.fromPath('file', imagePath));
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception(
+          'Request timeout: Backend took too long to respond.',
+        ),
+      );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to detect spines');
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else if (response.statusCode == 403) {
+        throw Exception('Authentication failed: Invalid or missing API key.');
+      } else if (response.statusCode >= 500) {
+        throw Exception('Server error: Backend service is unavailable.');
+      } else {
+        throw Exception(
+          'Failed to detect spines (Status: ${response.statusCode})',
+        );
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error: Cannot connect to backend at $_pyBase');
+    } catch (e) {
+      if (!e.toString().contains('Exception:')) {
+        return {'status': 'error', 'message': e.toString()};
+      }
+      rethrow;
     }
   }
 }

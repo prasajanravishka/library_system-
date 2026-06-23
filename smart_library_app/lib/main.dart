@@ -46,6 +46,10 @@ class _AppGateState extends ConsumerState<AppGate> {
   Future<void> _initApp() async {
     // Try to restore existing session from SharedPreferences
     await ref.read(authProvider.notifier).tryRestoreSession();
+
+    // The DEV SHORTCUT was removed here so you can see the onboarding
+    // and login flow naturally.
+
     if (mounted) {
       setState(() => _initialized = true);
     }
@@ -76,12 +80,12 @@ class _AppGateState extends ConsumerState<AppGate> {
       );
     }
 
-    final onboardingSeen = ref.watch(onboardingSeenProvider);
     final authState = ref.watch(authProvider);
+    final onboardingSeenAsync = ref.watch(onboardingSeenProvider);
 
-    return onboardingSeen.when(
-      data: (seen) {
-        if (!seen) {
+    return onboardingSeenAsync.when(
+      data: (hasSeen) {
+        if (!hasSeen) {
           return const OnboardingScreen();
         }
         if (authState.isAuthenticated) {
@@ -89,13 +93,16 @@ class _AppGateState extends ConsumerState<AppGate> {
         }
         return const LoginScreen();
       },
-      loading: () => Scaffold(
+      loading: () => const Scaffold(
         backgroundColor: AppColors.primaryBg,
-        body: const Center(
-          child: CircularProgressIndicator(color: AppColors.cyan),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: AppColors.cyan,
+            strokeWidth: 2.5,
+          ),
         ),
       ),
-      error: (_, _) => const LoginScreen(),
+      error: (_, __) => const LoginScreen(),
     );
   }
 }

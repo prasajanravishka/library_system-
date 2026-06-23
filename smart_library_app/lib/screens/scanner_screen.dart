@@ -89,7 +89,15 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
       }
     } catch (e) {
       if (mounted) {
-        _showError('Error: ${e.toString().replaceFirst("Exception: ", "")}');
+        final errorMessage = e.toString().replaceFirst("Exception: ", "");
+        // Show more detailed error dialog for connection issues
+        if (errorMessage.contains('Connection') ||
+            errorMessage.contains('Network') ||
+            errorMessage.contains('timeout')) {
+          _showConnectionErrorDialog(errorMessage);
+        } else {
+          _showError(errorMessage);
+        }
       }
     } finally {
       if (mounted) {
@@ -103,6 +111,65 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
       SnackBar(
         content: Text(msg),
         backgroundColor: AppColors.red,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+  }
+
+  void _showConnectionErrorDialog(String errorMessage) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Connection Error'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                errorMessage,
+                style: const TextStyle(
+                  color: AppColors.red,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Troubleshooting tips:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text('• Ensure the backend server is running on port 8001'),
+              const SizedBox(height: 8),
+              const Text(
+                '• For Android Emulator: Backend should be accessible at http://10.0.2.2:8001',
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '• For iOS Simulator: Backend should be accessible at http://127.0.0.1:8001',
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '• For Physical Device: Update IP address in AppConstants (currently: 192.168.1.100:8001)',
+              ),
+              const SizedBox(height: 8),
+              const Text('• Check your network connection'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _navigateToManualEntry();
+            },
+            child: const Text('Manual Entry'),
+          ),
+        ],
       ),
     );
   }
@@ -182,7 +249,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.purple.withValues(alpha: 0.6),
+                                  color: AppColors.purple.withValues(
+                                    alpha: 0.6,
+                                  ),
                                   blurRadius: 12,
                                   spreadRadius: 2,
                                 ),
@@ -229,8 +298,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                         color: AppColors.glassSurface,
                         border: Border.all(color: AppColors.borderSubtle),
                       ),
-                      child: const Icon(Icons.photo_library_rounded,
-                          color: Colors.white, size: 24),
+                      child: const Icon(
+                        Icons.photo_library_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 28),
@@ -273,8 +345,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                         color: AppColors.glassSurface,
                         border: Border.all(color: AppColors.borderSubtle),
                       ),
-                      child: const Icon(Icons.flash_on_rounded,
-                          color: AppColors.amber, size: 24),
+                      child: const Icon(
+                        Icons.flash_on_rounded,
+                        color: AppColors.amber,
+                        size: 24,
+                      ),
                     ),
                   ),
                 ],
@@ -287,8 +362,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
               delay: const Duration(milliseconds: 400),
               child: TextButton.icon(
                 onPressed: _navigateToManualEntry,
-                icon: Icon(Icons.keyboard_rounded,
-                    color: AppColors.textSecondary, size: 18),
+                icon: Icon(
+                  Icons.keyboard_rounded,
+                  color: AppColors.textSecondary,
+                  size: 18,
+                ),
                 label: Text(
                   'Type Details Manually',
                   style: AppTextStyles.bodyMedium.copyWith(
@@ -351,8 +429,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                   padding: EdgeInsets.only(bottom: 12),
                   child: Shimmer.fromColors(
                     baseColor: AppColors.surface,
-                    highlightColor:
-                        AppColors.cyan.withValues(alpha: 0.15),
+                    highlightColor: AppColors.cyan.withValues(alpha: 0.15),
                     child: Container(
                       height: 16,
                       width: [240.0, 180.0, 200.0][index],
@@ -380,9 +457,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
     return [
       // Top-left
       Positioned(
-        top: 0, left: 0,
+        top: 0,
+        left: 0,
         child: Container(
-          width: bracketSize, height: bracketSize,
+          width: bracketSize,
+          height: bracketSize,
           decoration: const BoxDecoration(
             border: Border(
               top: BorderSide(color: color, width: bracketWidth),
@@ -393,9 +472,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
       ),
       // Top-right
       Positioned(
-        top: 0, right: 0,
+        top: 0,
+        right: 0,
         child: Container(
-          width: bracketSize, height: bracketSize,
+          width: bracketSize,
+          height: bracketSize,
           decoration: const BoxDecoration(
             border: Border(
               top: BorderSide(color: color, width: bracketWidth),
@@ -406,9 +487,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
       ),
       // Bottom-left
       Positioned(
-        bottom: 0, left: 0,
+        bottom: 0,
+        left: 0,
         child: Container(
-          width: bracketSize, height: bracketSize,
+          width: bracketSize,
+          height: bracketSize,
           decoration: const BoxDecoration(
             border: Border(
               bottom: BorderSide(color: color, width: bracketWidth),
@@ -419,9 +502,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
       ),
       // Bottom-right
       Positioned(
-        bottom: 0, right: 0,
+        bottom: 0,
+        right: 0,
         child: Container(
-          width: bracketSize, height: bracketSize,
+          width: bracketSize,
+          height: bracketSize,
           decoration: const BoxDecoration(
             border: Border(
               bottom: BorderSide(color: color, width: bracketWidth),

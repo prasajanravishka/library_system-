@@ -34,11 +34,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    final success = await ref.read(authProvider.notifier).login(studentId, password);
+    final success = await ref
+        .read(authProvider.notifier)
+        .login(studentId, password);
     if (success && mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainScreen()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const MainScreen()));
     }
   }
 
@@ -143,14 +145,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline_rounded,
-                              color: AppColors.red, size: 20),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: AppColors.red,
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               authState.error!,
                               style: const TextStyle(
-                                  color: AppColors.red, fontSize: 14),
+                                color: AppColors.red,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                         ],
@@ -261,9 +268,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     padding: const EdgeInsets.all(14),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline_rounded,
-                            color: AppColors.cyan.withValues(alpha: 0.7),
-                            size: 18),
+                        Icon(
+                          Icons.info_outline_rounded,
+                          color: AppColors.cyan.withValues(alpha: 0.7),
+                          size: 18,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -281,6 +290,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton.icon(
+                onPressed: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.remove(AppConstants.prefOnboardingSeen);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Onboarding reset! Restart app to see it.'),
+                        backgroundColor: AppColors.cyan,
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.restart_alt_rounded, color: AppColors.textSecondary),
+                label: const Text(
+                  'Reset Onboarding',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+              const SizedBox(width: 16),
+              TextButton.icon(
+                onPressed: () async {
+                  final apiService = ref.read(apiServiceProvider);
+                  final success = await apiService.testUserDatabaseConnection();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success ? 'Success: Check Console' : 'Connection Failed',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: success ? AppColors.emerald : AppColors.red,
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.bug_report_rounded, color: AppColors.cyan),
+                label: const Text(
+                  'Test DB Connection',
+                  style: TextStyle(color: AppColors.cyan),
+                ),
+              ),
+            ],
+          ),
       ),
     );
   }

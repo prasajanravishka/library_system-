@@ -37,6 +37,14 @@ class AppColors {
 
   /// Glass surface with alpha
   static Color glassSurface = surface.withValues(alpha: 0.8);
+
+  // ── Light Theme Colors ──────────────────────────────────────────────
+  static const Color lightBg = Color(0xFFF8F9FA);
+  static const Color lightSurface = Colors.white;
+  static const Color lightTextPrimary = Color(0xFF1F2937);
+  static const Color lightTextSecondary = Color(0xFF6B7280);
+  static const Color lightBorderSubtle = Color(0xFFE5E7EB);
+  static Color lightGlassSurface = Colors.white.withValues(alpha: 0.85);
 }
 
 /// ─── Glass Decoration Factory ──────────────────────────────────────────────
@@ -181,6 +189,100 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.surface,
         contentTextStyle: GoogleFonts.inter(color: AppColors.textPrimary),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  static ThemeData get lightTheme {
+    return ThemeData(
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: AppColors.lightBg,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.cyan,
+        brightness: Brightness.light,
+        surface: AppColors.lightSurface,
+      ),
+      useMaterial3: true,
+
+      textTheme: GoogleFonts.interTextTheme(
+        ThemeData.light().textTheme,
+      ),
+
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: GoogleFonts.inter(
+          color: AppColors.lightTextPrimary,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: const IconThemeData(color: AppColors.lightTextPrimary),
+      ),
+
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.lightBg,
+        labelStyle: const TextStyle(color: AppColors.lightTextSecondary),
+        hintStyle: TextStyle(color: AppColors.lightTextSecondary.withValues(alpha: 0.6)),
+        prefixIconColor: AppColors.lightTextSecondary,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.lightBorderSubtle),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.lightBorderSubtle),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.cyan, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.red),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.cyan,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          textStyle: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.purple,
+        foregroundColor: Colors.white,
+        elevation: 8,
+        shape: CircleBorder(),
+      ),
+
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: AppColors.lightSurface,
+        selectedItemColor: AppColors.cyan,
+        unselectedItemColor: Colors.grey.shade400,
+        type: BottomNavigationBarType.fixed,
+        showSelectedLabels: true,
+        showUnselectedLabels: false,
+        elevation: 10,
+      ),
+
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.lightTextPrimary,
+        contentTextStyle: GoogleFonts.inter(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),

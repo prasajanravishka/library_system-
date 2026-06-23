@@ -19,7 +19,7 @@ class SmartLibraryApp extends StatelessWidget {
     return MaterialApp(
       title: 'Smart Library',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
       home: const AppGate(),
     );
   }

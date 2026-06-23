@@ -143,6 +143,28 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> getFeaturedBooks() async {
+    final url = Uri.parse('$_phpBase/api/get_dashboard.php?action=featured_books');
+    final response = await http.get(url, headers: _authHeaders);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load featured books');
+    }
+  }
+
+  Future<Map<String, dynamic>> getCategories() async {
+    final url = Uri.parse('$_phpBase/api/get_dashboard.php?action=categories');
+    final response = await http.get(url, headers: _authHeaders);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load categories');
+    }
+  }
+
   // ── User Library (Borrow History) ───────────────────────────────────────
 
   Future<Map<String, dynamic>> getUserLibrary(int userId) async {

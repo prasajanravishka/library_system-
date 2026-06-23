@@ -164,3 +164,19 @@ final bookSearchProvider = FutureProvider.family<List<dynamic>, String>((ref, qu
   final response = await apiService.searchBooks(query);
   return response['books'] ?? [];
 });
+
+// ── Featured Books Provider ─────────────────────────────────────────────────
+
+final featuredBooksProvider = FutureProvider<List<dynamic>>((ref) async {
+  final apiService = ref.read(apiServiceProvider);
+  final response = await apiService.getFeaturedBooks();
+  return response['featured_books'] ?? [];
+});
+
+// ── Categories Provider ─────────────────────────────────────────────────────
+
+final categoriesProvider = FutureProvider<List<dynamic>>((ref) async {
+  final apiService = ref.read(apiServiceProvider);
+  final response = await apiService.getCategories();
+  return response['categories'] ?? [];
+});

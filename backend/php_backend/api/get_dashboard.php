@@ -94,12 +94,49 @@ try {
                     'rank'           => $rank,
                     'total_borrowed' => $totalBorrowed,
                     'active_reads'   => $activeReads,
+                    'unread_notifications' => 3,
                 ],
             ]);
             break;
 
+        // ── Featured Books ──────────────────────────────────────────────
+        case 'featured_books':
+            if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+                jsonError('Method not allowed', 405);
+            }
+            // Just get the latest 5 books as featured for now
+            $stmt = $pdo->query(
+                "SELECT book_id, title, author, cover_image_path
+                 FROM books
+                 ORDER BY added_at DESC
+                 LIMIT 5"
+            );
+            $featuredBooks = $stmt->fetchAll();
+            jsonSuccess([
+                'featured_books' => $featuredBooks,
+            ]);
+            break;
+
+        // ── Categories ──────────────────────────────────────────────────
+        case 'categories':
+            if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+                jsonError('Method not allowed', 405);
+            }
+            // Hardcoded categories as there might not be a categories table
+            $categories = [
+                ['id' => 1, 'name' => 'Technology', 'icon' => 'computer'],
+                ['id' => 2, 'name' => 'Fiction', 'icon' => 'auto_stories'],
+                ['id' => 3, 'name' => 'Science', 'icon' => 'science'],
+                ['id' => 4, 'name' => 'History', 'icon' => 'history'],
+                ['id' => 5, 'name' => 'Art', 'icon' => 'palette'],
+            ];
+            jsonSuccess([
+                'categories' => $categories,
+            ]);
+            break;
+
         default:
-            jsonError('Unknown action. Valid: stats, user_dashboard', 400);
+            jsonError('Unknown action. Valid: stats, user_dashboard, featured_books, categories', 400);
     }
 } catch (PDOException $e) {
     jsonError('Database error: ' . $e->getMessage(), 500);

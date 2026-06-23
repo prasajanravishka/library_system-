@@ -31,7 +31,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.primaryBg,
+      backgroundColor: AppColors.lightBg,
       body: IndexedStack(
         index: _currentIndex,
         children: screens,
@@ -70,15 +70,15 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
       // Bottom navigation bar with BottomAppBar for center-docked FAB
       bottomNavigationBar: BottomAppBar(
-        color: AppColors.primaryBg,
+        color: AppColors.lightBg,
         elevation: 0,
         notchMargin: 8,
         shape: const CircularNotchedRectangle(),
         child: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             border: Border(
               top: BorderSide(
-                color: AppColors.borderSubtle,
+                color: AppColors.lightBorderSubtle,
                 width: 1,
               ),
             ),

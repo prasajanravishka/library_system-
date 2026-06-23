@@ -92,8 +92,11 @@ try {
                 jsonError('Valid user_id is required', 400);
             }
 
-            // User details
-            $stmt = $pdo->prepare("SELECT full_name, email FROM users WHERE user_id = :uid");
+            // User details (including persisted rank/badge)
+            $stmt = $pdo->prepare(
+                "SELECT full_name, email, profile_image_url, `rank`, badge_icon, total_books_read
+                 FROM users WHERE user_id = :uid"
+            );
             $stmt->execute([':uid' => $userId]);
             $user = $stmt->fetch();
 
@@ -114,23 +117,26 @@ try {
             $stmt->execute([':uid' => $userId]);
             $totalOverdue = (int) $stmt->fetch()['count'];
 
-            // Rank
-            if ($totalBorrowed < 5) {
-                $rank = 'Bronze';
-            } elseif ($totalBorrowed < 15) {
-                $rank = 'Silver';
-            } else {
-                $rank = 'Gold';
-            }
+            // Total fines pending
+            $stmt = $pdo->prepare(
+                "SELECT COALESCE(SUM(fine_amount), 0) as total FROM borrow_records
+                 WHERE user_id = :uid AND fine_paid = FALSE AND fine_amount > 0"
+            );
+            $stmt->execute([':uid' => $userId]);
+            $totalFinesPending = (float) $stmt->fetch()['total'];
 
             jsonSuccess([
                 'profile' => [
-                    'full_name'      => $user['full_name'],
-                    'email'          => $user['email'],
-                    'role'           => 'student',
-                    'total_borrowed' => $totalBorrowed,
-                    'total_overdue'  => $totalOverdue,
-                    'rank'           => $rank,
+                    'full_name'          => $user['full_name'],
+                    'email'              => $user['email'],
+                    'profile_image_url'  => $user['profile_image_url'],
+                    'role'               => 'student',
+                    'total_borrowed'     => $totalBorrowed,
+                    'total_overdue'      => $totalOverdue,
+                    'total_fines_pending'=> $totalFinesPending,
+                    'rank'               => $user['rank'] ?? 'Bronze',
+                    'badge_icon'         => $user['badge_icon'] ?? 'military_tech',
+                    'total_books_read'   => (int) ($user['total_books_read'] ?? 0),
                 ],
             ]);
             break;
@@ -146,16 +152,36 @@ try {
                 jsonError('Search query (q) is required', 400);
             }
 
+            $categoryId = isset($_GET['category_id']) ? (int) $_GET['category_id'] : null;
+
             $searchTerm = "%{$query}%";
-            $stmt = $pdo->prepare(
-                "SELECT book_id, title, author, isbn, publisher, publication_year,
-                        cover_image_path, availability_status
-                 FROM books
-                 WHERE title LIKE :q1 OR author LIKE :q2 OR isbn LIKE :q3
-                 ORDER BY title ASC
-                 LIMIT 50"
-            );
-            $stmt->execute([':q1' => $searchTerm, ':q2' => $searchTerm, ':q3' => $searchTerm]);
+            $params = [':q1' => $searchTerm, ':q2' => $searchTerm, ':q3' => $searchTerm];
+
+            if ($categoryId && $categoryId > 0) {
+                // Search within a specific category
+                $sql = "SELECT DISTINCT b.book_id, b.title, b.author, b.isbn, b.publisher,
+                               b.publication_year, b.cover_image_path, b.cover_image_url,
+                               b.availability_status
+                        FROM books b
+                        JOIN book_categories bc ON b.book_id = bc.book_id
+                        WHERE bc.category_id = :cid
+                          AND (b.title LIKE :q1 OR b.author LIKE :q2 OR b.isbn LIKE :q3)
+                        ORDER BY b.title ASC
+                        LIMIT 50";
+                $params[':cid'] = $categoryId;
+            } else {
+                // Search all books
+                $sql = "SELECT b.book_id, b.title, b.author, b.isbn, b.publisher,
+                               b.publication_year, b.cover_image_path, b.cover_image_url,
+                               b.availability_status
+                        FROM books b
+                        WHERE b.title LIKE :q1 OR b.author LIKE :q2 OR b.isbn LIKE :q3
+                        ORDER BY b.title ASC
+                        LIMIT 50";
+            }
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
             $books = $stmt->fetchAll();
 
             // Cast IDs to int

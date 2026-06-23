@@ -105,23 +105,40 @@ try {
                 jsonError('Title is required', 400);
             }
 
+            $pdo->beginTransaction();
+
             $stmt = $pdo->prepare(
-                "INSERT INTO books (title, author, isbn, publisher, publication_year, cover_image_path, added_by)
-                 VALUES (:title, :author, :isbn, :publisher, :year, :cover, :added_by)"
+                "INSERT INTO books (title, author, isbn, publisher, publication_year, cover_image_path, cover_image_url, added_by)
+                 VALUES (:title, :author, :isbn, :publisher, :year, :cover, :cover_url, :added_by)"
             );
             $stmt->execute([
-                ':title'    => $title,
-                ':author'   => trim($data['author'] ?? ''),
-                ':isbn'     => !empty($data['isbn']) ? trim($data['isbn']) : null,
-                ':publisher'=> trim($data['publisher'] ?? ''),
-                ':year'     => !empty($data['publication_year']) ? (int) $data['publication_year'] : null,
-                ':cover'    => trim($data['cover_image_path'] ?? ''),
-                ':added_by' => !empty($data['added_by']) ? (int) $data['added_by'] : null,
+                ':title'     => $title,
+                ':author'    => trim($data['author'] ?? ''),
+                ':isbn'      => !empty($data['isbn']) ? trim($data['isbn']) : null,
+                ':publisher' => trim($data['publisher'] ?? ''),
+                ':year'      => !empty($data['publication_year']) ? (int) $data['publication_year'] : null,
+                ':cover'     => trim($data['cover_image_path'] ?? ''),
+                ':cover_url' => trim($data['cover_image_url'] ?? ''),
+                ':added_by'  => !empty($data['added_by']) ? (int) $data['added_by'] : null,
             ]);
+
+            $bookId = (int) $pdo->lastInsertId();
+
+            // Insert category associations if provided
+            if (!empty($data['category_ids']) && is_array($data['category_ids'])) {
+                $catStmt = $pdo->prepare(
+                    "INSERT IGNORE INTO book_categories (book_id, category_id) VALUES (:bid, :cid)"
+                );
+                foreach ($data['category_ids'] as $catId) {
+                    $catStmt->execute([':bid' => $bookId, ':cid' => (int) $catId]);
+                }
+            }
+
+            $pdo->commit();
 
             jsonSuccess([
                 'message' => 'Book added successfully',
-                'book_id' => (int) $pdo->lastInsertId(),
+                'book_id' => $bookId,
             ], 201);
             break;
 

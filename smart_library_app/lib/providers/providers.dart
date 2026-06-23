@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_constants.dart';
 import '../models/user_model.dart';
+import '../models/category_model.dart';
 import '../services/api_service.dart';
 
 // ── API Service Provider ────────────────────────────────────────────────────
@@ -175,8 +176,17 @@ final featuredBooksProvider = FutureProvider<List<dynamic>>((ref) async {
 
 // ── Categories Provider ─────────────────────────────────────────────────────
 
-final categoriesProvider = FutureProvider<List<dynamic>>((ref) async {
+final categoriesProvider = FutureProvider<List<CategoryModel>>((ref) async {
   final apiService = ref.read(apiServiceProvider);
   final response = await apiService.getCategories();
-  return response['categories'] ?? [];
+  final List<dynamic> rawList = response['categories'] ?? [];
+  return rawList.map((c) => CategoryModel.fromJson(c)).toList();
+});
+
+// ── Books By Category Provider ──────────────────────────────────────────────
+
+final booksByCategoryProvider = FutureProvider.family<List<dynamic>, int>((ref, categoryId) async {
+  final apiService = ref.read(apiServiceProvider);
+  final response = await apiService.getBooksByCategory(categoryId);
+  return response['books'] ?? [];
 });

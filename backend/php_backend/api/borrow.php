@@ -104,9 +104,9 @@ try {
                 jsonError('Valid user_id and book_id are required', 400);
             }
 
-            // Find active borrow record
+            // Find active borrow record (include due_date for fine calc)
             $stmt = $pdo->prepare(
-                "SELECT borrow_id FROM borrow_records
+                "SELECT borrow_id, due_date FROM borrow_records
                  WHERE user_id = :uid AND book_id = :bid AND status IN ('borrowed', 'overdue')
                  ORDER BY borrow_date DESC LIMIT 1"
             );
@@ -117,23 +117,55 @@ try {
                 jsonError('No active borrow record found', 400);
             }
 
+            // Calculate fine if overdue ($0.50 per day)
+            $finePerDay = 0.50;
+            $daysOverdue = max(0, (int) ((new DateTime())->diff(new DateTime($borrow['due_date']))->format('%r%a')));
+            $isOverdue = new DateTime() > new DateTime($borrow['due_date']);
+            $fineAmount = $isOverdue ? round($daysOverdue * $finePerDay, 2) : 0.00;
+
             // Start transaction
             $pdo->beginTransaction();
 
-            // Update borrow record
+            // Update borrow record with return date and fine
             $stmt = $pdo->prepare(
-                "UPDATE borrow_records SET status = 'returned', return_date = CURDATE()
+                "UPDATE borrow_records
+                 SET status = 'returned', return_date = CURDATE(),
+                     fine_amount = :fine, fine_paid = FALSE
                  WHERE borrow_id = :brid"
             );
-            $stmt->execute([':brid' => $borrow['borrow_id']]);
+            $stmt->execute([':brid' => $borrow['borrow_id'], ':fine' => $fineAmount]);
 
             // Update book availability
             $stmt = $pdo->prepare("UPDATE books SET availability_status = 'available' WHERE book_id = :bid");
             $stmt->execute([':bid' => $bookId]);
 
+            // Update user rank/badge based on new total
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM borrow_records WHERE user_id = :uid");
+            $stmt->execute([':uid' => $userId]);
+            $totalBorrowed = (int) $stmt->fetchColumn();
+
+            if ($totalBorrowed >= 15) {
+                $rank = 'Gold'; $badge = 'emoji_events';
+            } elseif ($totalBorrowed >= 5) {
+                $rank = 'Silver'; $badge = 'workspace_premium';
+            } else {
+                $rank = 'Bronze'; $badge = 'military_tech';
+            }
+
+            $stmt = $pdo->prepare(
+                "UPDATE users SET `rank` = :rank, badge_icon = :badge, total_books_read = :total
+                 WHERE user_id = :uid"
+            );
+            $stmt->execute([':rank' => $rank, ':badge' => $badge, ':total' => $totalBorrowed, ':uid' => $userId]);
+
             $pdo->commit();
 
-            jsonSuccess(['message' => 'Book returned successfully']);
+            $response = ['message' => 'Book returned successfully'];
+            if ($fineAmount > 0) {
+                $response['fine_amount'] = $fineAmount;
+                $response['fine_message'] = "Overdue fine of \${$fineAmount} has been applied.";
+            }
+            jsonSuccess($response);
             break;
 
         // ── Borrow History ──────────────────────────────────────────────

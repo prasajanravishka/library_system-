@@ -155,13 +155,24 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getCategories() async {
-    final url = Uri.parse('$_phpBase/api/get_dashboard.php?action=categories');
+    final url = Uri.parse('$_phpBase/api/categories.php?action=list');
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to load categories');
+    }
+  }
+
+  Future<Map<String, dynamic>> getBooksByCategory(int categoryId) async {
+    final url = Uri.parse('$_phpBase/api/categories.php?action=books&category_id=$categoryId');
+    final response = await http.get(url, headers: _authHeaders);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load books for category');
     }
   }
 
@@ -197,10 +208,12 @@ class ApiService {
 
   // ── Book Search ─────────────────────────────────────────────────────────
 
-  Future<Map<String, dynamic>> searchBooks(String query) async {
-    final url = Uri.parse(
-      '$_phpBase/api/user.php?action=search&q=${Uri.encodeComponent(query)}',
-    );
+  Future<Map<String, dynamic>> searchBooks(String query, {int? categoryId}) async {
+    var urlString = '$_phpBase/api/user.php?action=search&q=${Uri.encodeComponent(query)}';
+    if (categoryId != null) {
+      urlString += '&category_id=$categoryId';
+    }
+    final url = Uri.parse(urlString);
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -230,7 +243,9 @@ class ApiService {
     String publisher = '',
     int? publicationYear,
     String coverImagePath = '',
+    String coverImageUrl = '',
     int? addedBy,
+    List<int>? categoryIds,
   }) async {
     final url = Uri.parse('$_phpBase/api/admin.php?action=add_book');
     final body = <String, dynamic>{
@@ -239,9 +254,11 @@ class ApiService {
       'isbn': isbn,
       'publisher': publisher,
       'cover_image_path': coverImagePath,
+      'cover_image_url': coverImageUrl,
     };
     if (publicationYear != null) body['publication_year'] = publicationYear;
     if (addedBy != null) body['added_by'] = addedBy;
+    if (categoryIds != null && categoryIds.isNotEmpty) body['category_ids'] = categoryIds;
 
     final response = await http.post(
       url,

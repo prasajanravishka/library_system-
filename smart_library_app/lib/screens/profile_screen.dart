@@ -61,9 +61,15 @@ class ProfileScreen extends ConsumerWidget {
     final fullName = profile['full_name'] ?? 'Unknown User';
     final email = profile['email'] ?? 'unknown@example.com';
     final role = profile['role'] ?? 'student';
-    final borrowedCount = '${profile['total_borrowed'] ?? 0}';
+    final borrowedCount = '${profile['total_books_read'] ?? profile['total_borrowed'] ?? 0}';
     final overdueCount = '${profile['total_overdue'] ?? 0}';
     final rank = profile['rank'] ?? 'Bronze';
+    final badgeIconString = profile['badge_icon'] ?? 'military_tech';
+    final fines = profile['total_fines_pending']?.toString() ?? '0';
+
+    IconData badgeIcon = Icons.military_tech;
+    if (badgeIconString == 'emoji_events') badgeIcon = Icons.emoji_events;
+    if (badgeIconString == 'workspace_premium') badgeIcon = Icons.workspace_premium;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -154,14 +160,55 @@ class ProfileScreen extends ConsumerWidget {
             delay: const Duration(milliseconds: 350),
             child: Row(
               children: [
-                _buildStatTile('Borrowed', borrowedCount, AppColors.purple),
+                _buildStatTile('Read', borrowedCount, AppColors.purple, Icons.menu_book),
                 const SizedBox(width: 12),
-                _buildStatTile('Overdue', overdueCount, AppColors.red),
+                _buildStatTile('Overdue', overdueCount, AppColors.red, Icons.warning_amber_rounded),
                 const SizedBox(width: 12),
-                _buildStatTile('Rank', rank, AppColors.amber),
+                _buildStatTile('Rank', rank, AppColors.amber, badgeIcon),
               ],
             ),
           ),
+          if (double.tryParse(fines) != null && double.parse(fines) > 0) ...[
+            const SizedBox(height: 16),
+            FadeInUp(
+              delay: const Duration(milliseconds: 400),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.red.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.money_off, color: AppColors.red),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Pending Fines: \$$fines',
+                        style: const TextStyle(
+                          color: AppColors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                      onPressed: () {
+                        // Implement pay fine
+                      },
+                      child: const Text('Pay'),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 28),
 
           // Settings list
@@ -240,13 +287,17 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatTile(String label, String value, Color color) {
+  Widget _buildStatTile(String label, String value, Color color, [IconData? icon]) {
     return Expanded(
       child: GlassCard(
         enableBlur: false,
         padding: const EdgeInsets.symmetric(vertical: 18),
         child: Column(
           children: [
+            if (icon != null) ...[
+              Icon(icon, color: color, size: 28),
+              const SizedBox(height: 8),
+            ],
             Text(
               value,
               style: AppTextStyles.statValue.copyWith(

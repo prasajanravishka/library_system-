@@ -71,7 +71,11 @@ try {
         full_name      VARCHAR(100) NOT NULL,
         email          VARCHAR(100) UNIQUE NOT NULL,
         password_hash  VARCHAR(255) NOT NULL,
+        profile_image_url VARCHAR(500),
         account_status ENUM('active', 'suspended') DEFAULT 'active',
+        `rank`         VARCHAR(20)  NOT NULL DEFAULT 'Bronze',
+        badge_icon     VARCHAR(50)  NOT NULL DEFAULT 'military_tech',
+        total_books_read INT        NOT NULL DEFAULT 0,
         created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB;");
@@ -85,6 +89,7 @@ try {
         publisher           VARCHAR(255),
         publication_year    INT,
         cover_image_path    VARCHAR(255),
+        cover_image_url     VARCHAR(500),
         availability_status ENUM('available', 'borrowed', 'lost') DEFAULT 'available',
         added_by            INT,
         added_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -100,13 +105,36 @@ try {
         borrow_date DATE NOT NULL,
         due_date    DATE NOT NULL,
         return_date DATE,
-        status      ENUM('borrowed', 'returned', 'overdue') DEFAULT 'borrowed',
+        status      ENUM('borrowed', 'returned', 'overdue', 'lost') DEFAULT 'borrowed',
+        fine_amount DECIMAL(8,2) NOT NULL DEFAULT 0.00,
+        fine_paid   BOOLEAN      NOT NULL DEFAULT FALSE,
         created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
         FOREIGN KEY (book_id) REFERENCES books(book_id) ON DELETE CASCADE,
         INDEX idx_user_status (user_id, status),
         INDEX idx_book_status (book_id, status),
-        INDEX idx_due_date    (due_date)
+        INDEX idx_due_date    (due_date),
+        INDEX idx_borrow_fines (fine_amount, fine_paid)
+    ) ENGINE=InnoDB;");
+
+    // Categories table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS categories (
+        category_id  INT AUTO_INCREMENT PRIMARY KEY,
+        name         VARCHAR(100) UNIQUE NOT NULL,
+        description  VARCHAR(500),
+        icon         VARCHAR(50)  NOT NULL DEFAULT 'category',
+        sort_order   INT          NOT NULL DEFAULT 0,
+        created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB;");
+
+    // Book ↔ Categories Junction Table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS book_categories (
+        book_id      INT NOT NULL,
+        category_id  INT NOT NULL,
+        PRIMARY KEY (book_id, category_id),
+        FOREIGN KEY (book_id)     REFERENCES books(book_id)         ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE,
+        INDEX idx_category_books (category_id, book_id)
     ) ENGINE=InnoDB;");
 
     echo "✅ Tables created\n";
@@ -125,12 +153,12 @@ try {
     $pdo->exec("INSERT IGNORE INTO admins (username, full_name, email, password_hash) 
                VALUES ('librarian', 'Head Librarian', 'librarian@library.edu', '$pwHash');");
 
-    // Insert users (students)
-    $pdo->exec("INSERT IGNORE INTO users (student_id, full_name, email, password_hash, account_status) 
+    // Insert users (students) - pre-calculated ranks for sample borrow data
+    $pdo->exec("INSERT IGNORE INTO users (student_id, full_name, email, password_hash, account_status, total_books_read, `rank`, badge_icon) 
                VALUES 
-               ('S12345', 'John Doe', 'john@example.com', '$pwHash', 'active'),
-               ('S67890', 'Jane Smith', 'jane@example.com', '$pwHash', 'active'),
-               ('S11111', 'Bob User', 'bob@example.com', '$pwHash', 'suspended');");
+               ('S12345', 'John Doe', 'john@example.com', '$pwHash', 'active', 1, 'Bronze', 'military_tech'),
+               ('S67890', 'Jane Smith', 'jane@example.com', '$pwHash', 'active', 1, 'Bronze', 'military_tech'),
+               ('S11111', 'Bob User', 'bob@example.com', '$pwHash', 'suspended', 0, 'Bronze', 'military_tech');");
 
     // Insert books
     $pdo->exec("INSERT IGNORE INTO books (title, author, isbn, publisher, publication_year, availability_status, added_by) 
@@ -141,11 +169,26 @@ try {
                ('The Catcher in the Rye', 'J.D. Salinger', '9780316769488', 'Little Brown', 1951, 'available', 1),
                ('Pride and Prejudice', 'Jane Austen', '9780141439518', 'Penguin Classics', 1813, 'available', 1);");
 
+    // Insert categories
+    $pdo->exec("INSERT IGNORE INTO categories (category_id, name, description, icon, sort_order) VALUES 
+               (1, 'Technology',  'Computer science, programming, and IT books',             'computer',     1),
+               (2, 'Fiction',     'Novels, short stories, and literary fiction',              'auto_stories', 2),
+               (3, 'Science',     'Physics, chemistry, biology, and natural sciences',       'science',      3),
+               (4, 'History',     'World history, civilisations, and historical analysis',   'history',      4),
+               (5, 'Art',         'Visual arts, music, design, and architecture',            'palette',      5),
+               (6, 'Mathematics', 'Algebra, calculus, statistics, and applied math',         'calculate',    6),
+               (7, 'Philosophy',  'Ethics, logic, metaphysics, and critical thinking',       'psychology',   7),
+               (8, 'Literature',  'Poetry, drama, classics, and literary criticism',         'menu_book',    8);");
+
+    // Insert book categories
+    $pdo->exec("INSERT IGNORE INTO book_categories (book_id, category_id) VALUES 
+               (1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (5, 8);");
+
     // Insert borrow records
-    $pdo->exec("INSERT IGNORE INTO borrow_records (user_id, book_id, borrow_date, due_date, status) 
+    $pdo->exec("INSERT IGNORE INTO borrow_records (user_id, book_id, borrow_date, due_date, status, fine_amount, fine_paid) 
                VALUES 
-               (1, 3, '2026-06-01', '2026-06-15', 'overdue'),
-               (2, 5, '2026-06-18', '2026-07-02', 'borrowed');");
+               (1, 3, '2026-06-01', '2026-06-15', 'overdue', 0.00, FALSE),
+               (2, 5, '2026-06-18', '2026-07-02', 'borrowed', 0.00, FALSE);");
 
     echo "✅ Sample data imported\n";
 } catch (PDOException $e) {

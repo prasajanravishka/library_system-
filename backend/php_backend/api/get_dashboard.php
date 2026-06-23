@@ -122,14 +122,32 @@ try {
             if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
                 jsonError('Method not allowed', 405);
             }
-            // Hardcoded categories as there might not be a categories table
-            $categories = [
-                ['id' => 1, 'name' => 'Technology', 'icon' => 'computer'],
-                ['id' => 2, 'name' => 'Fiction', 'icon' => 'auto_stories'],
-                ['id' => 3, 'name' => 'Science', 'icon' => 'science'],
-                ['id' => 4, 'name' => 'History', 'icon' => 'history'],
-                ['id' => 5, 'name' => 'Art', 'icon' => 'palette'],
-            ];
+
+            // Try to read from DB; fallback to hardcoded if table missing
+            try {
+                $stmt = $pdo->query(
+                    "SELECT c.category_id AS id, c.name, c.icon,
+                            COUNT(bc.book_id) AS book_count
+                     FROM categories c
+                     LEFT JOIN book_categories bc ON c.category_id = bc.category_id
+                     GROUP BY c.category_id
+                     ORDER BY c.sort_order ASC, c.name ASC"
+                );
+                $categories = $stmt->fetchAll();
+                foreach ($categories as &$cat) {
+                    $cat['id']         = (int) $cat['id'];
+                    $cat['book_count'] = (int) $cat['book_count'];
+                }
+            } catch (PDOException $e) {
+                // Fallback if categories table doesn't exist yet
+                $categories = [
+                    ['id' => 1, 'name' => 'Technology', 'icon' => 'computer', 'book_count' => 0],
+                    ['id' => 2, 'name' => 'Fiction',    'icon' => 'auto_stories', 'book_count' => 0],
+                    ['id' => 3, 'name' => 'Science',    'icon' => 'science', 'book_count' => 0],
+                    ['id' => 4, 'name' => 'History',    'icon' => 'history', 'book_count' => 0],
+                    ['id' => 5, 'name' => 'Art',        'icon' => 'palette', 'book_count' => 0],
+                ];
+            }
             jsonSuccess([
                 'categories' => $categories,
             ]);

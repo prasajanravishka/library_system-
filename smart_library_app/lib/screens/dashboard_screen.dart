@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:animate_do/animate_do.dart';
 import '../core/app_theme.dart';
 import '../providers/providers.dart';
+import '../models/category_model.dart';
 import 'search_results_screen.dart';
+import 'category_books_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -259,36 +261,59 @@ class DashboardScreen extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         itemCount: categories.length,
                         itemBuilder: (context, index) {
-                          final cat = categories[index];
-                          IconData iconData = Icons.category;
-                          if (cat['icon'] == 'computer') iconData = Icons.computer;
-                          if (cat['icon'] == 'auto_stories') iconData = Icons.auto_stories;
-                          if (cat['icon'] == 'science') iconData = Icons.science;
-                          if (cat['icon'] == 'history') iconData = Icons.history;
-                          if (cat['icon'] == 'palette') iconData = Icons.palette;
+                          final CategoryModel cat = categories[index];
 
                           return FadeInUp(
                             delay: Duration(milliseconds: 100 * index),
-                            child: Container(
-                              margin: const EdgeInsets.only(right: 12),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              decoration: BoxDecoration(
-                                color: AppColors.cyan.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(25),
-                                border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(iconData, color: AppColors.cyan, size: 20),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    cat['name'] ?? '',
-                                    style: const TextStyle(
-                                      color: AppColors.cyan,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => CategoryBooksScreen(category: cat),
                                   ),
-                                ],
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(25),
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cyan.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(25),
+                                  border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(cat.iconData, color: AppColors.cyan, size: 20),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      cat.name,
+                                      style: const TextStyle(
+                                        color: AppColors.cyan,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    if (cat.bookCount > 0) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.cyan.withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Text(
+                                          '${cat.bookCount}',
+                                          style: const TextStyle(
+                                            color: AppColors.cyan,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
                               ),
                             ),
                           );

@@ -32,10 +32,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.lightBg,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: screens),
 
       // Center-docked Scanner FAB with pulse animation
       floatingActionButton: Pulse(
@@ -77,10 +74,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         child: Container(
           decoration: const BoxDecoration(
             border: Border(
-              top: BorderSide(
-                color: AppColors.lightBorderSubtle,
-                width: 1,
-              ),
+              top: BorderSide(color: AppColors.lightBorderSubtle, width: 1),
             ),
           ),
           child: Row(
@@ -92,6 +86,13 @@ class _MainScreenState extends ConsumerState<MainScreen> {
                 activeIcon: Icons.person_rounded,
                 label: 'Profile',
                 index: 0,
+              ),
+              // Dashboard tab (center-left)
+              _buildNavItem(
+                icon: Icons.dashboard_outlined,
+                activeIcon: Icons.dashboard_rounded,
+                label: 'Dashboard',
+                index: 1,
               ),
               // Spacer for FAB
               const SizedBox(width: 48),
@@ -127,11 +128,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                isSelected ? activeIcon : icon,
-                color: color,
-                size: 26,
-              ),
+              Icon(isSelected ? activeIcon : icon, color: color, size: 26),
               const SizedBox(height: 4),
               Text(
                 label,

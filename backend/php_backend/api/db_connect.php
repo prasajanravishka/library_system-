@@ -34,8 +34,15 @@ define('API_KEY', 'LIBRARY_SECRET_API_KEY_2026');
 /**
  * Validate the API key from the x-api-key header.
  * Rejects unauthorized requests with 401 status.
+ * Setup script is allowed without API key for initial database setup.
  */
 function validateApiKey(): void {
+    // Skip validation for setup.php and create_user.php (admin tools)
+    $currentFile = basename($_SERVER['SCRIPT_FILENAME']);
+    if ($currentFile === 'setup.php' || $currentFile === 'create_user.php') {
+        return;
+    }
+
     $headers = getallheaders();
     // Header keys may vary in case across servers
     $apiKey = $headers['x-api-key'] ?? $headers['X-Api-Key'] ?? $headers['X-API-KEY'] ?? $headers['X-API-Key'] ?? '';

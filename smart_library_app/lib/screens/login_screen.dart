@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_theme.dart';
+import '../core/app_constants.dart';
 import '../providers/providers.dart';
 import '../widgets/glass_card.dart';
 import 'main_screen.dart';
@@ -294,52 +296,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton.icon(
-                onPressed: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.remove(AppConstants.prefOnboardingSeen);
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Onboarding reset! Restart app to see it.'),
-                        backgroundColor: AppColors.cyan,
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.restart_alt_rounded, color: AppColors.textSecondary),
-                label: const Text(
-                  'Reset Onboarding',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextButton.icon(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove(AppConstants.prefOnboardingSeen);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Onboarding reset! Restart app to see it.'),
+                      backgroundColor: AppColors.cyan,
+                    ),
+                  );
+                }
+              },
+              icon: Icon(
+                Icons.restart_alt_rounded,
+                color: AppColors.textSecondary,
               ),
-              const SizedBox(width: 16),
-              TextButton.icon(
-                onPressed: () async {
-                  final apiService = ref.read(apiServiceProvider);
-                  final success = await apiService.testUserDatabaseConnection();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          success ? 'Success: Check Console' : 'Connection Failed',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        backgroundColor: success ? AppColors.emerald : AppColors.red,
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.bug_report_rounded, color: AppColors.cyan),
-                label: const Text(
-                  'Test DB Connection',
-                  style: TextStyle(color: AppColors.cyan),
-                ),
+              label: Text(
+                'Reset Onboarding',
+                style: TextStyle(color: AppColors.textSecondary),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 16),
+            TextButton.icon(
+              onPressed: () async {
+                final apiService = ref.read(apiServiceProvider);
+                final success = await apiService.testUserDatabaseConnection();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        success
+                            ? 'Success: Check Console'
+                            : 'Connection Failed',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: success
+                          ? AppColors.emerald
+                          : AppColors.red,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.bug_report_rounded, color: AppColors.cyan),
+              label: const Text(
+                'Test DB Connection',
+                style: TextStyle(color: AppColors.cyan),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

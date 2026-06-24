@@ -134,7 +134,7 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.search, color: AppColors.lightTextSecondary),
+                            Icon(Icons.search, color: AppColors.lightTextSecondary),
                             const SizedBox(width: 12),
                             Text(
                               'Search books, authors...',
@@ -162,8 +162,8 @@ class DashboardScreen extends ConsumerWidget {
                 child: featuredAsync.when(
                   data: (books) {
                     if (books.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.all(20),
+                      return Padding(
+                        padding: const EdgeInsets.all(20),
                         child: Center(child: Text('No featured books available.', style: TextStyle(color: AppColors.lightTextSecondary))),
                       );
                     }
@@ -202,8 +202,8 @@ class DashboardScreen extends ConsumerWidget {
                                       color: AppColors.lightBorderSubtle,
                                       child: book['cover_image_path'] != null && book['cover_image_path'].toString().isNotEmpty
                                           ? Image.network(book['cover_image_path'], fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) => const Icon(Icons.book, size: 40, color: AppColors.lightTextSecondary))
-                                          : const Icon(Icons.book, size: 40, color: AppColors.lightTextSecondary),
+                                              errorBuilder: (_, __, ___) => Icon(Icons.book, size: 40, color: AppColors.lightTextSecondary))
+                                          : Icon(Icons.book, size: 40, color: AppColors.lightTextSecondary),
                                     ),
                                   ),
                                   Padding(
@@ -220,7 +220,7 @@ class DashboardScreen extends ConsumerWidget {
                                         const SizedBox(height: 4),
                                         Text(
                                           book['author'] ?? 'Unknown',
-                                          style: const TextStyle(fontSize: 12, color: AppColors.lightTextSecondary),
+                                          style: TextStyle(fontSize: 12, color: AppColors.lightTextSecondary),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),

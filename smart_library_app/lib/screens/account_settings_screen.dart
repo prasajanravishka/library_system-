@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:animate_do/animate_do.dart';
 import '../core/app_theme.dart';
 import '../widgets/glass_card.dart';
+import '../providers/theme_provider.dart';
 
 class AccountSettingsScreen extends ConsumerStatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -16,7 +17,6 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
   final _emailController = TextEditingController(text: 'johndoe@example.com');
   bool _pushNotifications = true;
   bool _emailNotifications = true;
-  bool _isDarkMode = true;
 
   @override
   void dispose() {
@@ -37,13 +37,11 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: AppColors.primaryBg,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         title: FadeInDown(child: Text('Account Settings', style: AppTextStyles.heading2)),
-        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -60,23 +58,15 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: _nameController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Full Name',
-                        labelStyle: const TextStyle(color: Colors.white70),
-                        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.cyan)),
                       ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _emailController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Email Address',
-                        labelStyle: const TextStyle(color: Colors.white70),
-                        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                        focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.cyan)),
                       ),
                     ),
                   ],
@@ -93,22 +83,24 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                     Text('Preferences', style: AppTextStyles.heading3),
                     const SizedBox(height: 16),
                     SwitchListTile(
-                      title: const Text('Push Notifications', style: TextStyle(color: Colors.white)),
+                      title: const Text('Push Notifications'),
                       value: _pushNotifications,
                       activeColor: AppColors.cyan,
                       onChanged: (val) => setState(() => _pushNotifications = val),
                     ),
                     SwitchListTile(
-                      title: const Text('Email Notifications', style: TextStyle(color: Colors.white)),
+                      title: const Text('Email Notifications'),
                       value: _emailNotifications,
                       activeColor: AppColors.cyan,
                       onChanged: (val) => setState(() => _emailNotifications = val),
                     ),
                     SwitchListTile(
-                      title: const Text('Dark Mode', style: TextStyle(color: Colors.white)),
-                      value: _isDarkMode,
+                      title: const Text('Dark Mode'),
+                      value: ref.watch(themeProvider) == ThemeMode.dark,
                       activeColor: AppColors.cyan,
-                      onChanged: (val) => setState(() => _isDarkMode = val),
+                      onChanged: (val) {
+                        ref.read(themeProvider.notifier).setThemeMode(val ? ThemeMode.dark : ThemeMode.light);
+                      },
                     ),
                   ],
                 ),

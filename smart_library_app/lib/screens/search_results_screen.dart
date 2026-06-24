@@ -38,9 +38,9 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primaryBg,
+      
       appBar: AppBar(
-        backgroundColor: AppColors.primaryBg,
+        
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: TextField(

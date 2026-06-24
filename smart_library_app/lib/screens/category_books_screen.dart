@@ -16,7 +16,7 @@ class CategoryBooksScreen extends ConsumerWidget {
     final booksAsync = ref.watch(booksByCategoryProvider(category.id));
 
     return Scaffold(
-      backgroundColor: AppColors.primaryBg,
+      
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

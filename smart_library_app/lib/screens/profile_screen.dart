@@ -1,8 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:animate_do/animate_do.dart';
 import '../core/app_theme.dart';
 import '../providers/providers.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/glass_card.dart';
 import 'login_screen.dart';
 import 'account_settings_screen.dart';
@@ -20,7 +22,7 @@ class ProfileScreen extends ConsumerWidget {
     final profileAsync = ref.watch(userProfileProvider(authState.userId));
 
     return Scaffold(
-      backgroundColor: AppColors.primaryBg,
+      
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -62,6 +64,8 @@ class ProfileScreen extends ConsumerWidget {
     Map<String, dynamic> profile,
     AuthState authState,
   ) {
+    final themeMode = ref.watch(themeProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final fullName = profile['full_name'] ?? 'Unknown User';
     final email = profile['email'] ?? 'unknown@example.com';
     final role = profile['role'] ?? 'student';
@@ -215,14 +219,78 @@ class ProfileScreen extends ConsumerWidget {
           ],
           const SizedBox(height: 28),
 
-          // Settings list
+          // Appearance settings
           FadeInUp(
             delay: const Duration(milliseconds: 450),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+                  child: Text('Appearance', style: AppTextStyles.heading3),
+                ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardTheme.color ?? (isDark ? const Color(0xCC1E293B) : const Color(0xCCFFFFFF)),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isDark 
+                              ? Colors.white.withValues(alpha: 0.1) 
+                              : Colors.black.withValues(alpha: 0.05),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                          )
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _ThemeOptionTile(
+                            title: 'System Default',
+                            icon: Icons.brightness_auto_rounded,
+                            isSelected: themeMode == ThemeMode.system,
+                            onTap: () => ref.read(themeProvider.notifier).setThemeMode(ThemeMode.system),
+                          ),
+                          _buildDivider(),
+                          _ThemeOptionTile(
+                            title: 'Light Mode',
+                            icon: Icons.wb_sunny_rounded,
+                            isSelected: themeMode == ThemeMode.light,
+                            onTap: () => ref.read(themeProvider.notifier).setThemeMode(ThemeMode.light),
+                          ),
+                          _buildDivider(),
+                          _ThemeOptionTile(
+                            title: 'Dark Mode',
+                            icon: Icons.nights_stay_rounded,
+                            isSelected: themeMode == ThemeMode.dark,
+                            onTap: () => ref.read(themeProvider.notifier).setThemeMode(ThemeMode.dark),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // Settings list
+          FadeInUp(
+            delay: const Duration(milliseconds: 500),
             child: GlassCard(
               enableBlur: false,
               child: Column(
                 children: [
                   _buildListTile(
+                    context,
                     Icons.settings_rounded,
                     'Account Settings',
                     onTap: () {
@@ -231,6 +299,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   _buildDivider(),
                   _buildListTile(
+                    context,
                     Icons.history_rounded,
                     'Reading History',
                     onTap: () {
@@ -239,6 +308,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   _buildDivider(),
                   _buildListTile(
+                    context,
                     Icons.notifications_none_rounded,
                     'Notifications',
                     onTap: () {
@@ -247,6 +317,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   _buildDivider(),
                   _buildListTile(
+                    context,
                     Icons.help_outline_rounded,
                     'Help & Support',
                     onTap: () {
@@ -336,11 +407,12 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildListTile(IconData icon, String title, {VoidCallback? onTap}) {
+  Widget _buildListTile(BuildContext context, IconData icon, String title, {VoidCallback? onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
       leading: Icon(icon, color: AppColors.cyan),
-      title: Text(title, style: const TextStyle(color: Colors.white)),
-      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white54),
+      title: Text(title), // Automatically uses theme text color
+      trailing: Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white54 : Colors.black54),
       onTap: onTap,
     );
   }
@@ -361,5 +433,40 @@ class ProfileScreen extends ConsumerWidget {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
     return parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?';
+  }
+}
+
+class _ThemeOptionTile extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ThemeOptionTile({
+    required this.title,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(
+        icon, 
+        color: isSelected ? AppColors.cyan : null,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          color: isSelected ? AppColors.cyan : null,
+        ),
+      ),
+      trailing: isSelected 
+          ? const Icon(Icons.check_circle_rounded, color: AppColors.cyan) 
+          : null,
+      onTap: onTap,
+    );
   }
 }

@@ -72,7 +72,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         notchMargin: 8,
         shape: const CircularNotchedRectangle(),
         child: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             border: Border(
               top: BorderSide(color: AppColors.lightBorderSubtle, width: 1),
             ),

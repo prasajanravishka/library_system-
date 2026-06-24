@@ -119,7 +119,7 @@ class _BookDetailsConfirmationScreenState
     }
 
     return Scaffold(
-      backgroundColor: AppColors.primaryBg,
+      
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -361,7 +361,7 @@ class _BookDetailsConfirmationScreenState
 
   Widget _buildSuccessState() {
     return Scaffold(
-      backgroundColor: AppColors.primaryBg,
+      
       body: Center(
         child: FadeIn(
           child: Column(

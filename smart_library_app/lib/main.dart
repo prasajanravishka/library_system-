@@ -1,25 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/app_theme.dart';
 import 'providers/providers.dart';
+import 'providers/theme_provider.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: SmartLibraryApp()));
+  
+  // Initialize SharedPreferences before the app starts
+  final sharedPrefs = await SharedPreferences.getInstance();
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(sharedPrefs),
+      ],
+      child: const SmartLibraryApp(),
+    ),
+  );
 }
 
-class SmartLibraryApp extends StatelessWidget {
+class SmartLibraryApp extends ConsumerWidget {
   const SmartLibraryApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch the current theme mode (Light, Dark, or System)
+    final themeMode = ref.watch(themeProvider);
+
     return MaterialApp(
       title: 'Smart Library',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
       home: const AppGate(),
     );
   }
@@ -47,9 +65,6 @@ class _AppGateState extends ConsumerState<AppGate> {
     // Try to restore existing session from SharedPreferences
     await ref.read(authProvider.notifier).tryRestoreSession();
 
-    // The DEV SHORTCUT was removed here so you can see the onboarding
-    // and login flow naturally.
-
     if (mounted) {
       setState(() => _initialized = true);
     }
@@ -59,7 +74,6 @@ class _AppGateState extends ConsumerState<AppGate> {
   Widget build(BuildContext context) {
     if (!_initialized) {
       return Scaffold(
-        backgroundColor: AppColors.primaryBg,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -94,7 +108,6 @@ class _AppGateState extends ConsumerState<AppGate> {
         return const LoginScreen();
       },
       loading: () => const Scaffold(
-        backgroundColor: AppColors.primaryBg,
         body: Center(
           child: CircularProgressIndicator(
             color: AppColors.cyan,

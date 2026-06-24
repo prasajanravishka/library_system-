@@ -1,79 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// ─── Color Palette ────────────────────────────────────────────────────────
 class AppColors {
   AppColors._();
 
-  /// Primary background for Scaffolds
-  static const Color primaryBg = Color(0xFF0F172A);
-
-  /// Surface/Cards color (use with alpha 0.8 + backdrop blur)
-  static const Color surface = Color(0xFF1E293B);
-
-  /// Primary accent: Cyan for buttons, active tabs, search icons
+  // Shared Accents
   static const Color cyan = Color(0xFF06B6D4);
-
-  /// Secondary accent: Vibrant Purple exclusively for Scanner FAB
   static const Color purple = Color(0xFF8B5CF6);
-
-  /// Status: Available / Borrowed
   static const Color emerald = Color(0xFF10B981);
-
-  /// Status: Overdue
   static const Color red = Color(0xFFEF4444);
-
-  /// Status: Pending
   static const Color amber = Color(0xFFF59E0B);
 
-  /// Primary text
-  static const Color textPrimary = Colors.white;
-
-  /// Secondary text
-  static Color textSecondary = Colors.grey.shade400;
-
-  /// Subtle border color
-  static Color borderSubtle = Colors.white.withValues(alpha: 0.1);
-
-  /// Glass surface with alpha
-  static Color glassSurface = surface.withValues(alpha: 0.8);
-
-  // ── Light Theme Colors ──────────────────────────────────────────────
-  static const Color lightBg = Color(0xFFF8F9FA);
+  // Dark Palette
+  static const Color darkBg = Color(0xFF0F172A);
+  static const Color darkSurface = Color(0xFF1E293B);
+  
+  // Light Palette
+  static const Color lightBg = Color(0xFFF8FAFC);
   static const Color lightSurface = Colors.white;
-  static const Color lightTextPrimary = Color(0xFF1F2937);
-  static const Color lightTextSecondary = Color(0xFF6B7280);
-  static const Color lightBorderSubtle = Color(0xFFE5E7EB);
-  static Color lightGlassSurface = Colors.white.withValues(alpha: 0.85);
+
+  // Backwards compatibility for existing hardcoded colors
+  // These are kept to prevent compilation errors but will use Dark Theme values.
+  static const Color primaryBg = Color(0xFF0F172A);
+  static const Color surface = Color(0xFF1E293B);
+  static const Color textPrimary = Colors.white;
+  static Color textSecondary = Colors.grey.shade400;
+  static Color borderSubtle = Colors.white.withValues(alpha: 0.1);
+  static Color glassSurface = surface.withValues(alpha: 0.8);
+  
+  static const Color lightTextPrimary = Color(0xFF0F172A);
+  static Color lightTextSecondary = Colors.grey.shade600;
+  static Color lightBorderSubtle = Colors.black12;
 }
 
-/// ─── Glass Decoration Factory ──────────────────────────────────────────────
 class GlassDecoration {
   GlassDecoration._();
 
-  /// Standard glassmorphism card decoration
-  static BoxDecoration card({
+  static BoxDecoration card(BuildContext context, {
     double borderRadius = 16,
     Color? borderColor,
     double borderWidth = 1,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return BoxDecoration(
-      color: AppColors.glassSurface,
+      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
       borderRadius: BorderRadius.circular(borderRadius),
       border: Border.all(
-        color: borderColor ?? AppColors.borderSubtle,
+        color: borderColor ?? (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1)),
         width: borderWidth,
       ),
     );
   }
 
-  /// Elevated glassmorphism card with glow
-  static BoxDecoration elevated({
+  static BoxDecoration elevated(BuildContext context, {
     double borderRadius = 16,
     Color glowColor = AppColors.cyan,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return BoxDecoration(
-      color: AppColors.glassSurface,
+      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
       borderRadius: BorderRadius.circular(borderRadius),
       border: Border.all(
         color: glowColor.withValues(alpha: 0.3),
@@ -90,53 +75,56 @@ class GlassDecoration {
   }
 }
 
-/// ─── Theme Builder ─────────────────────────────────────────────────────────
 class AppTheme {
   AppTheme._();
 
   static ThemeData get darkTheme {
     return ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: AppColors.primaryBg,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.cyan,
-        brightness: Brightness.dark,
-        surface: AppColors.surface,
-      ),
       useMaterial3: true,
-
-      // Text theme using Google Fonts (Inter)
-      textTheme: GoogleFonts.interTextTheme(
-        ThemeData.dark().textTheme,
+      brightness: Brightness.dark,
+      primaryColor: AppColors.cyan,
+      scaffoldBackgroundColor: AppColors.darkBg,
+      colorScheme: const ColorScheme.dark(
+        primary: AppColors.cyan,
+        secondary: AppColors.purple,
+        surface: Color(0xCC1E293B),
+        error: AppColors.red,
       ),
-
-      // AppBar theme
+      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
+        displayLarge: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold),
+        titleLarge: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600),
+        bodyMedium: GoogleFonts.inter(color: Colors.grey.shade400),
+        bodySmall: GoogleFonts.inter(color: Colors.grey.shade500),
+      ),
+      cardTheme: CardThemeData(
+        color: const Color(0xCC1E293B),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         titleTextStyle: GoogleFonts.inter(
-          color: AppColors.textPrimary,
+          color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-
-      // Input decoration theme (glass text fields)
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.glassSurface,
-        labelStyle: TextStyle(color: AppColors.textSecondary),
-        hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.6)),
-        prefixIconColor: AppColors.textSecondary,
+        fillColor: AppColors.darkSurface.withValues(alpha: 0.8),
+        labelStyle: TextStyle(color: Colors.grey.shade400),
+        hintStyle: TextStyle(color: Colors.grey.shade400.withValues(alpha: 0.6)),
+        prefixIconColor: Colors.grey.shade400,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.borderSubtle),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.borderSubtle),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -148,35 +136,24 @@ class AppTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
-
-      // Elevated button theme (Cyan gradient style)
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.cyan,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          textStyle: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          textStyle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
-
-      // FAB theme (Purple scanner)
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: AppColors.purple,
         foregroundColor: Colors.white,
         elevation: 8,
         shape: CircleBorder(),
       ),
-
-      // Bottom navigation bar theme
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: AppColors.primaryBg,
+        backgroundColor: AppColors.darkBg,
         selectedItemColor: AppColors.cyan,
         unselectedItemColor: Colors.grey.shade500,
         type: BottomNavigationBarType.fixed,
@@ -184,11 +161,9 @@ class AppTheme {
         showUnselectedLabels: false,
         elevation: 0,
       ),
-
-      // Snackbar theme
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surface,
-        contentTextStyle: GoogleFonts.inter(color: AppColors.textPrimary),
+        backgroundColor: AppColors.darkSurface,
+        contentTextStyle: GoogleFonts.inter(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),
@@ -197,44 +172,51 @@ class AppTheme {
 
   static ThemeData get lightTheme {
     return ThemeData(
-      brightness: Brightness.light,
-      scaffoldBackgroundColor: AppColors.lightBg,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.cyan,
-        brightness: Brightness.light,
-        surface: AppColors.lightSurface,
-      ),
       useMaterial3: true,
-
-      textTheme: GoogleFonts.interTextTheme(
-        ThemeData.light().textTheme,
+      brightness: Brightness.light,
+      primaryColor: AppColors.cyan,
+      scaffoldBackgroundColor: AppColors.lightBg,
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.cyan,
+        secondary: AppColors.purple,
+        surface: Color(0xCCFFFFFF),
+        error: AppColors.red,
       ),
-
+      textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).copyWith(
+        displayLarge: GoogleFonts.inter(color: const Color(0xFF0F172A), fontWeight: FontWeight.bold),
+        titleLarge: GoogleFonts.inter(color: const Color(0xFF0F172A), fontWeight: FontWeight.w600),
+        bodyMedium: GoogleFonts.inter(color: Colors.grey.shade600),
+        bodySmall: GoogleFonts.inter(color: Colors.grey.shade500),
+      ),
+      cardTheme: CardThemeData(
+        color: const Color(0xCCFFFFFF),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         titleTextStyle: GoogleFonts.inter(
-          color: AppColors.lightTextPrimary,
+          color: const Color(0xFF0F172A),
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
-        iconTheme: const IconThemeData(color: AppColors.lightTextPrimary),
+        iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
       ),
-
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.lightBg,
-        labelStyle: const TextStyle(color: AppColors.lightTextSecondary),
-        hintStyle: TextStyle(color: AppColors.lightTextSecondary.withValues(alpha: 0.6)),
-        prefixIconColor: AppColors.lightTextSecondary,
+        fillColor: Colors.white.withValues(alpha: 0.8),
+        labelStyle: TextStyle(color: Colors.grey.shade600),
+        hintStyle: TextStyle(color: Colors.grey.shade600.withValues(alpha: 0.6)),
+        prefixIconColor: Colors.grey.shade600,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.lightBorderSubtle),
+          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.lightBorderSubtle),
+          borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -246,30 +228,22 @@ class AppTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
-
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.cyan,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          textStyle: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          textStyle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
-
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: AppColors.purple,
         foregroundColor: Colors.white,
         elevation: 8,
         shape: CircleBorder(),
       ),
-
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.lightSurface,
         selectedItemColor: AppColors.cyan,
@@ -279,9 +253,8 @@ class AppTheme {
         showUnselectedLabels: false,
         elevation: 10,
       ),
-
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.lightTextPrimary,
+        backgroundColor: const Color(0xFF0F172A),
         contentTextStyle: GoogleFonts.inter(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
@@ -290,40 +263,33 @@ class AppTheme {
   }
 }
 
-/// ─── Text Style Helpers ────────────────────────────────────────────────────
 class AppTextStyles {
   AppTextStyles._();
 
   static TextStyle heading1 = GoogleFonts.inter(
-    color: AppColors.textPrimary,
     fontSize: 28,
     fontWeight: FontWeight.bold,
   );
 
   static TextStyle heading2 = GoogleFonts.inter(
-    color: AppColors.textPrimary,
     fontSize: 22,
     fontWeight: FontWeight.w600,
   );
 
   static TextStyle heading3 = GoogleFonts.inter(
-    color: AppColors.textPrimary,
     fontSize: 18,
     fontWeight: FontWeight.w600,
   );
 
   static TextStyle bodyLarge = GoogleFonts.inter(
-    color: AppColors.textPrimary,
     fontSize: 16,
   );
 
   static TextStyle bodyMedium = GoogleFonts.inter(
-    color: AppColors.textSecondary,
     fontSize: 14,
   );
 
   static TextStyle bodySmall = GoogleFonts.inter(
-    color: AppColors.textSecondary,
     fontSize: 12,
   );
 

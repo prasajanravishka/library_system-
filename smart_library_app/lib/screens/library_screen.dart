@@ -16,7 +16,7 @@ class LibraryScreen extends ConsumerWidget {
     final isLibrarian = authState.isLibrarian;
 
     return Scaffold(
-      backgroundColor: AppColors.primaryBg,
+      
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

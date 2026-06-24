@@ -51,7 +51,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.primaryBg,
+      
       body: Center(
         child: SingleChildScrollView(
           child: Padding(

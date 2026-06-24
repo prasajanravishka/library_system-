@@ -16,7 +16,7 @@ class ReadingHistoryScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.primaryBg,
+      
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

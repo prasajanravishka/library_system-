@@ -423,6 +423,15 @@ flutter analyze
 
 ---
 
+## 📝 Changelog
+
+- **[June 2026] Flutter UI Fixes**: 
+  - Resolved `Constant evaluation error` in `main_screen.dart` and `dashboard_screen.dart` by removing `const` keywords from widgets using dynamic `AppColors`.
+  - Updated `CardTheme` to `CardThemeData` in `app_theme.dart` for newer Flutter SDK compatibility.
+  - Corrected `ThemeModeNotifier` calls in `account_settings_screen.dart` to fix `setTheme` undefined errors.
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these steps:

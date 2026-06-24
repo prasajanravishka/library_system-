@@ -116,3 +116,9 @@ python main.py
 cd smart_library_app
 flutter run
 ```
+
+---
+
+## Recent Updates
+
+- **[June 2026] UI Compilation**: Fixed `CardTheme` and `const` evaluation errors in the Flutter app to ensure successful compilation on the latest Flutter SDK versions.

@@ -327,5 +327,8 @@ This project demonstrates **genuine full-stack engineering maturity**. The dual-
 
 The primary gaps are in **security hardening** (expected for an academic project) and the **borrow_records table mismatch** (which is a blocking bug). Fixing the table name and adding a brief "Security Limitations & Future Work" section to your report would solidify this as an excellent submission.
 
+### Addendum: Recent Fixes
+- **Flutter UI Compilation**: Initial compilation errors related to `const` evaluation (e.g., using non-constant `AppColors` in `const BoxDecoration`) and deprecated `CardTheme` usages have been successfully resolved as of June 2026. The app now compiles successfully without errors.
+
 > [!IMPORTANT]
 > **Immediate action required**: Rename the MySQL table `borrowed_books` → `borrow_records` (or update all PHP references). This blocks dashboard, profile, borrow, and return functionality.

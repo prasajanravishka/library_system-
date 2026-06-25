@@ -174,15 +174,14 @@ try {
                (1, 'Technology',  'Computer science, programming, and IT books',             'computer',     1),
                (2, 'Fiction',     'Novels, short stories, and literary fiction',              'auto_stories', 2),
                (3, 'Science',     'Physics, chemistry, biology, and natural sciences',       'science',      3),
-               (4, 'History',     'World history, civilisations, and historical analysis',   'history',      4),
-               (5, 'Art',         'Visual arts, music, design, and architecture',            'palette',      5),
                (6, 'Mathematics', 'Algebra, calculus, statistics, and applied math',         'calculate',    6),
-               (7, 'Philosophy',  'Ethics, logic, metaphysics, and critical thinking',       'psychology',   7),
-               (8, 'Literature',  'Poetry, drama, classics, and literary criticism',         'menu_book',    8);");
+               (9, 'Business',    'Business management, entrepreneurship, and strategy',     'business_center', 9),
+               (10, 'Accounting',  'Financial accounting, auditing, and taxation',            'account_balance', 10),
+               (11, 'Electronic',  'Electronics, circuits, and hardware engineering',         'electrical_services', 11);");
 
     // Insert book categories
     $pdo->exec("INSERT IGNORE INTO book_categories (book_id, category_id) VALUES 
-               (1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (5, 8);");
+               (1, 2), (2, 2), (3, 2), (4, 2), (5, 2);");
 
     // Insert borrow records
     $pdo->exec("INSERT IGNORE INTO borrow_records (user_id, book_id, borrow_date, due_date, status, fine_amount, fine_paid) 

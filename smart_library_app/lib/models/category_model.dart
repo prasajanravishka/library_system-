@@ -48,16 +48,14 @@ class CategoryModel {
         return Icons.auto_stories_rounded;
       case 'science':
         return Icons.science_rounded;
-      case 'history':
-        return Icons.history_edu_rounded;
-      case 'palette':
-        return Icons.palette_rounded;
       case 'calculate':
         return Icons.calculate_rounded;
-      case 'psychology':
-        return Icons.psychology_rounded;
-      case 'menu_book':
-        return Icons.menu_book_rounded;
+      case 'business_center':
+        return Icons.business_center_rounded;
+      case 'account_balance':
+        return Icons.account_balance_rounded;
+      case 'electrical_services':
+        return Icons.electrical_services_rounded;
       default:
         return Icons.category_rounded;
     }

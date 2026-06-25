@@ -144,8 +144,10 @@ try {
                     ['id' => 1, 'name' => 'Technology', 'icon' => 'computer', 'book_count' => 0],
                     ['id' => 2, 'name' => 'Fiction',    'icon' => 'auto_stories', 'book_count' => 0],
                     ['id' => 3, 'name' => 'Science',    'icon' => 'science', 'book_count' => 0],
-                    ['id' => 4, 'name' => 'History',    'icon' => 'history', 'book_count' => 0],
-                    ['id' => 5, 'name' => 'Art',        'icon' => 'palette', 'book_count' => 0],
+                    ['id' => 6, 'name' => 'Mathematics', 'icon' => 'calculate', 'book_count' => 0],
+                    ['id' => 9, 'name' => 'Business',    'icon' => 'business_center', 'book_count' => 0],
+                    ['id' => 10, 'name' => 'Accounting',  'icon' => 'account_balance', 'book_count' => 0],
+                    ['id' => 11, 'name' => 'Electronic',  'icon' => 'electrical_services', 'book_count' => 0],
                 ];
             }
             jsonSuccess([

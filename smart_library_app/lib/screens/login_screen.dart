@@ -51,7 +51,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
@@ -172,7 +171,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   delay: const Duration(milliseconds: 300),
                   child: TextField(
                     controller: _studentIdController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
                     decoration: const InputDecoration(
                       labelText: 'Student ID',
                       prefixIcon: Icon(Icons.badge_outlined),
@@ -188,7 +187,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: TextField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Color.fromARGB(255, 5, 5, 5)),
                     decoration: InputDecoration(
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outline_rounded),

@@ -171,7 +171,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   delay: const Duration(milliseconds: 300),
                   child: TextField(
                     controller: _studentIdController,
-                    style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                    style: const TextStyle(
+                      color: Color.fromARGB(255, 35, 35, 35),
+                    ),
                     decoration: const InputDecoration(
                       labelText: 'Student ID',
                       prefixIcon: Icon(Icons.badge_outlined),
@@ -187,7 +189,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: TextField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: const TextStyle(color: Color.fromARGB(255, 5, 5, 5)),
+                    style: const TextStyle(
+                      color: Color.fromARGB(255, 40, 40, 40),
+                    ),
                     decoration: InputDecoration(
                       labelText: 'Password',
                       prefixIcon: const Icon(Icons.lock_outline_rounded),

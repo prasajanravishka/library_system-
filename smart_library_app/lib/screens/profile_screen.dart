@@ -385,12 +385,15 @@ class ProfileScreen extends ConsumerWidget {
               Icon(icon, color: color, size: 28),
               const SizedBox(height: 8),
             ],
-            Text(
-              value,
-              style: AppTextStyles.statValue.copyWith(
-                color: color,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: AppTextStyles.statValue.copyWith(
+                  color: color,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(height: 4),

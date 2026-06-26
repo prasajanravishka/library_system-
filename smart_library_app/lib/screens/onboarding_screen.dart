@@ -101,6 +101,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPageChanged: _onPageChanged,
                 itemBuilder: (context, index) {
                   final page = _pages[index];
+                  final iconSize = MediaQuery.sizeOf(context).width * 0.35 > 140.0 ? 140.0 : MediaQuery.sizeOf(context).width * 0.35;
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: Column(
@@ -110,8 +111,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         FadeInDown(
                           duration: const Duration(milliseconds: 600),
                           child: Container(
-                            width: 140,
-                            height: 140,
+                            width: iconSize,
+                            height: iconSize,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: RadialGradient(

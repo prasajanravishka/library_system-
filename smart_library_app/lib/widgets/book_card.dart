@@ -101,7 +101,8 @@ class BookCard extends StatelessWidget {
                         ),
                         if (borrowDate != null || dueDate != null) ...[
                           const SizedBox(height: 10),
-                          Row(
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               if (borrowDate != null) ...[
                                 Icon(Icons.calendar_today_rounded,

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:animate_do/animate_do.dart';
 import '../core/app_theme.dart';
 import '../providers/providers.dart';
-import '../models/category_model.dart';
+
 import 'search_results_screen.dart';
 import 'category_books_screen.dart';
 
@@ -27,9 +27,12 @@ class DashboardScreen extends ConsumerWidget {
             ref.invalidate(featuredBooksProvider);
             ref.invalidate(categoriesProvider);
           },
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
               // ── Status Bar / App Bar ─────────────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
@@ -158,87 +161,91 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              SliverToBoxAdapter(
-                child: featuredAsync.when(
+                featuredAsync.when(
                   data: (books) {
                     if (books.isEmpty) {
-                      return Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Center(child: Text('No featured books available.', style: TextStyle(color: AppColors.lightTextSecondary))),
+                      return SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Center(child: Text('No featured books available.', style: TextStyle(color: AppColors.lightTextSecondary))),
+                        ),
                       );
                     }
-                    return SizedBox(
-                      height: 220,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        itemCount: books.length,
-                        itemBuilder: (context, index) {
-                          final book = books[index];
-                          return FadeInRight(
-                            delay: Duration(milliseconds: 100 * index),
-                            child: Container(
-                              width: 140,
-                              margin: const EdgeInsets.only(right: 16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                                    child: Container(
-                                      height: 140,
-                                      width: double.infinity,
-                                      color: AppColors.lightBorderSubtle,
-                                      child: book['cover_image_path'] != null && book['cover_image_path'].toString().isNotEmpty
-                                          ? Image.network(book['cover_image_path'], fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) => Icon(Icons.book, size: 40, color: AppColors.lightTextSecondary))
-                                          : Icon(Icons.book, size: 40, color: AppColors.lightTextSecondary),
+                    return SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      sliver: SliverGrid(
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 180,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          childAspectRatio: 0.65,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final book = books[index];
+                            return FadeInUp(
+                              delay: Duration(milliseconds: 50 * index),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
                                     ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(10.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          book['title'] ?? 'Unknown',
-                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.lightTextPrimary),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          book['author'] ?? 'Unknown',
-                                          style: TextStyle(fontSize: 12, color: AppColors.lightTextSecondary),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                      child: Container(
+                                        height: 160,
+                                        width: double.infinity,
+                                        color: AppColors.lightBorderSubtle,
+                                        child: book['cover_image_path'] != null && book['cover_image_path'].toString().isNotEmpty
+                                            ? Image.network(book['cover_image_path'], fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) => Icon(Icons.book, size: 40, color: AppColors.lightTextSecondary))
+                                            : Icon(Icons.book, size: 40, color: AppColors.lightTextSecondary),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                    Padding(
+                                      padding: const EdgeInsets.all(10.0),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            book['title'] ?? 'Unknown',
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.lightTextPrimary),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            book['author'] ?? 'Unknown',
+                                            style: TextStyle(fontSize: 12, color: AppColors.lightTextSecondary),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                          childCount: books.length,
+                        ),
                       ),
                     );
                   },
-                  loading: () => const SizedBox(height: 220, child: Center(child: CircularProgressIndicator(color: AppColors.cyan))),
-                  error: (e, _) => Padding(padding: const EdgeInsets.all(20), child: Text('Error: $e', style: const TextStyle(color: AppColors.red))),
+                  loading: () => SliverToBoxAdapter(child: SizedBox(height: 220, child: Center(child: CircularProgressIndicator(color: AppColors.cyan)))),
+                  error: (e, _) => SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: Text('Error: $e', style: TextStyle(color: AppColors.red)))),
                 ),
-              ),
 
               // ── Categories Section ────────────────────────────────────────
               SliverToBoxAdapter(
@@ -250,22 +257,17 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              SliverToBoxAdapter(
-                child: categoriesAsync.when(
-                  data: (categories) {
-                    if (categories.isEmpty) return const SizedBox.shrink();
-                    return SizedBox(
-                      height: 50,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
+                SliverToBoxAdapter(
+                  child: categoriesAsync.when(
+                    data: (categories) {
+                      if (categories.isEmpty) return const SizedBox.shrink();
+                      return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        itemCount: categories.length,
-                        itemBuilder: (context, index) {
-                          final CategoryModel cat = categories[index];
-
-                          return FadeInUp(
-                            delay: Duration(milliseconds: 100 * index),
-                            child: InkWell(
+                        child: Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: categories.map((cat) {
+                            return InkWell(
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -276,14 +278,14 @@ class DashboardScreen extends ConsumerWidget {
                               },
                               borderRadius: BorderRadius.circular(25),
                               child: Container(
-                                margin: const EdgeInsets.only(right: 12),
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                 decoration: BoxDecoration(
                                   color: AppColors.cyan.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(25),
                                   border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
                                 ),
                                 child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(cat.iconData, color: AppColors.cyan, size: 20),
                                     const SizedBox(width: 8),
@@ -315,24 +317,24 @@ class DashboardScreen extends ConsumerWidget {
                                   ],
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                  loading: () => const SizedBox(height: 50, child: Center(child: CircularProgressIndicator(color: AppColors.cyan))),
-                  error: (e, _) => Padding(padding: const EdgeInsets.all(20), child: Text('Error: $e', style: const TextStyle(color: AppColors.red))),
+                            );
+                          }).toList(),
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox(height: 50, child: Center(child: CircularProgressIndicator(color: AppColors.cyan))),
+                    error: (e, _) => Padding(padding: const EdgeInsets.all(20), child: Text('Error: $e', style: const TextStyle(color: AppColors.red))),
+                  ),
                 ),
-              ),
 
-              // Bottom padding
               const SliverToBoxAdapter(
                 child: SizedBox(height: 100),
               ),
             ],
           ),
         ),
+        ),
+      ),
       ),
     );
   }

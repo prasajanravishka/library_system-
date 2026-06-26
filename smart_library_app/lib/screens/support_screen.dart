@@ -43,7 +43,10 @@ class _SupportScreenState extends State<SupportScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: Column(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             FadeInUp(
@@ -108,6 +111,8 @@ class _SupportScreenState extends State<SupportScreen> {
               child: _buildFaqItem('How do I pay a fine?', 'Pending fines will appear on your profile. You can tap the "Pay" button next to the fine amount.'),
             ),
           ],
+            ),
+          ),
         ),
       ),
     );

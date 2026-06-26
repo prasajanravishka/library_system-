@@ -172,7 +172,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: TextField(
                     controller: _studentIdController,
                     style: const TextStyle(
-                      color: Color.fromARGB(255, 35, 35, 35),
+                      color: Color.fromARGB(255, 241, 238, 238),
                     ),
                     decoration: const InputDecoration(
                       labelText: 'Student ID',
@@ -190,7 +190,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     style: const TextStyle(
-                      color: Color.fromARGB(255, 40, 40, 40),
+                      color: Color.fromARGB(255, 255, 255, 255),
                     ),
                     decoration: InputDecoration(
                       labelText: 'Password',
@@ -298,8 +298,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 16,
+          runSpacing: 8,
           children: [
             TextButton.icon(
               onPressed: () async {
@@ -323,7 +325,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 style: TextStyle(color: AppColors.textSecondary),
               ),
             ),
-            const SizedBox(width: 16),
             TextButton.icon(
               onPressed: () async {
                 final apiService = ref.read(apiServiceProvider);

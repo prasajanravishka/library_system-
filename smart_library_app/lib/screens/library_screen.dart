@@ -61,8 +61,11 @@ class _StudentLibrary extends ConsumerWidget {
           onRefresh: () async {
             ref.invalidate(userLibraryProvider(userId));
           },
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
             itemCount: books.length,
             itemBuilder: (context, index) {
               final book = Map<String, dynamic>.from(books[index]);
@@ -83,6 +86,8 @@ class _StudentLibrary extends ConsumerWidget {
                 ),
               );
             },
+          ),
+            ),
           ),
         );
       },
@@ -129,8 +134,11 @@ class _LibrarianInventory extends ConsumerWidget {
           onRefresh: () async {
             ref.invalidate(allBooksProvider);
           },
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
             itemCount: books.length,
             itemBuilder: (context, index) {
               final book = Map<String, dynamic>.from(books[index]);
@@ -147,6 +155,8 @@ class _LibrarianInventory extends ConsumerWidget {
                 ),
               );
             },
+          ),
+            ),
           ),
         );
       },

@@ -33,10 +33,13 @@ class AuthState {
   }
 }
 
-class AuthNotifier extends StateNotifier<AuthState> {
-  final ApiService _apiService;
+class AuthNotifier extends Notifier<AuthState> {
+  @override
+  AuthState build() {
+    return const AuthState();
+  }
 
-  AuthNotifier(this._apiService) : super(const AuthState());
+  ApiService get _apiService => ref.read(apiServiceProvider);
 
   /// Try to restore session from shared preferences
   Future<void> tryRestoreSession() async {
@@ -100,9 +103,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.read(apiServiceProvider));
-});
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
 
 // ── Onboarding Seen Provider ────────────────────────────────────────────────
 

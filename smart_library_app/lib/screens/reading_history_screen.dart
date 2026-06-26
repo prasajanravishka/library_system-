@@ -23,7 +23,10 @@ class ReadingHistoryScreen extends StatelessWidget {
         title: FadeInDown(child: Text('Reading History', style: AppTextStyles.heading2)),
         centerTitle: true,
       ),
-      body: ListView.builder(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: ListView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: history.length,
         itemBuilder: (context, index) {
@@ -83,6 +86,8 @@ class ReadingHistoryScreen extends StatelessWidget {
             ),
           );
         },
+      ),
+        ),
       ),
     );
   }

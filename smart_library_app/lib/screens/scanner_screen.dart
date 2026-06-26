@@ -205,6 +205,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
 
   /// ── Scanner UI ─────────────────────────────────────────────────────────
   Widget _buildScannerUI() {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final containerWidth = screenWidth > 400 ? 260.0 : screenWidth * 0.75;
+    final containerHeight = screenHeight > 800 ? 340.0 : screenHeight * 0.4;
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -215,8 +220,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
             // Viewfinder reticle area
             FadeInDown(
               child: Container(
-                width: 260,
-                height: 340,
+                width: containerWidth,
+                height: containerHeight,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
@@ -234,7 +239,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                       animation: _reticleController,
                       builder: (context, child) {
                         return Positioned(
-                          top: 20 + (_reticleController.value * 296),
+                          top: 20 + (_reticleController.value * (containerHeight - 44)),
                           left: 20,
                           right: 20,
                           child: Container(

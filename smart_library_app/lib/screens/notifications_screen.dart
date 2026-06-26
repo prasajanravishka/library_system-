@@ -44,7 +44,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
       body: notifications.isEmpty
           ? const Center(child: Text('No notifications', style: TextStyle(color: Colors.white70)))
-          : ListView.builder(
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: ListView.builder(
               padding: const EdgeInsets.all(20),
               itemCount: notifications.length,
               itemBuilder: (context, index) {
@@ -112,6 +115,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
                 );
               },
+            ),
+              ),
             ),
     );
   }

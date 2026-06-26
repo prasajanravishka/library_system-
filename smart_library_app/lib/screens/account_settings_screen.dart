@@ -45,7 +45,10 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: Column(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             FadeInUp(
@@ -123,6 +126,8 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
               ),
             ),
           ],
+            ),
+          ),
         ),
       ),
     );

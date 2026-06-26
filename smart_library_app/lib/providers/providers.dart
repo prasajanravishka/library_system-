@@ -150,6 +150,14 @@ final allBooksProvider = FutureProvider<List<dynamic>>((ref) async {
   return response['books'] ?? [];
 });
 
+// ── Book Details Provider ───────────────────────────────────────────────────
+
+final bookDetailProvider = FutureProvider.family<Map<String, dynamic>, int>((ref, bookId) async {
+  final apiService = ref.read(apiServiceProvider);
+  final response = await apiService.getBookDetails(bookId);
+  return response['book'] ?? response; // Some APIs return nested 'book', some return flat. Checking PHP, it just returns flat if it used json_encode($book). Let's see the PHP file.
+});
+
 // ── User Profile Provider ───────────────────────────────────────────────────
 
 final userProfileProvider = FutureProvider.family<Map<String, dynamic>, int>((ref, userId) async {

@@ -6,6 +6,7 @@ import '../providers/providers.dart';
 import '../models/category_model.dart';
 import 'search_results_screen.dart';
 import 'category_books_screen.dart';
+import 'book_detail_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -263,7 +264,20 @@ class _HoverBookCardState extends State<_HoverBookCard> {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BookDetailScreen(
+              bookId: widget.book['book_id'] is String 
+                  ? int.parse(widget.book['book_id']) 
+                  : widget.book['book_id'] as int
+            ),
+          ),
+        );
+      },
+      child: MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
@@ -319,6 +333,7 @@ class _HoverBookCardState extends State<_HoverBookCard> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

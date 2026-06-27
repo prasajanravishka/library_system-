@@ -22,7 +22,7 @@ header("Access-Control-Allow-Headers: Content-Type, x-api-key, X-API-Key");
 header("Content-Type: application/json; charset=UTF-8");
 
 // Handle preflight OPTIONS requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
@@ -31,6 +31,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 define('API_KEY', 'LIBRARY_SECRET_API_KEY_2026');
 
+// Polyfill for CLI
+if (!function_exists('getallheaders')) {
+    function getallheaders() {
+        return [];
+    }
+}
+
 /**
  * Validate the API key from the x-api-key header.
  * Rejects unauthorized requests with 401 status.
@@ -38,8 +45,13 @@ define('API_KEY', 'LIBRARY_SECRET_API_KEY_2026');
  */
 function validateApiKey(): void {
     // Skip validation for setup.php and create_user.php (admin tools)
-    $currentFile = basename($_SERVER['SCRIPT_FILENAME']);
+    $currentFile = basename($_SERVER['SCRIPT_FILENAME'] ?? '');
     if ($currentFile === 'setup.php' || $currentFile === 'create_user.php') {
+        return;
+    }
+
+    // Skip validation if explicitly running from CLI and key is set in $_SERVER
+    if (php_sapi_name() === 'cli' && ($_SERVER['HTTP_X_API_KEY'] ?? '') === API_KEY) {
         return;
     }
 

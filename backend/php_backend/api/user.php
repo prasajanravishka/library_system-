@@ -158,30 +158,28 @@ try {
 
             $categoryId = isset($_GET['category_id']) ? (int) $_GET['category_id'] : null;
 
-            $searchTerm = "%{$query}%";
-            $params = [':q1' => $searchTerm, ':q2' => $searchTerm, ':q3' => $searchTerm];
-
             if ($categoryId && $categoryId > 0) {
                 // Search within a specific category
-                $sql = "SELECT DISTINCT b.book_id, b.title, b.author, b.isbn, b.publisher,
-                               b.publication_year, b.cover_image_path, b.cover_image_url,
-                               b.availability_status
+                $sql = "SELECT b.book_id, b.title, b.author, b.isbn, b.publisher,
+                               b.publication_year, b.language, b.total_copies, b.available_copies, b.location_id,
+                               b.cover_image_path, b.cover_image_url, b.availability_status
                         FROM books b
                         JOIN book_categories bc ON b.book_id = bc.book_id
                         WHERE bc.category_id = :cid
-                          AND (b.title LIKE :q1 OR b.author LIKE :q2 OR b.isbn LIKE :q3)
+                          AND MATCH(b.title, b.author, b.isbn) AGAINST(:q IN BOOLEAN MODE)
                         ORDER BY b.title ASC
                         LIMIT 50";
-                $params[':cid'] = $categoryId;
+                $params = [':cid' => $categoryId, ':q' => $query . '*'];
             } else {
                 // Search all books
                 $sql = "SELECT b.book_id, b.title, b.author, b.isbn, b.publisher,
-                               b.publication_year, b.cover_image_path, b.cover_image_url,
-                               b.availability_status
+                               b.publication_year, b.language, b.total_copies, b.available_copies, b.location_id,
+                               b.cover_image_path, b.cover_image_url, b.availability_status
                         FROM books b
-                        WHERE b.title LIKE :q1 OR b.author LIKE :q2 OR b.isbn LIKE :q3
+                        WHERE MATCH(b.title, b.author, b.isbn) AGAINST(:q IN BOOLEAN MODE)
                         ORDER BY b.title ASC
                         LIMIT 50";
+                $params = [':q' => $query . '*'];
             }
 
             $stmt = $pdo->prepare($sql);

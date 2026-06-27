@@ -108,18 +108,22 @@ try {
             $pdo->beginTransaction();
 
             $stmt = $pdo->prepare(
-                "INSERT INTO books (title, author, isbn, publisher, publication_year, cover_image_path, cover_image_url, added_by)
-                 VALUES (:title, :author, :isbn, :publisher, :year, :cover, :cover_url, :added_by)"
+                "INSERT INTO books (title, author, isbn, publisher, publication_year, language, cover_image_path, cover_image_url, added_by, total_copies, available_copies, location_id)
+                 VALUES (:title, :author, :isbn, :publisher, :year, :language, :cover, :cover_url, :added_by, :total_copies, :available_copies, :location_id)"
             );
             $stmt->execute([
-                ':title'     => $title,
-                ':author'    => trim($data['author'] ?? ''),
-                ':isbn'      => !empty($data['isbn']) ? trim($data['isbn']) : null,
-                ':publisher' => trim($data['publisher'] ?? ''),
-                ':year'      => !empty($data['publication_year']) ? (int) $data['publication_year'] : null,
-                ':cover'     => trim($data['cover_image_path'] ?? ''),
-                ':cover_url' => trim($data['cover_image_url'] ?? ''),
-                ':added_by'  => !empty($data['added_by']) ? (int) $data['added_by'] : null,
+                ':title'            => $title,
+                ':author'           => trim($data['author'] ?? ''),
+                ':isbn'             => !empty($data['isbn']) ? trim($data['isbn']) : null,
+                ':publisher'        => trim($data['publisher'] ?? ''),
+                ':year'             => !empty($data['publication_year']) ? (int) $data['publication_year'] : null,
+                ':language'         => !empty($data['language']) ? trim($data['language']) : 'English',
+                ':cover'            => trim($data['cover_image_path'] ?? ''),
+                ':cover_url'        => trim($data['cover_image_url'] ?? ''),
+                ':added_by'         => !empty($data['added_by']) ? (int) $data['added_by'] : null,
+                ':total_copies'     => !empty($data['total_copies']) ? (int) $data['total_copies'] : 1,
+                ':available_copies' => !empty($data['available_copies']) ? (int) $data['available_copies'] : (!empty($data['total_copies']) ? (int) $data['total_copies'] : 1),
+                ':location_id'      => !empty($data['location_id']) ? (int) $data['location_id'] : null,
             ]);
 
             $bookId = (int) $pdo->lastInsertId();
@@ -157,7 +161,7 @@ try {
             $updates = [];
             $params  = [':bid' => $bookId];
 
-            $allowed = ['title', 'author', 'isbn', 'publisher', 'publication_year'];
+            $allowed = ['title', 'author', 'isbn', 'publisher', 'publication_year', 'language', 'total_copies', 'available_copies', 'location_id'];
             foreach ($allowed as $field) {
                 if (isset($data[$field])) {
                     $updates[] = "$field = :$field";
@@ -183,7 +187,7 @@ try {
             }
 
             $stmt = $pdo->query(
-                "SELECT book_id, title, author, isbn, publisher, publication_year,
+                "SELECT book_id, title, author, isbn, publisher, publication_year, language, total_copies, available_copies, location_id,
                         cover_image_path, cover_image_url, availability_status, added_at
                  FROM books ORDER BY added_at DESC"
             );

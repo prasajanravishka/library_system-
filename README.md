@@ -1,4 +1,4 @@
-<![CDATA[# 📚 Smart Library Management System
+# 📚 Smart Library Management System
 
 > An AI-powered mobile library management application built with **Flutter**, a **PHP REST API** backend, and a **Python FastAPI** computer-vision microservice. Students scan book covers with their phone camera, and the system uses OCR + LLM parsing to auto-populate book metadata — making cataloguing effortless.
 
@@ -36,15 +36,16 @@
 The **Smart Library Management System** is a full-stack mobile application that digitises library operations for educational institutions. It enables:
 
 - **Students** to browse, search, borrow, and return books via a polished mobile UI.
-- **Librarians** to manage inventory, add books by scanning covers (AI-powered OCR), and monitor overdue items.
+- **Librarians** to manage physical inventory across library floors/shelves, add books by scanning covers (AI-powered OCR), and monitor overdue items.
 - **AI-Powered Cataloguing** — point the camera at a book cover and the system extracts title, author, ISBN, and publisher automatically using Tesseract OCR + Google Gemini LLM parsing.
 
 | Feature | Description |
 |---|---|
 | 📱 Cross-platform Flutter app | Android, iOS, Web, Desktop |
 | 🔍 AI Book Scanner | OCR + LLM extracts metadata from cover photos |
+| 📚 Physical Shelf Tracking | Maps books to exact locations (floor, section, shelf) and tracks multiple copies |
 | 📊 Dashboard | Real-time stats, active reads, featured books, categories |
-| 🔐 Dual-role auth | Student login + Librarian login with API key security |
+| 🔐 Dual-role auth | Student login + Librarian login with JWT & Refresh Tokens |
 | 🎨 Light & Dark themes | Modern glassmorphism UI with smooth animations |
 
 ---
@@ -53,21 +54,22 @@ The **Smart Library Management System** is a full-stack mobile application that 
 
 ```
 ┌─────────────────────────────────────────────────┐
-│              Flutter Mobile App                  │
-│          (Dart · Riverpod · Material 3)          │
-└──────────┬──────────────────────┬────────────────┘
+│              Flutter Mobile App                 │
+│          (Dart · Riverpod · Material 3)         │
+│          + CachedNetworkImage for speed         │
+└──────────┬──────────────────────┬───────────────┘
            │  HTTP + JSON         │  Multipart Upload
            ▼                      ▼
 ┌──────────────────┐   ┌──────────────────────────┐
-│  PHP Backend     │   │  Python Backend           │
-│  Port 8000       │   │  Port 8001                │
-│  (Built-in srv)  │   │  (FastAPI + Uvicorn)      │
-│                  │   │                            │
-│  • Auth          │   │  • OCR (Tesseract)         │
-│  • CRUD          │   │  • Cover Analysis (OpenCV) │
-│  • Borrow/Return │   │  • LLM Parsing (Gemini)    │
-│  • Dashboard     │   │  • Spine Detection         │
-└────────┬─────────┘   └────────────────────────────┘
+│  PHP Backend     │   │  Python Backend          │
+│  Port 8000       │   │  Port 8001               │
+│  (Built-in srv)  │   │  (FastAPI + Uvicorn)     │
+│                  │   │                          │
+│  • JWT Auth      │   │  • OCR (Tesseract)       │
+│  • CRUD          │   │  • Cover Analysis (OpenCV)│
+│  • Borrow/Return │   │  • LLM Parsing (Gemini)  │
+│  • Dashboard     │   │  • Spine Detection       │
+└────────┬─────────┘   └──────────────────────────┘
          │
          ▼
 ┌──────────────────┐
@@ -76,7 +78,7 @@ The **Smart Library Management System** is a full-stack mobile application that 
 └──────────────────┘
 ```
 
-Both backends authenticate requests via the `X-API-Key` header.
+Both backends authenticate requests via a secure combination of `X-API-Key` headers and **JWT access/refresh tokens**.
 
 ---
 
@@ -88,6 +90,7 @@ Both backends authenticate requests via the `X-API-Key` header.
 - **Typography**: [Google Fonts — Inter](https://fonts.google.com/specimen/Inter) for clean, modern readability
 - **State Management**: [Riverpod](https://riverpod.dev/) (providers + `FutureProvider` for async API data)
 - **Animations**: `animate_do` package — `FadeInDown`, `FadeInRight`, `Pulse` for micro-interactions
+- **Image Handling**: `cached_network_image` prevents network spam and improves load times significantly.
 
 ### Key Design Principles
 
@@ -107,7 +110,7 @@ Both backends authenticate requests via the `X-API-Key` header.
 | Login | Dual-role login (Student ID / Librarian username) |
 | Dashboard | Greeting, search bar, featured carousel, categories, stat cards |
 | Scanner | Camera-based book cover scanner with OCR extraction |
-| Book Details | Confirmation screen after scanning with editable fields |
+| Book Details | Cover art, physical shelf location, availability, editable fields |
 | My Library | Borrow history with status chips (Borrowed / Returned / Overdue) |
 | Profile | User stats, rank badge, account info |
 
@@ -127,16 +130,16 @@ Both backends authenticate requests via the `X-API-Key` header.
 |---|---|---|
 | `POST` | `?action=login` | Authenticate via `student_id` + `password` (bcrypt) |
 | `GET` | `?action=profile&user_id=` | Profile stats: name, email, total borrowed, rank |
-| `GET` | `?action=search&q=` | Full-text search across books (title, author, ISBN) |
+| `GET` | `?action=search&q=` | `FULLTEXT` search across books (title, author, ISBN) |
 
 #### `admin.php` — Librarian Operations
 
 | Method | Action | Description |
 |---|---|---|
 | `POST` | `?action=login` | Librarian authentication via `username` + `password` |
-| `POST` | `?action=add_book` | Add book to inventory (supports AI-scanned data) |
-| `PUT` | `?action=update_book&book_id=` | Update book metadata |
-| `GET` | `?action=all_books` | List entire inventory |
+| `POST` | `?action=add_book` | Add book to inventory with location IDs and quantities |
+| `PUT` | `?action=update_book&book_id=` | Update book metadata and stock |
+| `GET` | `?action=all_books` | List entire inventory with stock amounts |
 | `GET` | `?action=all_users` | List all registered students |
 | `PUT` | `?action=toggle_user&user_id=` | Activate/suspend a student account |
 
@@ -175,9 +178,9 @@ Both backends authenticate requests via the `X-API-Key` header.
 
 ### Authentication
 
-- **API Key**: All requests require `X-API-Key: LIBRARY_SECRET_API_KEY_2026` header
+- **API Key**: Base requests require `X-API-Key: LIBRARY_SECRET_API_KEY_2026` header
+- **JWT**: Stateless session management via JSON Web Tokens (Access + Refresh tokens securely handled in Flutter interceptors).
 - **Password Hashing**: bcrypt via `password_hash()` / `password_verify()`
-- **Session**: Stateless — the Flutter app persists auth state in `SharedPreferences`
 
 ---
 
@@ -216,37 +219,37 @@ Camera Image → OpenCV Preprocessing → Tesseract OCR → Raw Text → Gemini 
 
 ## 🗄 Database Schema
 
-MySQL 8.x — `smart_library` database with core tables:
+MySQL 8.x — `smart_library` database with core tables updated for physical tracking:
 
 ```
-admins ──────────┐
-  admin_id (PK)  │
-  username       │
-  password_hash  │
-                 │ added_by (FK)
-users ───────┐   ├──→ books ───────────────────────┐
-  user_id    │   │      book_id (PK)               │
-  student_id │   │      title, author, isbn        │
-  email      │   │      availability_status        │
-  rank       │   │      cover_image_url            │
-  badge_icon │   │                                 │
-             │   │                                 │
-             └───┴──→ borrow_records               │
-                       borrow_id (PK)              │
-                       user_id (FK), book_id (FK)  │
-                       borrow_date, due_date       │
-                       status, fine_amount         │
-                                                   │
-categories ────────────────────────┐               │
-  category_id (PK)                 │               │
-  name, description, icon          │               │
-                                   ▼               ▼
+admins ──────────┐                 locations ──────────────────────┐
+  admin_id (PK)  │                   location_id (PK)              │
+  username       │                   name, floor, section, shelf   │
+  password_hash  │                                                 │
+                 │ added_by (FK)                    location_id (FK)
+users ───────┐   ├──→ books ◄──────────────────────────────────────┘
+  user_id    │   │      book_id (PK)
+  student_id │   │      title, author, isbn, publisher
+  email      │   │      total_copies, available_copies
+  rank       │   │      availability_status
+  badge_icon │   │      cover_image_url
+             │   │
+             └───┴──→ borrow_records
+                       borrow_id (PK)
+                       user_id (FK), book_id (FK)
+                       borrow_date, due_date
+                       status, fine_amount
+
+categories ────────────────────────┐
+  category_id (PK)                 │
+  name, description, icon          │
+                                   ▼
                               book_categories (Junction)
                                 book_id (FK)
                                 category_id (FK)
 ```
 
-Indexes: `FULLTEXT` on `books(title, author)` for search; composite indexes on `borrow_records` for efficient status queries; junction table indexing for fast category filtering.
+Indexes: **`FULLTEXT` index** on `books(title, author, isbn)` for blazing fast keyword searches; composite indexes on `borrow_records` for efficient status queries; junction table indexing for fast category filtering.
 
 ---
 
@@ -276,8 +279,8 @@ cd Smart-Library-Management-System
 ### 2. Database Setup
 
 ```bash
-# Start MySQL and run the schema
-mysql -u root -p < backend/database_schema.sql
+# Start MySQL and import the fully updated schema
+mysql -u root -p < backend/current_database_schema.sql
 
 # OR use the automated setup script (starts PHP server first):
 php -S 0.0.0.0:8000 -t backend/php_backend
@@ -361,7 +364,7 @@ define('API_KEY', 'LIBRARY_SECRET_API_KEY_2026');
 3. **Dashboard** shows greeting, stats, featured books, and categories
 4. **Search** books by title, author, or ISBN
 5. **Scan** a book cover using the camera (Scanner FAB button)
-6. **Review** the AI-extracted metadata and confirm to add to inventory
+6. **Review** the AI-extracted metadata, assign a physical shelf location, and confirm to add to inventory
 7. **Borrow/Return** books from the Library screen
 
 ---
@@ -413,33 +416,36 @@ flutter analyze
 
 ## 🛡 Security & Production Readiness
 
-This project was built for academic demonstration. For production deployment, the following areas must be addressed:
+This project was built for academic demonstration. The following production-level enhancements have been applied or identified:
 
-- **Authentication**: Migrate from static `X-API-Key` to JSON Web Tokens (JWT) for secure, stateless user sessions.
-- **Transport Security**: Deploy behind an API gateway (e.g., Nginx) with HTTPS/TLS to encrypt data in transit.
-- **Rate Limiting**: Implement API rate limiting to prevent brute-force attacks on login endpoints.
-- **Environment Variables**: Extract hardcoded credentials and API keys into a secure environment file or vault.
-- **AI Scalability**: Containerise the Python FastAPI backend and deploy with Gunicorn/Uvicorn workers to handle concurrent OCR processing.
-- **Database Indexing**: Add `FULLTEXT` indexing and connection pooling for scalable search and data retrieval.
-- **Data Integrity**: Resolve table name mismatches between the PHP backend and MySQL schema (e.g., `borrow_records` vs `borrowed_books`).
+- ✅ **Authentication**: Migrated from static `X-API-Key` to JSON Web Tokens (JWT) for secure, stateless user sessions with automated refresh flows.
+- ✅ **Database Indexing**: Deployed MySQL `FULLTEXT` indices for robust, scalable title/author search capabilities.
+- ✅ **Asset Loading Optimization**: Flutter image delivery upgraded to `CachedNetworkImage` to reduce network loads.
+- 🚧 **Transport Security**: Deploy behind an API gateway (e.g., Nginx) with HTTPS/TLS to encrypt data in transit.
+- 🚧 **Rate Limiting**: Implement API rate limiting to prevent brute-force attacks on login endpoints.
+- 🚧 **Environment Variables**: Extract hardcoded credentials and API keys into a secure environment file or vault.
+- 🚧 **AI Scalability**: Containerise the Python FastAPI backend and deploy with Gunicorn/Uvicorn workers to handle concurrent OCR processing.
 
 ---
 
 ## 🔮 Future Enhancements
 
-- [ ] **JWT Authentication** — replace static API key with token-based auth and refresh tokens
+- [x] **JWT Authentication** — implemented with seamless flutter `Dio` interceptors
+- [x] **Physical Library Tracking** — advanced database relationships tracking shelves, sections, and copy amounts
+- [x] **FULLTEXT Database Optimization** — lightning-fast boolean mode searches
 - [ ] **Push Notifications** — overdue reminders via Firebase Cloud Messaging
 - [ ] **Book Recommendations** — collaborative filtering based on borrow history
 - [ ] **Barcode/QR Scanning** — ISBN barcode reader for faster cataloguing
 - [ ] **Admin Dashboard (Web)** — a web-based admin panel for librarians
 - [ ] **Offline Mode** — local SQLite cache with background sync
-- [ ] **Dark Theme Toggle** — in-app theme switcher (infrastructure already exists)
 - [ ] **Image CDN** — serve book cover images via a CDN instead of local paths
 
 ---
 
 ## 📝 Changelog
 
+- **[June 2026] Database Architecture Upgrades**: Implemented a comprehensive `locations` tracking system and multi-copy tracking for physical books. Built full SQL schema backups.
+- **[June 2026] Security & Speed**: Introduced JWT token refresh authentication strategy, `FULLTEXT` indexing on books, and Flutter asset caching layers (`CachedNetworkImage`).
 - **[June 2026] Architecture Review**: Completed a comprehensive architecture review, identifying key scalability bottlenecks and security improvements for production readiness.
 - **[June 2026] Flutter UI Fixes**: 
   - Resolved `Constant evaluation error` in `main_screen.dart` and `dashboard_screen.dart` by removing `const` keywords from widgets using dynamic `AppColors`.
@@ -475,4 +481,3 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 <p align="center">
   Built with ❤️ using Flutter, PHP, FastAPI, and OpenCV
 </p>
-]]>

@@ -24,6 +24,7 @@
 - [Usage Guide](#-usage-guide)
 - [Testing](#-testing)
 - [Deployment](#-deployment)
+- [Security & Production Readiness](#-security--production-readiness)
 - [Future Enhancements](#-future-enhancements)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -410,6 +411,20 @@ flutter analyze
 
 ---
 
+## 🛡 Security & Production Readiness
+
+This project was built for academic demonstration. For production deployment, the following areas must be addressed:
+
+- **Authentication**: Migrate from static `X-API-Key` to JSON Web Tokens (JWT) for secure, stateless user sessions.
+- **Transport Security**: Deploy behind an API gateway (e.g., Nginx) with HTTPS/TLS to encrypt data in transit.
+- **Rate Limiting**: Implement API rate limiting to prevent brute-force attacks on login endpoints.
+- **Environment Variables**: Extract hardcoded credentials and API keys into a secure environment file or vault.
+- **AI Scalability**: Containerise the Python FastAPI backend and deploy with Gunicorn/Uvicorn workers to handle concurrent OCR processing.
+- **Database Indexing**: Add `FULLTEXT` indexing and connection pooling for scalable search and data retrieval.
+- **Data Integrity**: Resolve table name mismatches between the PHP backend and MySQL schema (e.g., `borrow_records` vs `borrowed_books`).
+
+---
+
 ## 🔮 Future Enhancements
 
 - [ ] **JWT Authentication** — replace static API key with token-based auth and refresh tokens
@@ -425,6 +440,7 @@ flutter analyze
 
 ## 📝 Changelog
 
+- **[June 2026] Architecture Review**: Completed a comprehensive architecture review, identifying key scalability bottlenecks and security improvements for production readiness.
 - **[June 2026] Flutter UI Fixes**: 
   - Resolved `Constant evaluation error` in `main_screen.dart` and `dashboard_screen.dart` by removing `const` keywords from widgets using dynamic `AppColors`.
   - Updated `CardTheme` to `CardThemeData` in `app_theme.dart` for newer Flutter SDK compatibility.

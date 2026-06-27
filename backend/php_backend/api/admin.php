@@ -184,7 +184,7 @@ try {
 
             $stmt = $pdo->query(
                 "SELECT book_id, title, author, isbn, publisher, publication_year,
-                        cover_image_path, availability_status, added_at
+                        cover_image_path, cover_image_url, availability_status, added_at
                  FROM books ORDER BY added_at DESC"
             );
             $books = $stmt->fetchAll();

@@ -367,6 +367,109 @@ class ApiService {
     }
   }
 
+  // ── Notifications ─────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getNotifications(int userId) async {
+    final url = Uri.parse('$_phpBase/api/notifications.php?action=list&user_id=$userId');
+    final response = await http.get(url, headers: _authHeaders);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load notifications');
+    }
+  }
+
+  Future<Map<String, dynamic>> markNotificationRead(int notificationId) async {
+    final url = Uri.parse('$_phpBase/api/notifications.php?action=mark_read');
+    final response = await http.put(url, headers: _headers, body: jsonEncode({'notification_id': notificationId}));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to mark notification as read');
+    }
+  }
+
+  Future<Map<String, dynamic>> markAllNotificationsRead(int userId) async {
+    final url = Uri.parse('$_phpBase/api/notifications.php?action=mark_all_read');
+    final response = await http.put(url, headers: _headers, body: jsonEncode({'user_id': userId}));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to mark all notifications as read');
+    }
+  }
+  
+  Future<Map<String, dynamic>> deleteNotification(int notificationId) async {
+    final url = Uri.parse('$_phpBase/api/notifications.php?action=delete');
+    final response = await http.post(url, headers: _headers, body: jsonEncode({'notification_id': notificationId}));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to delete notification');
+    }
+  }
+
+  // ── Reading History ───────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getReadingHistory(int userId) async {
+    final url = Uri.parse('$_phpBase/api/reading_history.php?action=history&user_id=$userId');
+    final response = await http.get(url, headers: _authHeaders);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load reading history');
+    }
+  }
+
+  // ── User Settings ─────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getSettings(int userId) async {
+    final url = Uri.parse('$_phpBase/api/profile_settings.php?action=get_settings&user_id=$userId');
+    final response = await http.get(url, headers: _authHeaders);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load settings');
+    }
+  }
+
+  Future<Map<String, dynamic>> updateSettings(int userId, Map<String, dynamic> settings) async {
+    final url = Uri.parse('$_phpBase/api/profile_settings.php?action=update_settings');
+    final body = {'user_id': userId, ...settings};
+    final response = await http.put(url, headers: _headers, body: jsonEncode(body));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to update settings');
+    }
+  }
+
+  // ── Support Tickets ───────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> createSupportTicket(int userId, String subject, String message) async {
+    final url = Uri.parse('$_phpBase/api/support.php?action=create_ticket');
+    final response = await http.post(url, headers: _headers, body: jsonEncode({
+      'user_id': userId,
+      'subject': subject,
+      'message': message,
+    }));
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to create support ticket');
+    }
+  }
+
+  Future<Map<String, dynamic>> getSupportTickets(int userId) async {
+    final url = Uri.parse('$_phpBase/api/support.php?action=my_tickets&user_id=$userId');
+    final response = await http.get(url, headers: _authHeaders);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load support tickets');
+    }
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
   // PYTHON BACKEND — AI/Vision (Port 8001)
   // ══════════════════════════════════════════════════════════════════════════

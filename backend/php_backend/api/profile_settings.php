@@ -52,9 +52,37 @@ try {
 
             $pdo->beginTransaction();
 
-            if (isset($data['full_name'])) {
-                $stmt = $pdo->prepare("UPDATE users SET full_name = :fname WHERE user_id = :uid");
-                $stmt->execute([':fname' => $data['full_name'], ':uid' => $userId]);
+            if (isset($data['full_name']) || isset($data['email'])) {
+                $updates = [];
+                $params = [':uid' => $userId];
+                
+                if (isset($data['full_name'])) {
+                    $updates[] = "full_name = :fname";
+                    $params[':fname'] = $data['full_name'];
+                }
+                
+                if (isset($data['email'])) {
+                    $email = trim($data['email']);
+                    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $pdo->rollBack();
+                        jsonError('Invalid email format', 400);
+                    }
+                    
+                    // Check uniqueness
+                    $check = $pdo->prepare("SELECT user_id FROM users WHERE email = :email AND user_id != :uid");
+                    $check->execute([':email' => $email, ':uid' => $userId]);
+                    if ($check->fetch()) {
+                        $pdo->rollBack();
+                        jsonError('Email is already in use', 409);
+                    }
+                    
+                    $updates[] = "email = :email";
+                    $params[':email'] = $email;
+                }
+                
+                $sql = "UPDATE users SET " . implode(', ', $updates) . " WHERE user_id = :uid";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
             }
 
             $push = isset($data['push_notifications']) ? (int)$data['push_notifications'] : 1;

@@ -4,6 +4,7 @@ import 'package:animate_do/animate_do.dart';
 import '../core/app_theme.dart';
 import '../providers/providers.dart';
 import '../widgets/book_card.dart';
+import 'book_detail_screen.dart';
 
 
 /// Library screen — shows borrowed books for students, full inventory for librarians.
@@ -80,8 +81,18 @@ class _StudentLibrary extends ConsumerWidget {
                   borrowDate: book['borrow_date'],
                   dueDate: book['due_date'],
                   daysLeft: daysLeft,
+                  coverImageUrl: book['cover_image_url'] ?? book['cover_image_path'],
                   onTap: () {
-                    // Could navigate to book details
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BookDetailScreen(
+                          bookId: book['book_id'] is String
+                              ? int.parse(book['book_id'])
+                              : book['book_id'] as int,
+                        ),
+                      ),
+                    );
                   },
                 ),
               );
@@ -149,8 +160,18 @@ class _LibrarianInventory extends ConsumerWidget {
                   title: book['title'] ?? 'Unknown Title',
                   author: book['author'] ?? 'Unknown Author',
                   status: book['availability_status'] ?? 'available',
+                  coverImageUrl: book['cover_image_url'] ?? book['cover_image_path'],
                   onTap: () {
-                    // Could navigate to book details / edit
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BookDetailScreen(
+                          bookId: book['book_id'] is String
+                              ? int.parse(book['book_id'])
+                              : book['book_id'] as int,
+                        ),
+                      ),
+                    );
                   },
                 ),
               );

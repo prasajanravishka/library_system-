@@ -7,6 +7,7 @@ import '../models/category_model.dart';
 import 'search_results_screen.dart';
 import 'category_books_screen.dart';
 import 'book_detail_screen.dart';
+import 'notifications_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -74,7 +75,12 @@ class DashboardScreen extends ConsumerWidget {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.notifications_outlined, color: AppColors.lightTextPrimary, size: 28),
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                              );
+                            },
                           ),
                           dashboardAsync.when(
                             data: (dashboard) {
@@ -304,10 +310,13 @@ class _HoverBookCardState extends State<_HoverBookCard> {
                 height: widget.imageHeight,
                 width: double.infinity,
                 color: AppColors.lightBorderSubtle,
-                child: widget.book['cover_image_path'] != null && widget.book['cover_image_path'].toString().isNotEmpty
-                    ? Image.network(widget.book['cover_image_path'], fit: BoxFit.cover,
+                child: (widget.book['cover_image_url'] != null && widget.book['cover_image_url'].toString().isNotEmpty)
+                    ? Image.network(widget.book['cover_image_url'], fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Icon(Icons.book, size: 40, color: AppColors.lightTextSecondary))
-                    : Icon(Icons.book, size: 40, color: AppColors.lightTextSecondary),
+                    : (widget.book['cover_image_path'] != null && widget.book['cover_image_path'].toString().isNotEmpty
+                        ? Image.network(widget.book['cover_image_path'], fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(Icons.book, size: 40, color: AppColors.lightTextSecondary))
+                        : Icon(Icons.book, size: 40, color: AppColors.lightTextSecondary)),
               ),
             ),
             Padding(

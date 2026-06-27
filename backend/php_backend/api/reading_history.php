@@ -17,7 +17,7 @@ try {
 
             $stmt = $pdo->prepare("
                 SELECT br.borrow_id, br.borrow_date, br.due_date, br.return_date, br.status, br.fine_amount,
-                       b.book_id, b.title, b.author, b.cover_image_url
+                       b.book_id, b.title, b.author, b.cover_image_path, b.cover_image_url
                 FROM borrow_records br
                 JOIN books b ON br.book_id = b.book_id
                 WHERE br.user_id = :uid

@@ -199,3 +199,35 @@ final booksByCategoryProvider = FutureProvider.family<List<dynamic>, int>((ref, 
   final response = await apiService.getBooksByCategory(categoryId);
   return response['books'] ?? [];
 });
+
+// ── Notifications Provider ──────────────────────────────────────────────────
+
+final notificationsProvider = FutureProvider.family<List<dynamic>, int>((ref, userId) async {
+  final apiService = ref.read(apiServiceProvider);
+  final response = await apiService.getNotifications(userId);
+  return response['notifications'] ?? [];
+});
+
+// ── Reading History Provider ────────────────────────────────────────────────
+
+final readingHistoryProvider = FutureProvider.family<List<dynamic>, int>((ref, userId) async {
+  final apiService = ref.read(apiServiceProvider);
+  final response = await apiService.getReadingHistory(userId);
+  return response['history'] ?? [];
+});
+
+// ── User Settings Provider ──────────────────────────────────────────────────
+
+final userSettingsProvider = FutureProvider.family<Map<String, dynamic>, int>((ref, userId) async {
+  final apiService = ref.read(apiServiceProvider);
+  final response = await apiService.getSettings(userId);
+  return response['settings'] ?? {};
+});
+
+// ── Support Tickets Provider ────────────────────────────────────────────────
+
+final supportTicketsProvider = FutureProvider.family<List<dynamic>, int>((ref, userId) async {
+  final apiService = ref.read(apiServiceProvider);
+  final response = await apiService.getSupportTickets(userId);
+  return response['tickets'] ?? [];
+});

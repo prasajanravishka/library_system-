@@ -205,7 +205,9 @@ try {
             jsonError('Unknown action. Valid: borrow, return, history', 400);
     }
 } catch (PDOException $e) {
-    $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     jsonError('Database error: ' . $e->getMessage(), 500);
 } catch (Exception $e) {
     jsonError('Server error: ' . $e->getMessage(), 500);

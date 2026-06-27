@@ -12,6 +12,7 @@ class BookCard extends StatelessWidget {
   final String? borrowDate;
   final String? dueDate;
   final int? daysLeft;
+  final String? coverImageUrl;
   final VoidCallback? onTap;
 
   const BookCard({
@@ -22,6 +23,7 @@ class BookCard extends StatelessWidget {
     this.borrowDate,
     this.dueDate,
     this.daysLeft,
+    this.coverImageUrl,
     this.onTap,
   });
 
@@ -57,28 +59,17 @@ class BookCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Book cover placeholder
-                  Container(
-                    height: 80,
-                    width: 58,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.purple.withValues(alpha: 0.3),
-                          AppColors.cyan.withValues(alpha: 0.15),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.purple.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.auto_stories_rounded,
-                      color: AppColors.purple,
-                      size: 28,
-                    ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: coverImageUrl != null && coverImageUrl!.isNotEmpty
+                      ? Image.network(
+                          coverImageUrl!,
+                          height: 80,
+                          width: 58,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                        )
+                      : _buildPlaceholder(),
                   ),
                   const SizedBox(width: 14),
                   // Book info
@@ -158,6 +149,32 @@ class BookCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      height: 80,
+      width: 58,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.purple.withValues(alpha: 0.3),
+            AppColors.cyan.withValues(alpha: 0.15),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.purple.withValues(alpha: 0.2),
+        ),
+      ),
+      child: const Icon(
+        Icons.auto_stories_rounded,
+        color: AppColors.purple,
+        size: 28,
       ),
     );
   }

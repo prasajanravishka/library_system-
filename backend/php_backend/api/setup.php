@@ -90,6 +90,9 @@ try {
         publication_year    INT,
         cover_image_path    VARCHAR(255),
         cover_image_url     VARCHAR(500),
+        synopsis            TEXT,
+        language            VARCHAR(50) DEFAULT 'English',
+        shelf_location      VARCHAR(100),
         availability_status ENUM('available', 'borrowed', 'lost') DEFAULT 'available',
         added_by            INT,
         added_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -137,6 +140,41 @@ try {
         INDEX idx_category_books (category_id, book_id)
     ) ENGINE=InnoDB;");
 
+    // User Settings table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS user_settings (
+        setting_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL UNIQUE,
+        push_notifications BOOLEAN DEFAULT TRUE,
+        email_notifications BOOLEAN DEFAULT TRUE,
+        theme_preference ENUM('light', 'dark', 'system') DEFAULT 'system',
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    ) ENGINE=InnoDB;");
+
+    // Notifications table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS notifications (
+        notification_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        type ENUM('system', 'overdue', 'fine', 'general') DEFAULT 'general',
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        INDEX idx_user_read (user_id, is_read)
+    ) ENGINE=InnoDB;");
+
+    // Support Tickets table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS support_tickets (
+        ticket_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        status ENUM('open', 'in_progress', 'resolved', 'closed') DEFAULT 'open',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    ) ENGINE=InnoDB;");
+
     echo "✅ Tables created\n";
 } catch (PDOException $e) {
     echo "❌ Failed to create tables: " . $e->getMessage() . "\n";
@@ -161,13 +199,13 @@ try {
                ('S11111', 'Bob User', 'bob@example.com', '$pwHash', 'suspended', 0, 'Bronze', 'military_tech');");
 
     // Insert books
-    $pdo->exec("INSERT IGNORE INTO books (title, author, isbn, publisher, publication_year, availability_status, added_by) 
+    $pdo->exec("INSERT IGNORE INTO books (title, author, isbn, publisher, publication_year, availability_status, added_by, synopsis, language, shelf_location) 
                VALUES 
-               ('The Great Gatsby', 'F. Scott Fitzgerald', '9780743273565', 'Scribner', 1925, 'available', 1),
-               ('1984', 'George Orwell', '9780451524935', 'Signet Classic', 1949, 'available', 1),
-               ('To Kill a Mockingbird', 'Harper Lee', '9780060935467', 'Harper Perennial', 1960, 'borrowed', 1),
-               ('The Catcher in the Rye', 'J.D. Salinger', '9780316769488', 'Little Brown', 1951, 'available', 1),
-               ('Pride and Prejudice', 'Jane Austen', '9780141439518', 'Penguin Classics', 1813, 'available', 1);");
+               ('The Great Gatsby', 'F. Scott Fitzgerald', '9780743273565', 'Scribner', 1925, 'available', 1, 'A story of the wealthy Jay Gatsby and his love for the beautiful Daisy Buchanan.', 'English', 'Shelf A1 - Row 1'),
+               ('1984', 'George Orwell', '9780451524935', 'Signet Classic', 1949, 'available', 1, 'Among the seminal texts of the 20th century, Nineteen Eighty-Four is a rare work that grows more haunting as its futuristic purgatory becomes more real.', 'English', 'Shelf A1 - Row 2'),
+               ('To Kill a Mockingbird', 'Harper Lee', '9780060935467', 'Harper Perennial', 1960, 'borrowed', 1, 'The unforgettable novel of a childhood in a sleepy Southern town and the crisis of conscience that rocked it.', 'English', 'Shelf A2 - Row 1'),
+               ('The Catcher in the Rye', 'J.D. Salinger', '9780316769488', 'Little Brown', 1951, 'available', 1, 'The hero-narrator of The Catcher in the Rye is an ancient child of sixteen, a native New Yorker named Holden Caulfield.', 'English', 'Shelf A2 - Row 2'),
+               ('Pride and Prejudice', 'Jane Austen', '9780141439518', 'Penguin Classics', 1813, 'available', 1, 'Since its immediate success in 1813, Pride and Prejudice has remained one of the most popular novels in the English language.', 'English', 'Shelf A3 - Row 1');");
 
     // Insert categories
     $pdo->exec("INSERT IGNORE INTO categories (category_id, name, description, icon, sort_order) VALUES 
@@ -188,6 +226,12 @@ try {
                VALUES 
                (1, 3, '2026-06-01', '2026-06-15', 'overdue', 0.00, FALSE),
                (2, 5, '2026-06-18', '2026-07-02', 'borrowed', 0.00, FALSE);");
+
+    // Insert some sample notifications
+    $pdo->exec("INSERT IGNORE INTO notifications (user_id, title, message, type, is_read) VALUES 
+               (1, 'Welcome!', 'Welcome to the Smart Library Management System.', 'system', FALSE),
+               (1, 'Book Overdue', 'Your borrowed book \"To Kill a Mockingbird\" is overdue. Please return it as soon as possible.', 'overdue', FALSE),
+               (2, 'New Feature', 'You can now view your reading history.', 'general', FALSE);");
 
     echo "✅ Sample data imported\n";
 } catch (PDOException $e) {

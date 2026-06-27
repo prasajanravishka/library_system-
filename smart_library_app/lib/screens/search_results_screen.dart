@@ -5,6 +5,7 @@ import 'package:animate_do/animate_do.dart';
 import '../core/app_theme.dart';
 import '../providers/providers.dart';
 import '../widgets/book_card.dart';
+import 'book_detail_screen.dart';
 
 
 /// Full-screen search with auto-focus, debounced API calls, and results list.
@@ -146,8 +147,18 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                 title: book['title'] ?? 'Unknown',
                 author: book['author'] ?? 'Unknown',
                 status: book['availability_status'] ?? 'available',
+                coverImageUrl: book['cover_image_url'] ?? book['cover_image_path'],
                 onTap: () {
-                  // Could navigate to detailed book view
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BookDetailScreen(
+                        bookId: book['book_id'] is String
+                            ? int.parse(book['book_id'])
+                            : book['book_id'] as int,
+                      ),
+                    ),
+                  );
                 },
               ),
             );

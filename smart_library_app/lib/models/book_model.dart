@@ -7,6 +7,10 @@ class BookModel {
   final String? publisher;
   final int? publicationYear;
   final String? coverImagePath;
+  final String? coverImageUrl;
+  final String? synopsis;
+  final String? language;
+  final String? shelfLocation;
   final String availabilityStatus; // 'available', 'borrowed', 'lost'
 
   const BookModel({
@@ -17,6 +21,10 @@ class BookModel {
     this.publisher,
     this.publicationYear,
     this.coverImagePath,
+    this.coverImageUrl,
+    this.synopsis,
+    this.language,
+    this.shelfLocation,
     this.availabilityStatus = 'available',
   });
 
@@ -33,6 +41,10 @@ class BookModel {
       publisher: json['publisher'] as String?,
       publicationYear: json['publication_year'] as int?,
       coverImagePath: json['cover_image_path'] as String?,
+      coverImageUrl: json['cover_image_url'] as String?,
+      synopsis: json['synopsis'] as String?,
+      language: json['language'] as String?,
+      shelfLocation: json['shelf_location'] as String?,
       availabilityStatus: json['availability_status'] as String? ?? 'available',
     );
   }

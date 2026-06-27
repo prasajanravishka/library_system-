@@ -56,7 +56,7 @@ try {
 
             // Active reads
             $stmt = $pdo->prepare(
-                "SELECT b.book_id, b.title, b.author, b.cover_image_path,
+                "SELECT b.book_id, b.title, b.author, b.cover_image_path, b.cover_image_url,
                         br.borrow_date, br.due_date,
                         DATEDIFF(br.due_date, CURDATE()) as days_left
                  FROM borrow_records br
@@ -88,13 +88,18 @@ try {
                 $level = 3;
             }
 
+            // Unread Notifications Count
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = :uid AND is_read = FALSE");
+            $stmt->execute([':uid' => $userId]);
+            $unreadNotifications = (int) $stmt->fetchColumn();
+
             jsonSuccess([
                 'dashboard' => [
                     'level'          => $level,
                     'rank'           => $rank,
                     'total_borrowed' => $totalBorrowed,
                     'active_reads'   => $activeReads,
-                    'unread_notifications' => 3,
+                    'unread_notifications' => $unreadNotifications,
                 ],
             ]);
             break;
@@ -106,7 +111,7 @@ try {
             }
             // Just get the latest 5 books as featured for now
             $stmt = $pdo->query(
-                "SELECT book_id, title, author, cover_image_path
+                "SELECT book_id, title, author, cover_image_path, cover_image_url
                  FROM books
                  ORDER BY added_at DESC
                  LIMIT 5"

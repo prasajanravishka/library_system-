@@ -24,17 +24,17 @@ class BookDetailScreen extends ConsumerWidget {
         data: (bookData) {
           // Mock data for fields not provided by backend
           final String title = bookData['title'] ?? 'Unknown Title';
-          final String coverImage = bookData['cover_image_path'] ?? '';
+          final String coverImageUrl = bookData['cover_image_url'] ?? bookData['cover_image_path'] ?? '';
           final String writer = bookData['author'] ?? 'Unknown Author';
           final String publisher = bookData['publisher'] ?? 'Unknown Publisher';
           final String year = bookData['publication_year']?.toString() ?? 'N/A';
           final String isbn = bookData['isbn'] ?? 'N/A';
-          final String category = 'Natural Science'; // Mocked category tag
+          final String category = bookData['category_name'] ?? 'Uncategorized';
           final String stock = bookData['availability_status'] == 'available' ? 'Available' : 'Out of Stock';
-          final String borrowedBy = 'None'; // Mocked
-          final String bookPosition = 'Shelf A2 - Row 3'; // Mocked
-          final String language = 'Indonesian'; // Mocked
-          final String synopsis = bookData['synopsis'] ?? 'A fascinating and comprehensive overview of the subject, providing in-depth analysis and practical examples for readers of all levels. This book dives deep into the core concepts and explores advanced techniques.'; // Mocked synopsis
+          final String borrowedBy = bookData['borrowed_by'] ?? 'None';
+          final String bookPosition = bookData['shelf_location'] ?? 'Not specified';
+          final String language = bookData['language'] ?? 'English';
+          final String synopsis = bookData['synopsis'] ?? 'No synopsis available.';
 
           return Column(
             children: [
@@ -54,15 +54,13 @@ class BookDetailScreen extends ConsumerWidget {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: coverImage.isNotEmpty
-                              ? Image.network(
-                                  coverImage,
-                                  height: 200,
-                                  width: 140,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.book, size: 80, color: Colors.grey),
-                                )
-                              : const Icon(Icons.book, size: 80, color: Colors.grey),
+                          child: coverImageUrl.isNotEmpty ? Image.network(
+                            coverImageUrl,
+                            height: 200,
+                            width: 140,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.book, size: 80, color: Colors.grey),
+                          ) : const Icon(Icons.book, size: 80, color: Colors.grey),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -136,7 +134,7 @@ class BookDetailScreen extends ConsumerWidget {
                   width: double.infinity,
                   height: 56,
                   child: OutlinedButton(
-                    onPressed: () => _showDetailedBottomSheet(
+                      onPressed: () => _showDetailedBottomSheet(
                       context, 
                       title: title, 
                       writer: writer, 
@@ -146,6 +144,7 @@ class BookDetailScreen extends ConsumerWidget {
                       stock: stock, 
                       borrowedBy: borrowedBy, 
                       location: bookPosition,
+                      coverImageUrl: coverImageUrl,
                     ),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: const Color(0xFF1A73E8), width: 1.5),
@@ -204,6 +203,7 @@ class BookDetailScreen extends ConsumerWidget {
     required String stock,
     required String borrowedBy,
     required String location,
+    required String coverImageUrl,
   }) {
     showModalBottomSheet(
       context: context,
@@ -241,8 +241,8 @@ class BookDetailScreen extends ConsumerWidget {
                       // Library Image
                       ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          'https://images.unsplash.com/photo-1507842217343-583bb7270b66?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+                        child: coverImageUrl.isNotEmpty ? Image.network(
+                          coverImageUrl,
                           height: 180,
                           width: double.infinity,
                           fit: BoxFit.cover,
@@ -251,6 +251,10 @@ class BookDetailScreen extends ConsumerWidget {
                             color: Colors.grey[200],
                             child: const Center(child: Icon(Icons.library_books, size: 50, color: Colors.grey)),
                           ),
+                        ) : Container(
+                          height: 180,
+                          color: Colors.grey[200],
+                          child: const Center(child: Icon(Icons.library_books, size: 50, color: Colors.grey)),
                         ),
                       ),
                       const SizedBox(height: 16),

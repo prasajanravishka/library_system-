@@ -5,6 +5,7 @@ import '../core/app_theme.dart';
 import '../providers/providers.dart';
 import '../models/category_model.dart';
 import '../widgets/book_card.dart';
+import 'book_detail_screen.dart';
 
 class CategoryBooksScreen extends ConsumerWidget {
   final CategoryModel category;
@@ -68,8 +69,18 @@ class CategoryBooksScreen extends ConsumerWidget {
                   title: book['title'] ?? 'Unknown',
                   author: book['author'] ?? 'Unknown',
                   status: book['availability_status'] ?? 'available',
+                  coverImageUrl: book['cover_image_url'] ?? book['cover_image_path'],
                   onTap: () {
-                    // Navigate to book details
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BookDetailScreen(
+                          bookId: book['book_id'] is String
+                              ? int.parse(book['book_id'])
+                              : book['book_id'] as int,
+                        ),
+                      ),
+                    );
                   },
                 ),
               );

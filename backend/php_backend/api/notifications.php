@@ -68,8 +68,26 @@ try {
             jsonSuccess(['message' => 'All notifications marked as read']);
             break;
 
+        case 'delete':
+            if ($_SERVER['REQUEST_METHOD'] !== 'DELETE' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+                jsonError('Method not allowed', 405);
+            }
+
+            $data = getJsonBody();
+            $notificationId = (int) ($data['notification_id'] ?? ($_GET['notification_id'] ?? 0));
+
+            if ($notificationId <= 0) {
+                jsonError('Valid notification_id is required', 400);
+            }
+
+            $stmt = $pdo->prepare("DELETE FROM notifications WHERE notification_id = :nid");
+            $stmt->execute([':nid' => $notificationId]);
+
+            jsonSuccess(['message' => 'Notification deleted']);
+            break;
+
         default:
-            jsonError('Unknown action. Valid actions: list, mark_read, mark_all_read', 400);
+            jsonError('Unknown action. Valid actions: list, mark_read, mark_all_read, delete', 400);
     }
 } catch (PDOException $e) {
     jsonError('Database error: ' . $e->getMessage(), 500);

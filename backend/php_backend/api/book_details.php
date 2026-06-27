@@ -24,8 +24,11 @@ try {
     // Book details
     $stmt = $pdo->prepare(
         "SELECT b.book_id, b.title, b.author, b.isbn, b.publisher,
-                b.publication_year, b.cover_image_path, b.availability_status,
-                b.added_at, a.full_name as added_by_name
+                b.publication_year, b.cover_image_path, b.cover_image_url, 
+                b.synopsis, b.language, b.shelf_location, b.availability_status,
+                b.added_at, a.full_name as added_by_name,
+                (SELECT c.name FROM book_categories bc JOIN categories c ON bc.category_id = c.category_id WHERE bc.book_id = b.book_id LIMIT 1) as category,
+                (SELECT u.full_name FROM borrow_records br JOIN users u ON br.user_id = u.user_id WHERE br.book_id = b.book_id AND br.status = 'borrowed' ORDER BY br.borrow_date DESC LIMIT 1) as borrowed_by
          FROM books b
          LEFT JOIN admins a ON b.added_by = a.admin_id
          WHERE b.book_id = :bid"

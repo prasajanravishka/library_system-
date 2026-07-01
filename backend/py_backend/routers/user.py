@@ -6,6 +6,16 @@ from auth import verify_password, create_access_token, get_current_user
 
 router = APIRouter()
 
+@router.get("/test_users")
+def test_users(db = Depends(get_db)):
+    with db.cursor() as cursor:
+        cursor.execute("SELECT user_id, student_id, full_name FROM users LIMIT 5")
+        users = cursor.fetchall()
+    return {
+        "status": "success",
+        "users": users
+    }
+
 class LoginRequest(BaseModel):
     student_id: str
     password: str

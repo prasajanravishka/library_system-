@@ -10,7 +10,8 @@ class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
@@ -69,7 +70,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: FadeInDown(child: Text('Notifications', style: AppTextStyles.heading2.copyWith(color: AppColors.lightTextPrimary))),
+        title: FadeInDown(
+          child: Text(
+            'Notifications',
+            style: AppTextStyles.heading2.copyWith(
+              color: AppColors.lightTextPrimary,
+            ),
+          ),
+        ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: AppColors.lightTextPrimary),
         actions: [
@@ -77,15 +85,27 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             icon: const Icon(Icons.done_all, color: AppColors.lightTextPrimary),
             onPressed: _markAllAsRead,
             tooltip: 'Mark all as read',
-          )
+          ),
         ],
       ),
       body: notificationsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: AppColors.cyan)),
-        error: (error, _) => Center(child: Text('Error: $error', style: const TextStyle(color: AppColors.red))),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.cyan),
+        ),
+        error: (error, _) => Center(
+          child: Text(
+            'Error: $error',
+            style: const TextStyle(color: AppColors.red),
+          ),
+        ),
         data: (notifications) {
           if (notifications.isEmpty) {
-            return Center(child: Text('No notifications', style: TextStyle(color: AppColors.lightTextSecondary)));
+            return Center(
+              child: Text(
+                'No notifications',
+                style: TextStyle(color: AppColors.lightTextSecondary),
+              ),
+            );
           }
 
           return Center(
@@ -96,7 +116,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 itemCount: notifications.length,
                 itemBuilder: (context, index) {
                   final notif = notifications[index];
-                  final isRead = notif['is_read'] == true || notif['is_read'] == 1;
+                  final isRead =
+                      notif['is_read'] == true || notif['is_read'] == 1;
                   IconData icon;
                   Color color;
 
@@ -139,9 +160,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: isRead ? Colors.white : AppColors.cyan.withValues(alpha: 0.05),
+                              color: isRead
+                                  ? Colors.white
+                                  : AppColors.cyan.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: isRead ? AppColors.lightBorderSubtle : AppColors.cyan.withValues(alpha: 0.3)),
+                              border: Border.all(
+                                color: isRead
+                                    ? AppColors.lightBorderSubtle
+                                    : AppColors.cyan.withValues(alpha: 0.3),
+                              ),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,19 +177,26 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         notif['title'],
                                         style: AppTextStyles.heading3.copyWith(
-                                          fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                                          fontWeight: isRead
+                                              ? FontWeight.normal
+                                              : FontWeight.bold,
                                           color: AppColors.lightTextPrimary,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         notif['message'],
-                                        style: TextStyle(color: isRead ? AppColors.lightTextSecondary : AppColors.lightTextPrimary),
+                                        style: TextStyle(
+                                          color: isRead
+                                              ? AppColors.lightTextSecondary
+                                              : AppColors.lightTextPrimary,
+                                        ),
                                       ),
                                     ],
                                   ),

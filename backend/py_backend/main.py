@@ -50,10 +50,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # When allow_credentials=True, you cannot use allow_origins=["*"].
+    # Using allow_origin_regex=".*" permits any origin while supporting credentials.
+    allow_origin_regex=".*",
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"], # Explicitly allows Authorization
 )
 
 app.include_router(user.router, prefix="/api")

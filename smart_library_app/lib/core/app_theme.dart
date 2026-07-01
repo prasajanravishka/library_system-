@@ -56,7 +56,6 @@ class GlassDecoration {
     double borderRadius = 16,
     Color glowColor = AppColors.cyan,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return BoxDecoration(
       color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
       borderRadius: BorderRadius.circular(borderRadius),

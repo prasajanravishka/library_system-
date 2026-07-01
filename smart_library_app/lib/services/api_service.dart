@@ -11,6 +11,7 @@ import '../core/app_constants.dart';
 /// Both backends require `x-api-key` header authentication.
 class ApiService {
   static String get _base => AppConstants.apiBaseUrl;
+  static String get _pythonBase => AppConstants.pythonApiBaseUrl;
   String? _jwtToken;
 
   void setToken(String? token) {
@@ -21,6 +22,7 @@ class ApiService {
   Map<String, String> get _headers {
     final headers = {
       'Content-Type': 'application/json',
+      'x-api-key': AppConstants.apiKey,
     };
     if (_jwtToken != null) {
       headers['Authorization'] = 'Bearer $_jwtToken';
@@ -30,7 +32,9 @@ class ApiService {
 
   /// Headers for multipart / non-JSON.
   Map<String, String> get _authHeaders {
-    final headers = <String, String>{};
+    final headers = <String, String>{
+      'x-api-key': AppConstants.apiKey,
+    };
     if (_jwtToken != null) {
       headers['Authorization'] = 'Bearer $_jwtToken';
     }
@@ -144,7 +148,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to load featured books');
+      throw Exception('Failed to load featured books: ${response.statusCode} ${response.body}');
     }
   }
 
@@ -155,7 +159,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to load categories');
+      throw Exception('Failed to load categories: ${response.statusCode} ${response.body}');
     }
   }
 
@@ -193,7 +197,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to load profile');
+      throw Exception('Failed to load profile: ${response.statusCode} ${response.body}');
     }
   }
 
@@ -461,7 +465,7 @@ class ApiService {
   /// OCR scan: send image to backend for text extraction + LLM parsing
   Future<Map<String, dynamic>> extractBookInfo(String imagePath) async {
     try {
-      final url = Uri.parse('$_base/scan-book');
+      final url = Uri.parse('$_pythonBase/scan-book');
       final request = http.MultipartRequest('POST', url)
         ..headers.addAll(_authHeaders)
         ..files.add(await http.MultipartFile.fromPath('file', imagePath));
@@ -517,7 +521,7 @@ class ApiService {
   /// Analyze cover image quality and features (no OCR)
   Future<Map<String, dynamic>> analyzeCover(String imagePath) async {
     try {
-      final url = Uri.parse('$_base/analyze-cover');
+      final url = Uri.parse('$_pythonBase/analyze-cover');
       final request = http.MultipartRequest('POST', url)
         ..headers.addAll(_authHeaders)
         ..files.add(await http.MultipartFile.fromPath('file', imagePath));
@@ -555,7 +559,7 @@ class ApiService {
   /// Detect book spines in a shelf image
   Future<Map<String, dynamic>> detectSpines(String imagePath) async {
     try {
-      final url = Uri.parse('$_base/detect-spines');
+      final url = Uri.parse('$_pythonBase/detect-spines');
       final request = http.MultipartRequest('POST', url)
         ..headers.addAll(_authHeaders)
         ..files.add(await http.MultipartFile.fromPath('file', imagePath));

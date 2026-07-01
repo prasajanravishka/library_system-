@@ -10,19 +10,32 @@ import '../core/app_constants.dart';
 ///
 /// Both backends require `x-api-key` header authentication.
 class ApiService {
-  static String get _phpBase => AppConstants.phpBaseUrl;
-  static String get _pyBase => AppConstants.pyBaseUrl;
+  static String get _base => AppConstants.apiBaseUrl;
+  String? _jwtToken;
 
-  /// Standard headers with API key for JSON requests.
-  static Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    'X-API-Key': AppConstants.apiKey,
-  };
+  void setToken(String? token) {
+    _jwtToken = token;
+  }
 
-  /// Headers with API key only (for multipart / non-JSON).
-  static Map<String, String> get _authHeaders => {
-    'X-API-Key': AppConstants.apiKey,
-  };
+  /// Standard headers for JSON requests.
+  Map<String, String> get _headers {
+    final headers = {
+      'Content-Type': 'application/json',
+    };
+    if (_jwtToken != null) {
+      headers['Authorization'] = 'Bearer $_jwtToken';
+    }
+    return headers;
+  }
+
+  /// Headers for multipart / non-JSON.
+  Map<String, String> get _authHeaders {
+    final headers = <String, String>{};
+    if (_jwtToken != null) {
+      headers['Authorization'] = 'Bearer $_jwtToken';
+    }
+    return headers;
+  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // PHP BACKEND — CRUD Operations (Port 8000)
@@ -30,10 +43,10 @@ class ApiService {
 
   // ── Authentication ──────────────────────────────────────────────────────
 
-  /// Login as a Student via user.php?action=login
+  /// Login as a Student
   Future<Map<String, dynamic>> login(String studentId, String password) async {
     try {
-      final url = Uri.parse('$_phpBase/api/user.php?action=login');
+      final url = Uri.parse('$_base/users/login');
       final response = await http.post(
         url,
         headers: _headers,
@@ -44,29 +57,19 @@ class ApiService {
         return jsonDecode(response.body);
       } else {
         final body = jsonDecode(response.body);
-        throw Exception(body['message'] ?? 'Login failed');
+        throw Exception(body['detail'] ?? 'Login failed');
       }
     } on SocketException catch (_) {
-      throw Exception(
-        'Server unreachable. Ensure the PHP backend is running on port 8000 and bound to 0.0.0.0',
-      );
+      throw Exception('Server unreachable. Ensure the backend is running.');
     } catch (e) {
-      if (e.toString().contains('Connection refused')) {
-        throw Exception(
-          'Connection refused. Start the PHP server with: php -S 0.0.0.0:8000',
-        );
-      }
       rethrow;
     }
   }
 
-  /// Login as a Librarian via admin.php?action=login
-  Future<Map<String, dynamic>> loginAdmin(
-    String username,
-    String password,
-  ) async {
+  /// Login as a Librarian
+  Future<Map<String, dynamic>> loginAdmin(String username, String password) async {
     try {
-      final url = Uri.parse('$_phpBase/api/admin.php?action=login');
+      final url = Uri.parse('$_base/admin/login');
       final response = await http.post(
         url,
         headers: _headers,
@@ -77,28 +80,21 @@ class ApiService {
         return jsonDecode(response.body);
       } else {
         final body = jsonDecode(response.body);
-        throw Exception(body['message'] ?? 'Login failed');
+        throw Exception(body['detail'] ?? 'Login failed');
       }
     } on SocketException catch (_) {
-      throw Exception(
-        'Server unreachable. Ensure the PHP backend is running on port 8000 and bound to 0.0.0.0',
-      );
+      throw Exception('Server unreachable. Ensure the backend is running.');
     } catch (e) {
-      if (e.toString().contains('Connection refused')) {
-        throw Exception(
-          'Connection refused. Start the PHP server with: php -S 0.0.0.0:8000',
-        );
-      }
       rethrow;
     }
   }
 
   /// ── Testing ──────────────────────────────────────────────────────────────
 
-  /// Test end-to-end connectivity with MySQL database via PHP backend
+  /// Test end-to-end connectivity with MySQL database via backend
   Future<bool> testUserDatabaseConnection() async {
     try {
-      final url = Uri.parse('$_phpBase/api/test_users.php');
+      final url = Uri.parse('$_base/test_users');
       final response = await http.get(url, headers: _authHeaders);
 
       if (response.statusCode == 200) {
@@ -120,7 +116,7 @@ class ApiService {
   // ── Dashboard ───────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getDashboardStats() async {
-    final url = Uri.parse('$_phpBase/api/get_dashboard.php?action=stats');
+    final url = Uri.parse('$_base/stats');
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -131,9 +127,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getUserDashboard(int userId) async {
-    final url = Uri.parse(
-      '$_phpBase/api/get_dashboard.php?action=user_dashboard&user_id=$userId',
-    );
+    final url = Uri.parse('$_base/user_dashboard');
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -144,7 +138,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getFeaturedBooks() async {
-    final url = Uri.parse('$_phpBase/api/get_dashboard.php?action=featured_books');
+    final url = Uri.parse('$_base/featured_books');
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -155,7 +149,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getCategories() async {
-    final url = Uri.parse('$_phpBase/api/categories.php?action=list');
+    final url = Uri.parse('$_base/categories');
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -166,7 +160,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getBooksByCategory(int categoryId) async {
-    final url = Uri.parse('$_phpBase/api/categories.php?action=books&category_id=$categoryId');
+    final url = Uri.parse('$_base/categories/$categoryId/books');
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -180,9 +174,7 @@ class ApiService {
   // ── User Library (Borrow History) ───────────────────────────────────────
 
   Future<Map<String, dynamic>> getUserLibrary(int userId) async {
-    final url = Uri.parse(
-      '$_phpBase/api/borrow.php?action=history&user_id=$userId',
-    );
+    final url = Uri.parse('$_base/borrow/history');
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -195,9 +187,7 @@ class ApiService {
   // ── User Profile ────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getUserProfile(int userId) async {
-    final url = Uri.parse(
-      '$_phpBase/api/user.php?action=profile&user_id=$userId',
-    );
+    final url = Uri.parse('$_base/users/profile');
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -210,7 +200,7 @@ class ApiService {
   // ── Book Search ─────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> searchBooks(String query, {int? categoryId}) async {
-    var urlString = '$_phpBase/api/user.php?action=search&q=${Uri.encodeComponent(query)}';
+    var urlString = '$_base/books/search?q=${Uri.encodeComponent(query)}';
     if (categoryId != null) {
       urlString += '&category_id=$categoryId';
     }
@@ -227,7 +217,7 @@ class ApiService {
   // ── Book CRUD (Admin) ───────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getAllBooks() async {
-    final url = Uri.parse('$_phpBase/api/admin.php?action=all_books');
+    final url = Uri.parse('$_base/admin/books');
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -248,7 +238,7 @@ class ApiService {
     int? addedBy,
     List<int>? categoryIds,
   }) async {
-    final url = Uri.parse('$_phpBase/api/admin.php?action=add_book');
+    final url = Uri.parse('$_base/admin/books');
     final body = <String, dynamic>{
       'title': title,
       'author': author,
@@ -278,9 +268,7 @@ class ApiService {
     int bookId,
     Map<String, dynamic> updates,
   ) async {
-    final url = Uri.parse(
-      '$_phpBase/api/admin.php?action=update_book&book_id=$bookId',
-    );
+    final url = Uri.parse('$_base/admin/books/$bookId');
     final response = await http.put(
       url,
       headers: _headers,
@@ -297,7 +285,7 @@ class ApiService {
   // ── Book Details ────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getBookDetails(int bookId) async {
-    final url = Uri.parse('$_phpBase/api/book_details.php?book_id=$bookId');
+    final url = Uri.parse('$_base/books/$bookId');
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -310,41 +298,41 @@ class ApiService {
   // ── Borrow & Return ─────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> borrowBook(int userId, int bookId) async {
-    final url = Uri.parse('$_phpBase/api/borrow.php?action=borrow');
+    final url = Uri.parse('$_base/borrow');
     final response = await http.post(
       url,
       headers: _headers,
-      body: jsonEncode({'user_id': userId, 'book_id': bookId}),
+      body: jsonEncode({'book_id': bookId}),
     );
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
       final body = jsonDecode(response.body);
-      throw Exception(body['message'] ?? 'Failed to borrow book');
+      throw Exception(body['detail'] ?? 'Failed to borrow book');
     }
   }
 
   Future<Map<String, dynamic>> returnBook(int userId, int bookId) async {
-    final url = Uri.parse('$_phpBase/api/borrow.php?action=return');
+    final url = Uri.parse('$_base/borrow/return');
     final response = await http.post(
       url,
       headers: _headers,
-      body: jsonEncode({'user_id': userId, 'book_id': bookId}),
+      body: jsonEncode({'book_id': bookId}),
     );
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
       final body = jsonDecode(response.body);
-      throw Exception(body['message'] ?? 'Failed to return book');
+      throw Exception(body['detail'] ?? 'Failed to return book');
     }
   }
 
   // ── User Management (Admin) ─────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getAllUsers() async {
-    final url = Uri.parse('$_phpBase/api/admin.php?action=all_users');
+    final url = Uri.parse('$_base/admin/users');
     final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
@@ -355,9 +343,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> toggleUserStatus(int userId) async {
-    final url = Uri.parse(
-      '$_phpBase/api/admin.php?action=toggle_user&user_id=$userId',
-    );
+    final url = Uri.parse('$_base/admin/users/$userId/toggle');
     final response = await http.put(url, headers: _headers);
 
     if (response.statusCode == 200) {
@@ -370,7 +356,7 @@ class ApiService {
   // ── Notifications ─────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getNotifications(int userId) async {
-    final url = Uri.parse('$_phpBase/api/notifications.php?action=list&user_id=$userId');
+    final url = Uri.parse('$_base/notifications');
     final response = await http.get(url, headers: _authHeaders);
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -380,7 +366,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> markNotificationRead(int notificationId) async {
-    final url = Uri.parse('$_phpBase/api/notifications.php?action=mark_read');
+    final url = Uri.parse('$_base/notifications/read');
     final response = await http.put(url, headers: _headers, body: jsonEncode({'notification_id': notificationId}));
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -390,8 +376,8 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> markAllNotificationsRead(int userId) async {
-    final url = Uri.parse('$_phpBase/api/notifications.php?action=mark_all_read');
-    final response = await http.put(url, headers: _headers, body: jsonEncode({'user_id': userId}));
+    final url = Uri.parse('$_base/notifications/read');
+    final response = await http.put(url, headers: _headers, body: jsonEncode({}));
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
@@ -400,8 +386,8 @@ class ApiService {
   }
   
   Future<Map<String, dynamic>> deleteNotification(int notificationId) async {
-    final url = Uri.parse('$_phpBase/api/notifications.php?action=delete');
-    final response = await http.post(url, headers: _headers, body: jsonEncode({'notification_id': notificationId}));
+    final url = Uri.parse('$_base/notifications/$notificationId');
+    final response = await http.delete(url, headers: _headers);
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
@@ -412,7 +398,7 @@ class ApiService {
   // ── Reading History ───────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getReadingHistory(int userId) async {
-    final url = Uri.parse('$_phpBase/api/reading_history.php?action=history&user_id=$userId');
+    final url = Uri.parse('$_base/borrow/reading_history');
     final response = await http.get(url, headers: _authHeaders);
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -424,7 +410,7 @@ class ApiService {
   // ── User Settings ─────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getSettings(int userId) async {
-    final url = Uri.parse('$_phpBase/api/profile_settings.php?action=get_settings&user_id=$userId');
+    final url = Uri.parse('$_base/settings');
     final response = await http.get(url, headers: _authHeaders);
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -434,9 +420,8 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> updateSettings(int userId, Map<String, dynamic> settings) async {
-    final url = Uri.parse('$_phpBase/api/profile_settings.php?action=update_settings');
-    final body = {'user_id': userId, ...settings};
-    final response = await http.put(url, headers: _headers, body: jsonEncode(body));
+    final url = Uri.parse('$_base/settings');
+    final response = await http.put(url, headers: _headers, body: jsonEncode(settings));
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
@@ -447,9 +432,8 @@ class ApiService {
   // ── Support Tickets ───────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> createSupportTicket(int userId, String subject, String message) async {
-    final url = Uri.parse('$_phpBase/api/support.php?action=create_ticket');
+    final url = Uri.parse('$_base/support/tickets');
     final response = await http.post(url, headers: _headers, body: jsonEncode({
-      'user_id': userId,
       'subject': subject,
       'message': message,
     }));
@@ -461,7 +445,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getSupportTickets(int userId) async {
-    final url = Uri.parse('$_phpBase/api/support.php?action=my_tickets&user_id=$userId');
+    final url = Uri.parse('$_base/support/tickets');
     final response = await http.get(url, headers: _authHeaders);
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -474,15 +458,12 @@ class ApiService {
   // PYTHON BACKEND — AI/Vision (Port 8001)
   // ══════════════════════════════════════════════════════════════════════════
 
-  /// OCR scan: send image to Python backend for text extraction + LLM parsing
-  /// Extract book information from image using OCR and LLM parsing
-  /// Sends image to Python backend at /api/scan-book with API key authentication
-  /// Handles connection errors gracefully with user-friendly messages
+  /// OCR scan: send image to backend for text extraction + LLM parsing
   Future<Map<String, dynamic>> extractBookInfo(String imagePath) async {
     try {
-      final url = Uri.parse('$_pyBase/api/scan-book');
+      final url = Uri.parse('$_base/scan-book');
       final request = http.MultipartRequest('POST', url)
-        ..headers.addAll({'X-API-Key': AppConstants.apiKey})
+        ..headers.addAll(_authHeaders)
         ..files.add(await http.MultipartFile.fromPath('file', imagePath));
 
       final streamedResponse = await request.send().timeout(
@@ -513,20 +494,20 @@ class ApiService {
       }
     } on SocketException catch (_) {
       throw Exception(
-        'Network error: Cannot connect to backend. Ensure it is running at $_pyBase',
+        'Network error: Cannot connect to backend. Ensure it is running at $_base',
       );
     } catch (e) {
       if (e.toString().contains('Connection refused')) {
         throw Exception(
-          'Connection refused: Backend is not running at $_pyBase',
+          'Connection refused: Backend is not running at $_base',
         );
       } else if (e.toString().contains('timeout')) {
         throw Exception(
-          'Connection timeout: Backend took too long to respond at $_pyBase',
+          'Connection timeout: Backend took too long to respond at $_base',
         );
       } else if (e.toString().contains('No host found')) {
         throw Exception(
-          'Network error: Cannot resolve backend address $_pyBase',
+          'Network error: Cannot resolve backend address $_base',
         );
       }
       rethrow;
@@ -534,10 +515,9 @@ class ApiService {
   }
 
   /// Analyze cover image quality and features (no OCR)
-  /// Returns image quality metrics, dominant colors, and feature points
   Future<Map<String, dynamic>> analyzeCover(String imagePath) async {
     try {
-      final url = Uri.parse('$_pyBase/api/analyze-cover');
+      final url = Uri.parse('$_base/analyze-cover');
       final request = http.MultipartRequest('POST', url)
         ..headers.addAll(_authHeaders)
         ..files.add(await http.MultipartFile.fromPath('file', imagePath));
@@ -563,7 +543,7 @@ class ApiService {
         );
       }
     } on SocketException catch (_) {
-      throw Exception('Network error: Cannot connect to backend at $_pyBase');
+      throw Exception('Network error: Cannot connect to backend at $_base');
     } catch (e) {
       if (!e.toString().contains('Exception:')) {
         return {'status': 'error', 'message': e.toString()};
@@ -573,10 +553,9 @@ class ApiService {
   }
 
   /// Detect book spines in a shelf image
-  /// Identifies and analyzes individual book spines for bulk scanning
   Future<Map<String, dynamic>> detectSpines(String imagePath) async {
     try {
-      final url = Uri.parse('$_pyBase/api/detect-spines');
+      final url = Uri.parse('$_base/detect-spines');
       final request = http.MultipartRequest('POST', url)
         ..headers.addAll(_authHeaders)
         ..files.add(await http.MultipartFile.fromPath('file', imagePath));
@@ -602,7 +581,7 @@ class ApiService {
         );
       }
     } on SocketException catch (_) {
-      throw Exception('Network error: Cannot connect to backend at $_pyBase');
+      throw Exception('Network error: Cannot connect to backend at $_base');
     } catch (e) {
       if (!e.toString().contains('Exception:')) {
         return {'status': 'error', 'message': e.toString()};

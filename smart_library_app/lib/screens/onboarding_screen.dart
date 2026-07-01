@@ -59,9 +59,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _finishOnboarding() async {
     await markOnboardingSeen();
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
   }
 
   @override
@@ -73,7 +73,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       body: SafeArea(
         child: Column(
           children: [
@@ -101,7 +100,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPageChanged: _onPageChanged,
                 itemBuilder: (context, index) {
                   final page = _pages[index];
-                  final iconSize = MediaQuery.sizeOf(context).width * 0.35 > 140.0 ? 140.0 : MediaQuery.sizeOf(context).width * 0.35;
+                  final iconSize =
+                      MediaQuery.sizeOf(context).width * 0.35 > 140.0
+                      ? 140.0
+                      : MediaQuery.sizeOf(context).width * 0.35;
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: Column(
@@ -129,7 +131,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 shape: BoxShape.circle,
                                 color: page.accentColor.withValues(alpha: 0.15),
                                 border: Border.all(
-                                  color: page.accentColor.withValues(alpha: 0.3),
+                                  color: page.accentColor.withValues(
+                                    alpha: 0.3,
+                                  ),
                                   width: 2,
                                 ),
                               ),
@@ -209,9 +213,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ),
                   child: Text(
-                    _currentPage == _pages.length - 1
-                        ? 'Get Started'
-                        : 'Next',
+                    _currentPage == _pages.length - 1 ? 'Get Started' : 'Next',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,

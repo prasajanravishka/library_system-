@@ -44,7 +44,13 @@ class AuthNotifier extends Notifier<AuthState> {
   /// Try to restore session from shared preferences
   Future<void> tryRestoreSession() async {
     final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(AppConstants.prefToken);
     final userId = prefs.getInt(AppConstants.prefUserId);
+    
+    if (token != null) {
+      _apiService.setToken(token);
+    }
+    
     if (userId != null) {
       final user = UserModel(
         userId: userId,
@@ -63,11 +69,15 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final response = await _apiService.login(studentId, password);
       if (response['status'] == 'success') {
+        final token = response['token'];
+        _apiService.setToken(token);
+        
         final user = UserModel.fromJson(response['user']);
         state = AuthState(user: user);
 
         // Persist session
         final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(AppConstants.prefToken, token);
         await prefs.setInt(AppConstants.prefUserId, user.userId);
         await prefs.setString(AppConstants.prefUserRole, user.role);
         await prefs.setString(AppConstants.prefUserName, user.fullName);
@@ -94,11 +104,13 @@ class AuthNotifier extends Notifier<AuthState> {
   /// Logout and clear session
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(AppConstants.prefToken);
     await prefs.remove(AppConstants.prefUserId);
     await prefs.remove(AppConstants.prefUserRole);
     await prefs.remove(AppConstants.prefUserName);
     await prefs.remove(AppConstants.prefStudentId);
     await prefs.remove(AppConstants.prefUserEmail);
+    _apiService.setToken(null);
     state = const AuthState();
   }
 }

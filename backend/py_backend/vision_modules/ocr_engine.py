@@ -7,24 +7,32 @@ import subprocess
 import sys
 import tempfile
 
-TESSERACT_PATH = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+import shutil
+import platform
+
+# Try to find tesseract in PATH
+TESSERACT_PATH = shutil.which('tesseract')
+
+# Fallback for Windows if not in PATH
+if TESSERACT_PATH is None and platform.system() == 'Windows':
+    TESSERACT_PATH = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Verify the path exists
-if not os.path.exists(TESSERACT_PATH):
-    print(f"ERROR: Tesseract not found at {TESSERACT_PATH}", file=sys.stderr)
+if TESSERACT_PATH is None or not os.path.exists(TESSERACT_PATH):
+    print(f"ERROR: Tesseract not found in PATH or at {r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'}", file=sys.stderr)
     sys.exit(1)
 else:
-    print(f"✓ Tesseract found at: {TESSERACT_PATH}")
+    print(f"OK: Tesseract found at: {TESSERACT_PATH}")
     # Test if it runs
     try:
         result = subprocess.run([TESSERACT_PATH, '--version'], 
                               capture_output=True, text=True, timeout=5)
         if result.returncode == 0:
-            print(f"✓ Tesseract is working: {result.stdout.split(chr(10))[0]}")
+            print(f"OK: Tesseract is working: {result.stdout.split(chr(10))[0]}")
         else:
-            print(f"✗ Tesseract error: {result.stderr}", file=sys.stderr)
+            print(f"FAIL: Tesseract error: {result.stderr}", file=sys.stderr)
     except Exception as e:
-        print(f"✗ Error testing Tesseract: {e}", file=sys.stderr)
+        print(f"FAIL: Error testing Tesseract: {e}", file=sys.stderr)
 
 def process_book_cover(image_bytes):
     """

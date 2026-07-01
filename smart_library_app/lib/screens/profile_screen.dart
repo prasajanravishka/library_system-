@@ -51,6 +51,20 @@ class ProfileScreen extends ConsumerWidget {
                     userProfileProvider(authState.userId)),
                 child: const Text('Retry'),
               ),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () async {
+                  await ref.read(authProvider.notifier).logout();
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  }
+                },
+                icon: const Icon(Icons.logout, color: AppColors.red),
+                label: const Text('Logout', style: TextStyle(color: AppColors.red)),
+              ),
             ],
           ),
         ),

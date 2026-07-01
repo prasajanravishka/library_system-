@@ -39,11 +39,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final success = await ref
         .read(authProvider.notifier)
         .login(studentId, password);
-    if (success && mounted) {
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const MainScreen()));
-    }
+
+    // Note: We do NOT manually navigate here.
+    // AppGate in main.dart is watching authProvider and will automatically
+    // swap the screen to MainScreen when login is successful.
   }
 
   @override
@@ -172,8 +171,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: TextField(
                     controller: _studentIdController,
                     style: const TextStyle(
-                      color: Color.fromARGB(255, 241, 238, 238),
+                      color: Color.fromARGB(255, 69, 66, 66),
                     ),
+
                     decoration: const InputDecoration(
                       labelText: 'Student ID',
                       prefixIcon: Icon(Icons.badge_outlined),
@@ -190,7 +190,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     style: const TextStyle(
-                      color: Color.fromARGB(255, 255, 255, 255),
+                      color: Color.fromARGB(255, 73, 63, 63),
                     ),
                     decoration: InputDecoration(
                       labelText: 'Password',

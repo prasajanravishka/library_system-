@@ -35,8 +35,13 @@ def login(req: LoginRequest, db = Depends(get_db)):
     if not verify_password(req.password, user['password_hash']):
         raise HTTPException(status_code=401, detail="Invalid student ID or password")
         
+    from datetime import timedelta
+    from auth import ACCESS_TOKEN_EXPIRE_MINUTES
     # Generate JWT
-    access_token = create_access_token(data={"user_id": str(user['user_id']), "role": "student"})
+    access_token = create_access_token(
+        data={"user_id": str(user['user_id']), "role": "student"},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
     
     return {
         "status": "success",

@@ -141,3 +141,34 @@ def get_books_by_category(category_id: int, db = Depends(get_db)):
         "category": category,
         "books": books
     }
+
+@router.get("/books/{book_id}")
+def get_book_details(book_id: int, db = Depends(get_db)):
+    with db.cursor() as cursor:
+        cursor.execute(
+            """SELECT b.book_id, b.title, b.author, b.isbn, b.publisher,
+                      b.publication_year, b.language, b.total_copies, b.available_copies, 
+                      b.cover_image_path, b.cover_image_url, b.synopsis, b.shelf_location, b.availability_status,
+                      c.name as category_name,
+                      l.name as location_name,
+                      (SELECT u.full_name 
+                       FROM borrow_records br 
+                       JOIN users u ON br.user_id = u.user_id 
+                       WHERE br.book_id = b.book_id AND br.status = 'borrowed' 
+                       LIMIT 1) as borrowed_by
+               FROM books b
+               LEFT JOIN book_categories bc ON b.book_id = bc.book_id
+               LEFT JOIN categories c ON bc.category_id = c.category_id
+               LEFT JOIN locations l ON b.location_id = l.location_id
+               WHERE b.book_id = %s""",
+            (book_id,)
+        )
+        book = cursor.fetchone()
+        
+        if not book:
+            raise HTTPException(status_code=404, detail="Book not found")
+            
+    return {
+        "status": "success",
+        "book": book
+    }

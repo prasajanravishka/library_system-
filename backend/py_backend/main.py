@@ -1,17 +1,19 @@
 """
 ════════════════════════════════════════════════════════════════════════════
-Smart Library — Python FastAPI Backend (AI/Vision Only)
+Smart Library — Python FastAPI Backend (Unified API)
 Port: 8001
 Host: 0.0.0.0 (accessible from mobile emulators and physical devices)
 ════════════════════════════════════════════════════════════════════════════
-This service is dedicated exclusively to AI image processing (OCR/Vision).
-All standard CRUD operations are handled by the PHP backend on port 8000.
+This service is the central monolithic backend for the Smart Library system.
+It handles all CRUD operations, user authentication, borrow/return logic,
+as well as AI-powered OCR and image processing.
 
 Architecture:
-- PHP Backend (Port 8000): User authentication, CRUD operations, borrow/return
-- Python Backend (Port 8001): OCR processing, image analysis, AI/Vision tasks
+- Unified Python Backend (Port 8001)
 
-Both services require valid API Key in X-API-Key header for authentication.
+Authentication:
+- API Key (x-api-key header) required for all requests.
+- JWT Bearer tokens required for user-specific CRUD operations.
 ════════════════════════════════════════════════════════════════════════════
 """
 

@@ -3,15 +3,12 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../core/app_constants.dart';
 
-/// Centralized API service for dual-backend communication.
+/// Centralized API service for communication with the Python FastAPI backend.
 ///
-/// PHP backend (port 8000): All CRUD operations
-/// Python backend (port 8001): AI/OCR image processing
-///
-/// Both backends require `x-api-key` header authentication.
+/// The Python backend handles all CRUD operations and AI/OCR image processing.
+/// It requires the `x-api-key` header for AI operations, and a JWT token for CRUD.
 class ApiService {
   static String get _base => AppConstants.apiBaseUrl;
-  static String get _pythonBase => AppConstants.pythonApiBaseUrl;
   String? _jwtToken;
 
   void setToken(String? token) {
@@ -42,7 +39,7 @@ class ApiService {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // PHP BACKEND — CRUD Operations (Port 8000)
+  // CRUD Operations & Authentication
   // ══════════════════════════════════════════════════════════════════════════
 
   // ── Authentication ──────────────────────────────────────────────────────
@@ -60,8 +57,15 @@ class ApiService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
-        final body = jsonDecode(response.body);
-        throw Exception(body['detail'] ?? 'Login failed');
+        try {
+          final body = jsonDecode(response.body);
+          throw Exception(body['detail'] ?? 'Login failed');
+        } catch (e) {
+          if (e is FormatException) {
+            throw Exception('Server error (${response.statusCode}): ${response.body}');
+          }
+          rethrow;
+        }
       }
     } on SocketException catch (_) {
       throw Exception('Server unreachable. Ensure the backend is running.');
@@ -83,8 +87,15 @@ class ApiService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
-        final body = jsonDecode(response.body);
-        throw Exception(body['detail'] ?? 'Login failed');
+        try {
+          final body = jsonDecode(response.body);
+          throw Exception(body['detail'] ?? 'Login failed');
+        } catch (e) {
+          if (e is FormatException) {
+            throw Exception('Server error (${response.statusCode}): ${response.body}');
+          }
+          rethrow;
+        }
       }
     } on SocketException catch (_) {
       throw Exception('Server unreachable. Ensure the backend is running.');
@@ -312,8 +323,15 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      final body = jsonDecode(response.body);
-      throw Exception(body['detail'] ?? 'Failed to borrow book');
+      try {
+        final body = jsonDecode(response.body);
+        throw Exception(body['detail'] ?? 'Failed to borrow book');
+      } catch (e) {
+        if (e is FormatException) {
+          throw Exception('Server error (${response.statusCode}): ${response.body}');
+        }
+        rethrow;
+      }
     }
   }
 
@@ -328,8 +346,15 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      final body = jsonDecode(response.body);
-      throw Exception(body['detail'] ?? 'Failed to return book');
+      try {
+        final body = jsonDecode(response.body);
+        throw Exception(body['detail'] ?? 'Failed to return book');
+      } catch (e) {
+        if (e is FormatException) {
+          throw Exception('Server error (${response.statusCode}): ${response.body}');
+        }
+        rethrow;
+      }
     }
   }
 
@@ -459,13 +484,13 @@ class ApiService {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // PYTHON BACKEND — AI/Vision (Port 8001)
+  // AI/Vision Operations
   // ══════════════════════════════════════════════════════════════════════════
 
   /// OCR scan: send image to backend for text extraction + LLM parsing
   Future<Map<String, dynamic>> extractBookInfo(String imagePath) async {
     try {
-      final url = Uri.parse('$_pythonBase/scan-book');
+      final url = Uri.parse('$_base/scan-book');
       final request = http.MultipartRequest('POST', url)
         ..headers.addAll(_authHeaders)
         ..files.add(await http.MultipartFile.fromPath('file', imagePath));
@@ -521,7 +546,7 @@ class ApiService {
   /// Analyze cover image quality and features (no OCR)
   Future<Map<String, dynamic>> analyzeCover(String imagePath) async {
     try {
-      final url = Uri.parse('$_pythonBase/analyze-cover');
+      final url = Uri.parse('$_base/analyze-cover');
       final request = http.MultipartRequest('POST', url)
         ..headers.addAll(_authHeaders)
         ..files.add(await http.MultipartFile.fromPath('file', imagePath));
@@ -559,7 +584,7 @@ class ApiService {
   /// Detect book spines in a shelf image
   Future<Map<String, dynamic>> detectSpines(String imagePath) async {
     try {
-      final url = Uri.parse('$_pythonBase/detect-spines');
+      final url = Uri.parse('$_base/detect-spines');
       final request = http.MultipartRequest('POST', url)
         ..headers.addAll(_authHeaders)
         ..files.add(await http.MultipartFile.fromPath('file', imagePath));

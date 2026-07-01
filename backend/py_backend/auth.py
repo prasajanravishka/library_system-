@@ -49,11 +49,17 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         if user_id is None:
             raise credentials_exception
         return {"user_id": int(user_id), "role": role}
-    except jwt.ExpiredSignatureError:
+    except jwt.ExpiredSignatureError as e:
+        print(f"JWT Expired Error: {e} | Token: {token}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except jwt.PyJWTError:
-        raise credentials_exception
+    except jwt.PyJWTError as e:
+        print(f"JWT Decode Error: {e} | Token: {token}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Could not validate credentials: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

@@ -12,22 +12,22 @@
 
 ## 📖 Table of Contents
 
-- [Project Overview](#-project-overview)
-- [Architecture](#-architecture)
-- [UI/UX Design](#-uiux-design)
-- [Backend — PHP (CRUD & Auth)](#-backend--php-crud--auth)
-- [Backend — Python (AI/Vision)](#-backend--python-aivision)
-- [Database Schema](#-database-schema)
-- [Prerequisites](#-prerequisites)
-- [Installation & Setup](#-installation--setup)
-- [Configuration](#-configuration)
-- [Usage Guide](#-usage-guide)
-- [Testing](#-testing)
-- [Deployment](#-deployment)
-- [Security & Production Readiness](#-security--production-readiness)
-- [Future Enhancements](#-future-enhancements)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [🎯 Project Overview](#-project-overview)
+- [🏗 Architecture](#-architecture)
+- [🎨 UI/UX Design](#-uiux-design)
+- [⚙ Backend — PHP (CRUD & Auth)](#-backend--php-crud--auth)
+- [🐍 Backend — Python (AI/Vision)](#-backend--python-aivision)
+- [🗄 Database Schema](#-database-schema)
+- [📋 Prerequisites](#-prerequisites)
+- [🚀 Installation & Setup](#-installation--setup)
+- [⚙ Configuration](#-configuration)
+- [📱 Usage Guide](#-usage-guide)
+- [🧪 Testing](#-testing)
+- [🚢 Deployment](#-deployment)
+- [🛡 Security & Production Readiness](#-security--production-readiness)
+- [🔮 Future Enhancements](#-future-enhancements)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
 
 ---
 
@@ -52,30 +52,37 @@ The **Smart Library Management System** is a full-stack mobile application that 
 
 ## 🏗 Architecture
 
-```
-┌─────────────────────────────────────────────────┐
-│              Flutter Mobile App                 │
-│          (Dart · Riverpod · Material 3)         │
-│          + CachedNetworkImage for speed         │
-└──────────┬──────────────────────┬───────────────┘
-           │  HTTP + JSON         │  Multipart Upload
-           ▼                      ▼
-┌──────────────────┐   ┌──────────────────────────┐
-│  PHP Backend     │   │  Python Backend          │
-│  Port 8000       │   │  Port 8001               │
-│  (Built-in srv)  │   │  (FastAPI + Uvicorn)     │
-│                  │   │                          │
-│  • JWT Auth      │   │  • OCR (Tesseract)       │
-│  • CRUD          │   │  • Cover Analysis (OpenCV)│
-│  • Borrow/Return │   │  • LLM Parsing (Gemini)  │
-│  • Dashboard     │   │  • Spine Detection       │
-└────────┬─────────┘   └──────────────────────────┘
-         │
-         ▼
-┌──────────────────┐
-│   MySQL 8.x      │
-│  smart_library   │
-└──────────────────┘
+```mermaid
+graph TD
+    subgraph Client_Tier [Client Tier]
+        Flutter["📱 Flutter Mobile App<br/><i>(Dart, Riverpod, Material 3)</i>"]
+    end
+
+    subgraph API_Tier [API Tier]
+        PHP["🐘 PHP Backend (Port 8000)<br/>• JWT Auth<br/>• Core CRUD<br/>• Borrow & Return<br/>• Dashboard Data"]
+        Python["🐍 Python Microservice (Port 8001)<br/>• FastAPI + Uvicorn<br/>• Tesseract OCR<br/>• OpenCV Image Analysis<br/>• Gemini LLM Parsing"]
+    end
+
+    subgraph Data_Tier [Data Tier]
+        MySQL[(🐬 MySQL 8.x<br/>smart_library)]
+    end
+
+    %% Connections
+    Flutter -- "HTTP/JSON<br/>(API Requests)" --> PHP
+    Flutter -- "Multipart Form<br/>(Image Uploads)" --> Python
+    
+    PHP -- "Read/Write" --> MySQL
+
+    %% Styling
+    classDef flutter fill:#02569B,stroke:#0175C2,stroke-width:2px,color:#fff;
+    classDef php fill:#777BB4,stroke:#4F5B93,stroke-width:2px,color:#fff;
+    classDef python fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff;
+    classDef db fill:#4479A1,stroke:#345D7D,stroke-width:2px,color:#fff;
+    
+    class Flutter flutter;
+    class PHP php;
+    class Python python;
+    class MySQL db;
 ```
 
 Both backends authenticate requests via a secure combination of `X-API-Key` headers and **JWT access/refresh tokens**.
@@ -128,53 +135,53 @@ Both backends authenticate requests via a secure combination of `X-API-Key` head
 
 | Method | Action | Description |
 |---|---|---|
-| `POST` | `?action=login` | Authenticate via `student_id` + `password` (bcrypt) |
-| `GET` | `?action=profile&user_id=` | Profile stats: name, email, total borrowed, rank |
-| `GET` | `?action=search&q=` | `FULLTEXT` search across books (title, author, ISBN) |
+| 🔵 **`POST`** | `?action=login` | Authenticate via `student_id` + `password` (bcrypt) |
+| 🟢 **`GET`** | `?action=profile&user_id=` | Profile stats: name, email, total borrowed, rank |
+| 🟢 **`GET`** | `?action=search&q=` | `FULLTEXT` search across books (title, author, ISBN) |
 
 #### `admin.php` — Librarian Operations
 
 | Method | Action | Description |
 |---|---|---|
-| `POST` | `?action=login` | Librarian authentication via `username` + `password` |
-| `POST` | `?action=add_book` | Add book to inventory with location IDs and quantities |
-| `PUT` | `?action=update_book&book_id=` | Update book metadata and stock |
-| `GET` | `?action=all_books` | List entire inventory with stock amounts |
-| `GET` | `?action=all_users` | List all registered students |
-| `PUT` | `?action=toggle_user&user_id=` | Activate/suspend a student account |
+| 🔵 **`POST`** | `?action=login` | Librarian authentication via `username` + `password` |
+| 🔵 **`POST`** | `?action=add_book` | Add book to inventory with location IDs and quantities |
+| 🟠 **`PUT`** | `?action=update_book&book_id=` | Update book metadata and stock |
+| 🟢 **`GET`** | `?action=all_books` | List entire inventory with stock amounts |
+| 🟢 **`GET`** | `?action=all_users` | List all registered students |
+| 🟠 **`PUT`** | `?action=toggle_user&user_id=` | Activate/suspend a student account |
 
 #### `borrow.php` — Checkout & Returns
 
 | Method | Action | Description |
 |---|---|---|
-| `POST` | `?action=borrow` | Borrow a book (14-day loan, transactional) |
-| `POST` | `?action=return` | Return a borrowed book |
-| `GET` | `?action=history&user_id=` | Full borrow history for a user |
+| 🔵 **`POST`** | `?action=borrow` | Borrow a book (14-day loan, transactional) |
+| 🔵 **`POST`** | `?action=return` | Return a borrowed book |
+| 🟢 **`GET`** | `?action=history&user_id=` | Full borrow history for a user |
 
 #### `get_dashboard.php` — Dashboard Data
 
 | Method | Action | Description |
 |---|---|---|
-| `GET` | `?action=stats` | Global stats (total books, active borrows, overdue) |
-| `GET` | `?action=user_dashboard&user_id=` | Per-user dashboard (active reads, rank, notifications) |
-| `GET` | `?action=featured_books` | Latest 5 books for the featured carousel |
-| `GET` | `?action=categories` | Book categories with icon mappings |
+| 🟢 **`GET`** | `?action=stats` | Global stats (total books, active borrows, overdue) |
+| 🟢 **`GET`** | `?action=user_dashboard&user_id=` | Per-user dashboard (active reads, rank, notifications) |
+| 🟢 **`GET`** | `?action=featured_books` | Latest 5 books for the featured carousel |
+| 🟢 **`GET`** | `?action=categories` | Book categories with icon mappings |
 
 #### `book_details.php` — Single Book Details
 
 | Method | Params | Description |
 |---|---|---|
-| `GET` | `?book_id=` | Full book details + last 10 borrow history entries |
+| 🟢 **`GET`** | `?book_id=` | Full book details + last 10 borrow history entries |
 
 #### `categories.php` — Categories Management
 
 | Method | Action | Description |
 |---|---|---|
-| `GET` | `?action=list` | List all available categories and book counts |
-| `GET` | `?action=books&category_id=` | List all books belonging to a specific category |
-| `POST` | `?action=create` | (Admin) Create a new category |
-| `PUT` | `?action=update&id=` | (Admin) Update a category |
-| `DELETE` | `?action=delete&id=` | (Admin) Delete a category |
+| 🟢 **`GET`** | `?action=list` | List all available categories and book counts |
+| 🟢 **`GET`** | `?action=books&category_id=` | List all books belonging to a specific category |
+| 🔵 **`POST`** | `?action=create` | (Admin) Create a new category |
+| 🟠 **`PUT`** | `?action=update&id=` | (Admin) Update a category |
+| 🔴 **`DELETE`** | `?action=delete&id=` | (Admin) Delete a category |
 
 ### Authentication
 
@@ -209,10 +216,16 @@ Both backends authenticate requests via a secure combination of `X-API-Key` head
 
 ### ML Pipeline
 
-```
-Camera Image → OpenCV Preprocessing → Tesseract OCR → Raw Text → Gemini LLM → Structured JSON
-                (upscale, blur,                                      ↓
-                 threshold)                               { title, author, isbn, publisher }
+```mermaid
+flowchart LR
+    A[📷 Camera Image] --> B(OpenCV Preprocessing<br/><i>upscale, blur, threshold</i>)
+    B --> C(Tesseract OCR)
+    C -->|Raw Text| D{Gemini LLM}
+    D -->|Parsed Metadata| E[Structured JSON<br/><i>title, author, isbn, publisher</i>]
+    
+    style B fill:#009688,stroke:#00796B,color:#fff
+    style C fill:#009688,stroke:#00796B,color:#fff
+    style D fill:#777BB4,stroke:#4F5B93,color:#fff
 ```
 
 ---
@@ -221,32 +234,57 @@ Camera Image → OpenCV Preprocessing → Tesseract OCR → Raw Text → Gemini 
 
 MySQL 8.x — `smart_library` database with core tables updated for physical tracking:
 
-```
-admins ──────────┐                 locations ──────────────────────┐
-  admin_id (PK)  │                   location_id (PK)              │
-  username       │                   name, floor, section, shelf   │
-  password_hash  │                                                 │
-                 │ added_by (FK)                    location_id (FK)
-users ───────┐   ├──→ books ◄──────────────────────────────────────┘
-  user_id    │   │      book_id (PK)
-  student_id │   │      title, author, isbn, publisher
-  email      │   │      total_copies, available_copies
-  rank       │   │      availability_status
-  badge_icon │   │      cover_image_url
-             │   │
-             └───┴──→ borrow_records
-                       borrow_id (PK)
-                       user_id (FK), book_id (FK)
-                       borrow_date, due_date
-                       status, fine_amount
+```mermaid
+erDiagram
+    ADMINS ||--o{ BOOKS : "added_by"
+    LOCATIONS ||--o{ BOOKS : "located_at"
+    BOOKS ||--o{ BORROW_RECORDS : "has"
+    USERS ||--o{ BORROW_RECORDS : "makes"
+    BOOKS }|--|{ CATEGORIES : "belongs_to"
 
-categories ────────────────────────┐
-  category_id (PK)                 │
-  name, description, icon          │
-                                   ▼
-                              book_categories (Junction)
-                                book_id (FK)
-                                category_id (FK)
+    ADMINS {
+        int admin_id PK
+        string username
+        string password_hash
+    }
+    LOCATIONS {
+        int location_id PK
+        string name
+        string floor
+        string section
+        string shelf
+    }
+    BOOKS {
+        int book_id PK
+        string title
+        string author
+        string isbn
+        string publisher
+        int total_copies
+        int available_copies
+        string availability_status
+        string cover_image_url
+    }
+    USERS {
+        int user_id PK
+        string student_id
+        string email
+        string rank
+        string badge_icon
+    }
+    BORROW_RECORDS {
+        int borrow_id PK
+        date borrow_date
+        date due_date
+        string status
+        decimal fine_amount
+    }
+    CATEGORIES {
+        int category_id PK
+        string name
+        string description
+        string icon
+    }
 ```
 
 Indexes: **`FULLTEXT` index** on `books(title, author, isbn)` for blazing fast keyword searches; composite indexes on `borrow_records` for efficient status queries; junction table indexing for fast category filtering.

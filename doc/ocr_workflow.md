@@ -1,40 +1,38 @@
-# 🔍 AI Book Scanner & OCR Workflow
+# 🔍 AI Book Scanner & OCR Workflow Architecture
 
-You asked how the scanner connects from the mobile app to the Python backend to extract text. The great news is that **this is already fully implemented in your codebase!** 
-
-Here is the exact step-by-step workflow of how a user scans a cover and how it gets processed by the AI.
+This document outlines the end-to-end architecture and data flow for the AI-powered book scanner, detailing the integration between the Flutter mobile application and the Python (FastAPI) backend.
 
 ---
 
-## 📱 1. The Mobile Frontend (`ScannerScreen.dart`)
-When the librarian taps the floating action button to add a book, they are taken to the `ScannerScreen`.
+## 📱 1. Mobile Client (Flutter)
+The scanning process is initiated from the `ScannerScreen` within the mobile application.
 
-*   **Image Selection**: The app uses the `image_picker` package. The user can either tap **"Take a Photo"** (`ImageSource.camera`) or **"Upload from Gallery"** (`ImageSource.gallery`).
-*   **API Call**: Once an image is selected, the app calls `ApiService.extractBookInfo(image.path)`.
-*   **Network Request**: The Flutter app packages the image into a **Multipart HTTP POST request** and sends it to the Python backend running on port `8001`, along with the `X-API-Key` for security.
+*   **Image Acquisition**: Utilizes the `image_picker` package, allowing users to capture a live photo (`ImageSource.camera`) or select an existing image (`ImageSource.gallery`).
+*   **Service Invocation**: The application triggers `ApiService.extractBookInfo(image.path)`.
+*   **Payload Transmission**: The image is packaged as a `multipart/form-data` HTTP POST request. It is securely transmitted to the FastAPI backend (port `8001`), authenticated via the `X-API-Key` header.
 
-## 🐍 2. The Python Backend (`main.py`)
-The request arrives at the FastAPI endpoint: `POST /api/scan-book`.
+## 🐍 2. Backend Service (FastAPI)
+The request is processed by the dedicated AI microservice endpoint: `POST /api/scan-book`.
 
-*   **Reception**: The FastAPI server receives the raw image bytes in memory.
-*   **Routing**: It immediately routes the image bytes to the Computer Vision modules.
+*   **Ingestion**: FastAPI receives the raw image payload into memory.
+*   **Routing**: The payload is immediately dispatched to the Computer Vision pipeline for synchronous processing.
 
 ## 👁️ 3. OCR Preprocessing & Extraction (`ocr_engine.py`)
-Before we can read the text, we have to clean the image so the OCR engine can understand it.
+To maximize optical character recognition (OCR) accuracy, the raw image undergoes extensive preprocessing.
 
-*   **OpenCV Preprocessing**: The image is upscaled by 2x, converted to Grayscale, blurred to remove camera noise, and thresholded into pure black-and-white.
-*   **Tesseract OCR**: The cleaned image is passed to `tesseract.exe` (using Page Segmentation Mode 6). Tesseract scans the cover and spits out a giant string of raw text (including publisher logos, barcodes, random quotes, etc.).
+*   **Image Conditioning (OpenCV)**: The image is upscaled (2x interpolation), converted to grayscale, subjected to bilateral filtering to reduce noise while preserving edges, and adaptively thresholded into a binary format.
+*   **Text Extraction (Tesseract)**: The conditioned image is processed by Tesseract OCR (utilizing Page Segmentation Mode 6). This yields a raw, unstructured string of text encompassing all visible characters, including publisher logos and peripheral text.
 
-## 🧠 4. LLM Data Parsing (`llm_parser.py`)
-Tesseract gives us raw, messy text. We need to figure out which part is the title and which part is the author.
+## 🧠 4. Semantic Parsing (`llm_parser.py`)
+The raw OCR output is highly unstructured. Semantic parsing is required to extract meaningful metadata.
 
-*   **Gemini AI**: The raw OCR text is sent to the Google Gemini API with a strict prompt: *"You are an OCR Post-Processing AI. Extract ONLY the book title and author from this messy text and return it as JSON."*
-*   **Structuring**: Gemini ignores the junk (like "New York Times Bestseller") and returns a clean JSON object: `{"title": "Harry Potter", "author": "J.K. Rowling"}`.
+*   **LLM Inference (Gemini)**: The raw text is transmitted to the Google Gemini API with a deterministic prompt: *"You are an OCR Post-Processing AI. Extract ONLY the book title and author from this messy text and return it as JSON."*
+*   **Data Structuring**: The LLM filters out extraneous information and returns a strictly formatted JSON object (e.g., `{"title": "Harry Potter", "author": "J.K. Rowling"}`).
 
-## 📲 5. Returning to the App
-*   The Python backend takes the clean JSON, saves the cover image to the `uploads/` folder, and sends a `200 OK` response back to the Flutter app.
-*   The Flutter app receives the response, stops the loading animation, and navigates to the **`BookDetailsConfirmationScreen`**.
-*   The text fields on this screen are automatically pre-filled with the AI-extracted Title and Author, and the cover image is displayed at the top. The librarian can review it, tweak it if the AI made a typo, and hit **Save** to send it to the PHP backend!
+## 📲 5. Client Resolution & UI Update
+*   **Response**: The Python backend persists the cover image to the local `uploads/` directory and returns the structured JSON with a `200 OK` status.
+*   **State Update**: The Flutter app receives the payload, dismisses the loading state, and navigates to the `BookDetailsConfirmationScreen`.
+*   **Human-in-the-Loop Validation**: The form is pre-filled with the extracted metadata. The librarian can review, manually correct any anomalies, and finalize the entry, which is then persisted via the PHP CRUD backend.
 
 ---
 
@@ -43,17 +41,17 @@ Tesseract gives us raw, messy text. We need to figure out which part is the titl
 ```mermaid
 sequenceDiagram
     participant User
-    participant Flutter App
-    participant Python Backend (FastAPI)
-    participant Tesseract OCR
-    participant Gemini LLM
+    participant App as Flutter App
+    participant API as Python FastAPI
+    participant CV as OpenCV + Tesseract
+    participant LLM as Gemini API
 
-    User->>Flutter App: Takes Photo / Uploads Image
-    Flutter App->>Python Backend: POST /api/scan-book (Multipart Image)
-    Python Backend->>Tesseract OCR: Send Image (via OpenCV)
-    Tesseract OCR-->>Python Backend: Return Raw Messy Text
-    Python Backend->>Gemini LLM: Send Raw Text + JSON Prompt
-    Gemini LLM-->>Python Backend: Return Clean JSON (Title/Author)
-    Python Backend-->>Flutter App: Return JSON Response
-    Flutter App->>User: Display Pre-filled Form
+    User->>App: Capture/Upload Cover Image
+    App->>API: POST /api/scan-book (Multipart)
+    API->>CV: Dispatch for Preprocessing & OCR
+    CV-->>API: Yield Raw Extracted Text
+    API->>LLM: Send Text + Structuring Prompt
+    LLM-->>API: Return Structured JSON
+    API-->>App: 200 OK (JSON Payload)
+    App->>User: Render Confirmation Form
 ```

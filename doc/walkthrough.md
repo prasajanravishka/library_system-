@@ -1,6 +1,6 @@
 # Smart Library Management System — Walkthrough
 
-## Architecture Overview
+## 1. Architecture Overview
 
 ```mermaid
 graph TD
@@ -11,114 +11,109 @@ graph TD
     C -->|Gemini API| F["LLM Parser"]
 ```
 
-## Database Schema
+## 2. Database Schema
 
-Created in [database_schema.sql](file:///d:/Projects/Smart-Library-Management-System/backend/database_schema.sql):
+Defined in `backend/database_schema.sql`.
 
-| Table | Purpose | Key Features |
+| Entity | Purpose | Key Mechanisms |
 |---|---|---|
-| `admins` | Librarian accounts | bcrypt password hash |
-| `users` | Student accounts | `account_status` ENUM (active/suspended) |
-| `books` | Book catalog | `availability_status` ENUM, `added_by` FK to admins |
-| `borrow_records` | Loan tracking | `due_date`, `days_left` computed, cascade deletes |
+| `admins` | Administrative access | bcrypt password hashing |
+| `users` | Patron accounts | `account_status` ENUM for soft bans |
+| `books` | Master catalog | `FULLTEXT` indices, FK to admins/locations |
+| `borrow_records` | Transaction history | Due date computations, cascade configurations |
 
-Seed data in [sample_data.sql](file:///d:/Projects/Smart-Library-Management-System/backend/sample_data.sql): 1 librarian, 3 students, 8 classic books, 2 borrow records.
+*Note: Seed data is provided in `backend/sample_data.sql` for rapid local provisioning.*
 
 ---
 
-## PHP Backend (Port 8000)
+## 3. PHP Backend (Port 8000)
 
-All endpoints secured with `x-api-key: smartlib-secure-key-2026` via [db_connect.php](file:///d:/Projects/Smart-Library-Management-System/backend/php_backend/api/db_connect.php).
+Acts as the primary CRUD layer. Endpoints are secured via the `x-api-key` header, configured in `api/db_connect.php`.
 
-| File | Endpoints | Actions |
+| Module | Endpoints | Domain Responsibilities |
 |---|---|---|
-| [user.php](file:///d:/Projects/Smart-Library-Management-System/backend/php_backend/api/user.php) | `?action=login\|profile\|search` | Student auth, profile stats, book search |
-| [admin.php](file:///d:/Projects/Smart-Library-Management-System/backend/php_backend/api/admin.php) | `?action=login\|add_book\|update_book\|all_books\|all_users\|toggle_user` | Librarian CRUD |
-| [borrow.php](file:///d:/Projects/Smart-Library-Management-System/backend/php_backend/api/borrow.php) | `?action=borrow\|return\|history` | Transactional checkout/return |
-| [get_dashboard.php](file:///d:/Projects/Smart-Library-Management-System/backend/php_backend/api/get_dashboard.php) | `?action=stats\|user_dashboard` | Aggregate + per-user stats |
-| [book_details.php](file:///d:/Projects/Smart-Library-Management-System/backend/php_backend/api/book_details.php) | `?book_id=` | Book info + borrow history |
+| `user.php` | `?action=login\|profile\|search` | Patron authentication, profile metrics, catalog search |
+| `admin.php` | `?action=login\|add_book\|update_book\|all_books\|all_users\|toggle_user` | Administrative operations and inventory control |
+| `borrow.php` | `?action=borrow\|return\|history` | ACID-compliant checkout and return transactions |
+| `get_dashboard.php` | `?action=stats\|user_dashboard` | Data aggregation for UI widgets |
+| `book_details.php` | `?book_id=` | Deep dive metadata and loan lineage |
 
 ---
 
-## Python FastAPI Backend (Port 8001)
+## 4. Python FastAPI Backend (Port 8001)
 
-[main.py](file:///d:/Projects/Smart-Library-Management-System/backend/py_backend/main.py) — AI/Vision only, no DB access.
+Dedicated AI/Vision microservice (`main.py`). Fully decoupled from the relational database.
 
-| Endpoint | Purpose | Modules Used |
+| Endpoint | Purpose | Subsystems |
 |---|---|---|
-| `POST /api/scan-book` | OCR + LLM structured extraction | `ocr_engine.py` + `llm_parser.py` |
-| `POST /api/analyze-cover` | Image quality + dominant colors + features | `feature_matcher.py` |
-| `POST /api/detect-spines` | Shelf scanning — detect spine bounding boxes | `feature_matcher.py` |
+| `POST /api/scan-book` | OCR and structured metadata extraction | `ocr_engine.py` + `llm_parser.py` |
+| `POST /api/analyze-cover` | Cover quality, dominant color mapping | `feature_matcher.py` |
+| `POST /api/detect-spines` | Shelf spatial analysis and spine detection | `feature_matcher.py` |
 
-Vision modules:
-- [ocr_engine.py](file:///d:/Projects/Smart-Library-Management-System/backend/py_backend/vision_modules/ocr_engine.py): OpenCV preprocessing (grayscale, bilateral filter, thresholding) → Tesseract OCR
-- [feature_matcher.py](file:///d:/Projects/Smart-Library-Management-System/backend/py_backend/vision_modules/feature_matcher.py): ORB keypoints, K-means dominant colors, Laplacian blur detection, contour-based spine detection
-- [llm_parser.py](file:///d:/Projects/Smart-Library-Management-System/backend/py_backend/vision_modules/llm_parser.py): Gemini API structured parsing of raw OCR text
+### Vision Subsystems
+- **`ocr_engine.py`**: Handles OpenCV preprocessing (grayscale, bilateral filtering, adaptive thresholding) prior to Tesseract OCR execution.
+- **`feature_matcher.py`**: Implements ORB keypoint extraction, K-means color clustering, Laplacian blur evaluation, and contour detection.
+- **`llm_parser.py`**: Interfaces with the Gemini API to structure raw OCR noise into deterministic JSON payloads.
 
 ---
 
-## Flutter App
+## 5. Flutter Application
 
 ### Core Architecture
-- **State Management**: [Riverpod providers](file:///d:/Projects/Smart-Library-Management-System/smart_library_app/lib/providers/providers.dart) — AuthNotifier with session persistence, FutureProviders for all data
-- **API Service**: [Dual-backend service](file:///d:/Projects/Smart-Library-Management-System/smart_library_app/lib/services/api_service.dart) — PHP CRUD on `:8000`, Python AI on `:8001`
-- **Design System**: [app_theme.dart](file:///d:/Projects/Smart-Library-Management-System/smart_library_app/lib/core/app_theme.dart) — Glassmorphism dark theme, Google Fonts Inter
+- **State Management**: Utilizes Riverpod for reactive state (e.g., `AuthNotifier` for sessions, `FutureProvider` for asynchronous network requests).
+- **API Client**: A unified API service managing distinct base URLs for the PHP and Python microservices.
+- **Design System**: A cohesive glassmorphism visual language enforced via `app_theme.dart`.
 
-### Screens (9 total)
+### Screen Topology
 
-| Screen | Key Features |
+| Screen | Core Functionality |
 |---|---|
-| [Onboarding](file:///d:/Projects/Smart-Library-Management-System/smart_library_app/lib/screens/onboarding_screen.dart) | 3-step PageView, animated dot indicators, shown once |
-| [Login](file:///d:/Projects/Smart-Library-Management-System/smart_library_app/lib/screens/login_screen.dart) | Hero glow icon, gradient button, error display, demo hint |
-| [Main](file:///d:/Projects/Smart-Library-Management-System/smart_library_app/lib/screens/main_screen.dart) | IndexedStack, center-docked purple FAB with pulse, BottomAppBar |
-| [Dashboard](file:///d:/Projects/Smart-Library-Management-System/smart_library_app/lib/screens/dashboard_screen.dart) | Dynamic greeting, 3 stat cards, active reads horizontal scroll |
-| [Library](file:///d:/Projects/Smart-Library-Management-System/smart_library_app/lib/screens/library_screen.dart) | Student borrows vs Librarian inventory, pull-to-refresh |
-| [Scanner](file:///d:/Projects/Smart-Library-Management-System/smart_library_app/lib/screens/scanner_screen.dart) | Viewfinder with scan line, camera/gallery, shimmer processing |
-| [Confirmation](file:///d:/Projects/Smart-Library-Management-System/smart_library_app/lib/screens/book_details_confirmation_screen.dart) | AI-prefilled form, "AI" badges, raw OCR collapsible, success animation |
-| [Profile](file:///d:/Projects/Smart-Library-Management-System/smart_library_app/lib/screens/profile_screen.dart) | Avatar initials, stat tiles, settings list, red logout |
-| [Search](file:///d:/Projects/Smart-Library-Management-System/smart_library_app/lib/screens/search_results_screen.dart) | Auto-focus, 400ms debounce, BookCard results |
-
-### Widgets (5 reusable components)
-- `GlassCard` — Backdrop blur + border + shadow
-- `BookCard` — Cover placeholder, title, author, dates, status chip
-- `StatCard` — Dashboard metrics with accent glow
-- `StatusChip` — Color-coded available/borrowed/overdue/returned
-- `SearchBarWidget` — Pinned glass search with filter icon
+| **Onboarding** | Sequential feature introduction with persistent flags |
+| **Login** | Dual-role authentication gateway with error state handling |
+| **Main** | Scaffold with `IndexedStack` and primary navigation |
+| **Dashboard** | Real-time aggregate metrics and personalized active reads |
+| **Library** | Context-aware inventory views (Patron vs. Admin) |
+| **Scanner** | Hardware camera integration with AI processing states |
+| **Confirmation** | Human-in-the-loop metadata validation post-OCR |
+| **Profile** | Gamification ranks, settings, and session termination |
+| **Search** | Debounced `FULLTEXT` catalog querying |
 
 ---
 
-## Verification
+## 6. Deployment & Verification
 
-| Check | Result |
-|---|---|
-| `flutter pub get` | ✅ 70 dependencies resolved |
-| `flutter analyze` | ✅ **No issues found** |
-| API key auth | ✅ Matching `smartlib-secure-key-2026` on both backends |
-| RBAC | ✅ Student login via `user.php`, Librarian via `admin.php` |
-
-## How to Run
+### Local Provisioning Guide
 
 ```bash
-# 1. Database
+# 1. Database Initialization
 mysql -u root -p < backend/database_schema.sql
 mysql -u root -p smart_library < backend/sample_data.sql
 
-# 2. PHP Backend (port 8000)
+# 2. Start PHP Service (Terminal 1)
 cd backend/php_backend/api
 php -S localhost:8000
 
-# 3. Python Backend (port 8001)
+# 3. Start Python Service (Terminal 2)
 cd backend/py_backend
 pip install -r requirements.txt
 python main.py
 
-# 4. Flutter App
+# 4. Launch Flutter Client (Terminal 3)
 cd smart_library_app
 flutter run
 ```
 
+### System Health Checks
+
+| Vector | Status |
+|---|---|
+| `flutter analyze` | ✅ Zero issues reported |
+| Dependency Graph | ✅ Fully resolved (`flutter pub get`) |
+| API Authentication | ✅ Enforced globally via `x-api-key` |
+| Role-Based Access | ✅ Segregated endpoints (`user.php` vs `admin.php`) |
+
 ---
 
-## Recent Updates
+## 7. Change Log
 
-- **[June 2026] UI Compilation**: Fixed `CardTheme` and `const` evaluation errors in the Flutter app to ensure successful compilation on the latest Flutter SDK versions.
+- **[July 2026] Documentation & Architecture**: Completed comprehensive documentation pass. Standardized schema nomenclature and documented UI compatibility updates for modern Flutter SDKs.

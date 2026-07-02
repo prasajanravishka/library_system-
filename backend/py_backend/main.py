@@ -42,6 +42,9 @@ def get_api_key(api_key: str = Security(api_key_header)):
         raise HTTPException(status_code=403, detail="Forbidden — invalid or missing API key")
     return api_key
 
+# ── Allowed Image Extensions ─────────────────────────────────────────────────
+IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic', '.heif')
+
 # ── App Setup ────────────────────────────────────────────────────────────────
 
 app = FastAPI(
@@ -98,7 +101,10 @@ async def scan_book(file: UploadFile = File(...), api_key: str = Security(get_ap
       - book_info: structured fields (title, author, isbn, publisher)
       - cover_analysis: image quality, colors, keypoints
     """
-    if not file.content_type or not file.content_type.startswith("image/"):
+    # Validate image: check content_type first, then fall back to file extension
+    is_image_content = file.content_type and file.content_type.startswith("image/")
+    is_image_ext = file.filename and file.filename.lower().endswith(IMAGE_EXTENSIONS)
+    if not is_image_content and not is_image_ext:
         raise HTTPException(status_code=400, detail="File provided is not an image.")
 
     try:
@@ -152,7 +158,10 @@ async def analyze_cover_endpoint(file: UploadFile = File(...), api_key: str = Se
     Analyze a book cover image without OCR.
     Returns dominant colors, sharpness score, and keypoint count.
     """
-    if not file.content_type or not file.content_type.startswith("image/"):
+    # Validate image: check content_type first, then fall back to file extension
+    is_image_content = file.content_type and file.content_type.startswith("image/")
+    is_image_ext = file.filename and file.filename.lower().endswith(IMAGE_EXTENSIONS)
+    if not is_image_content and not is_image_ext:
         raise HTTPException(status_code=400, detail="File provided is not an image.")
 
     try:
@@ -176,7 +185,10 @@ async def detect_spines_endpoint(file: UploadFile = File(...), api_key: str = Se
     Detect book spines in a shelf image using edge detection.
     Returns bounding boxes for each detected spine region.
     """
-    if not file.content_type or not file.content_type.startswith("image/"):
+    # Validate image: check content_type first, then fall back to file extension
+    is_image_content = file.content_type and file.content_type.startswith("image/")
+    is_image_ext = file.filename and file.filename.lower().endswith(IMAGE_EXTENSIONS)
+    if not is_image_content and not is_image_ext:
         raise HTTPException(status_code=400, detail="File provided is not an image.")
 
     try:

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../core/app_constants.dart';
 
 /// Centralized API service for communication with the Python FastAPI backend.
@@ -491,9 +492,28 @@ class ApiService {
   Future<Map<String, dynamic>> extractBookInfo(String imagePath) async {
     try {
       final url = Uri.parse('$_base/scan-book');
+
+      // Determine MIME type from file extension; default to image/jpeg for camera captures
+      final extension = imagePath.split('.').last.toLowerCase();
+      final mimeTypes = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'heic': 'image/heic',
+        'heif': 'image/heif',
+        'bmp': 'image/bmp',
+      };
+      final contentType = mimeTypes[extension] ?? 'image/jpeg';
+
       final request = http.MultipartRequest('POST', url)
         ..headers.addAll(_authHeaders)
-        ..files.add(await http.MultipartFile.fromPath('file', imagePath));
+        ..files.add(await http.MultipartFile.fromPath(
+          'file',
+          imagePath,
+          contentType: MediaType.parse(contentType),
+        ));
 
       final streamedResponse = await request.send().timeout(
         const Duration(seconds: 30),

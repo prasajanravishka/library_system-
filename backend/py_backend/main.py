@@ -79,6 +79,12 @@ def root():
     }
 
 
+@app.api_route("/api", methods=["GET", "HEAD"])
+def api_health():
+    """Health-check endpoint at /api for client connectivity probes."""
+    return {"status": "ok", "service": "Smart Library API"}
+
+
 # ── Scan Book (OCR + LLM Parsing) ───────────────────────────────────────────
 
 @app.post("/api/scan-book")

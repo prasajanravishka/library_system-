@@ -150,7 +150,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
               ),
               const SizedBox(height: 8),
               const Text(
-                '• For Physical Device: Update IP address in AppConstants (currently: 192.168.1.100:8001)',
+                '• For Physical Device (USB): Run "adb reverse tcp:8001 tcp:8001" and use 127.0.0.1',
               ),
               const SizedBox(height: 8),
               const Text('• Check your network connection'),

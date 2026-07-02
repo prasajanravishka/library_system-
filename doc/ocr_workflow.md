@@ -32,7 +32,7 @@ The raw OCR output is highly unstructured. Semantic parsing is required to extra
 ## 📲 5. Client Resolution & UI Update
 *   **Response**: The Python backend persists the cover image to the local `uploads/` directory and returns the structured JSON with a `200 OK` status.
 *   **State Update**: The Flutter app receives the payload, dismisses the loading state, and navigates to the `BookDetailsConfirmationScreen`.
-*   **Human-in-the-Loop Validation**: The form is pre-filled with the extracted metadata. The librarian can review, manually correct any anomalies, and finalize the entry, which is then persisted via the PHP CRUD backend.
+*   **Human-in-the-Loop Validation**: The form is pre-filled with the extracted metadata. The librarian can review, manually correct any anomalies, and finalize the entry, which is then persisted via the FastAPI CRUD endpoints.
 
 ---
 

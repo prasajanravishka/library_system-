@@ -4,9 +4,8 @@
 
 ```mermaid
 graph TD
-    A["Flutter Mobile App"] -->|CRUD via x-api-key| B["PHP Backend :8000"]
-    A -->|AI/OCR via x-api-key| C["Python FastAPI :8001"]
-    B -->|PDO| D["MySQL Database"]
+    A["Flutter Mobile App"] -->|CRUD & OCR via x-api-key| C["Python FastAPI :8001"]
+    C -->|PyMySQL| D["MySQL Database"]
     C -->|Tesseract + OpenCV| E["Vision Modules"]
     C -->|Gemini API| F["LLM Parser"]
 ```
@@ -26,26 +25,13 @@ Defined in `backend/database_schema.sql`.
 
 ---
 
-## 3. PHP Backend (Port 8000)
+## 3. Python FastAPI Backend (Port 8001)
 
-Acts as the primary CRUD layer. Endpoints are secured via the `x-api-key` header, configured in `api/db_connect.php`.
+Unified monolithic backend (`main.py`) handling both RESTful CRUD operations and AI/Vision tasks.
 
-| Module | Endpoints | Domain Responsibilities |
+| Router / Endpoint | Purpose | Subsystems |
 |---|---|---|
-| `user.php` | `?action=login\|profile\|search` | Patron authentication, profile metrics, catalog search |
-| `admin.php` | `?action=login\|add_book\|update_book\|all_books\|all_users\|toggle_user` | Administrative operations and inventory control |
-| `borrow.php` | `?action=borrow\|return\|history` | ACID-compliant checkout and return transactions |
-| `get_dashboard.php` | `?action=stats\|user_dashboard` | Data aggregation for UI widgets |
-| `book_details.php` | `?book_id=` | Deep dive metadata and loan lineage |
-
----
-
-## 4. Python FastAPI Backend (Port 8001)
-
-Dedicated AI/Vision microservice (`main.py`). Fully decoupled from the relational database.
-
-| Endpoint | Purpose | Subsystems |
-|---|---|---|
+| `user.py`, `borrow.py`, `admin.py`, `dashboard.py`, `settings.py` | Core CRUD operations, authentication, and data aggregation | PyMySQL database queries |
 | `POST /api/scan-book` | OCR and structured metadata extraction | `ocr_engine.py` + `llm_parser.py` |
 | `POST /api/analyze-cover` | Cover quality, dominant color mapping | `feature_matcher.py` |
 | `POST /api/detect-spines` | Shelf spatial analysis and spine detection | `feature_matcher.py` |
@@ -57,7 +43,7 @@ Dedicated AI/Vision microservice (`main.py`). Fully decoupled from the relationa
 
 ---
 
-## 5. Flutter Application
+## 4. Flutter Application
 
 ### Core Architecture
 - **State Management**: Utilizes Riverpod for reactive state (e.g., `AuthNotifier` for sessions, `FutureProvider` for asynchronous network requests).
@@ -80,7 +66,7 @@ Dedicated AI/Vision microservice (`main.py`). Fully decoupled from the relationa
 
 ---
 
-## 6. Deployment & Verification
+## 5. Deployment & Verification
 
 ### Local Provisioning Guide
 
@@ -89,16 +75,12 @@ Dedicated AI/Vision microservice (`main.py`). Fully decoupled from the relationa
 mysql -u root -p < backend/database_schema.sql
 mysql -u root -p smart_library < backend/sample_data.sql
 
-# 2. Start PHP Service (Terminal 1)
-cd backend/php_backend/api
-php -S localhost:8000
-
-# 3. Start Python Service (Terminal 2)
+# 2. Start Python Service (Terminal 1)
 cd backend/py_backend
 pip install -r requirements.txt
 python main.py
 
-# 4. Launch Flutter Client (Terminal 3)
+# 3. Launch Flutter Client (Terminal 2)
 cd smart_library_app
 flutter run
 ```
@@ -110,10 +92,10 @@ flutter run
 | `flutter analyze` | ✅ Zero issues reported |
 | Dependency Graph | ✅ Fully resolved (`flutter pub get`) |
 | API Authentication | ✅ Enforced globally via `x-api-key` |
-| Role-Based Access | ✅ Segregated endpoints (`user.php` vs `admin.php`) |
+| Role-Based Access | ✅ Segregated endpoints (`user.py` vs `admin.py`) |
 
 ---
 
-## 7. Change Log
+## 6. Change Log
 
 - **[July 2026] Documentation & Architecture**: Completed comprehensive documentation pass. Standardized schema nomenclature and documented UI compatibility updates for modern Flutter SDKs.

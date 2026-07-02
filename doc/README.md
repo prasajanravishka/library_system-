@@ -1,9 +1,8 @@
 # 📚 Smart Library Management System
 
-> An AI-powered mobile library management application built with **Flutter**, a **PHP REST API** backend, and a **Python FastAPI** computer-vision microservice. Students scan book covers with their phone camera, and the system uses OCR + LLM parsing to auto-populate book metadata — making cataloguing effortless.
+> An AI-powered mobile library management application built with **Flutter** and a unified **Python FastAPI** backend for CRUD and computer-vision microservices. Students scan book covers with their phone camera, and the system uses OCR + LLM parsing to auto-populate book metadata — making cataloguing effortless.
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.12-blue?logo=flutter)
-![PHP](https://img.shields.io/badge/PHP-8.x-777BB4?logo=php)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)
 ![MySQL](https://img.shields.io/badge/MySQL-8.x-4479A1?logo=mysql&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -15,8 +14,7 @@
 - [🎯 Project Overview](#-project-overview)
 - [🏗 Architecture](#-architecture)
 - [🎨 UI/UX Design](#-uiux-design)
-- [⚙ Backend — PHP (CRUD & Auth)](#-backend--php-crud--auth)
-- [🐍 Backend — Python (AI/Vision)](#-backend--python-aivision)
+- [⚙ Backend — Python FastAPI](#-backend--python-fastapi)
 - [🗄 Database Schema](#-database-schema)
 - [📋 Prerequisites](#-prerequisites)
 - [🚀 Installation & Setup](#-installation--setup)
@@ -60,8 +58,7 @@ graph TD
     end
 
     subgraph API_Tier [API Tier]
-        PHP["🐘 PHP Backend (Port 8000)<br/>• JWT Auth<br/>• Core CRUD<br/>• Borrow & Return<br/>• Dashboard Data"]
-        Python["🐍 Python Microservice (Port 8001)<br/>• FastAPI + Uvicorn<br/>• Tesseract OCR<br/>• OpenCV Image Analysis<br/>• Gemini LLM Parsing"]
+        Python["🐍 Python FastAPI Backend (Port 8001)<br/>• JWT Auth & Core CRUD<br/>• Borrow, Return & Dashboard<br/>• Tesseract OCR<br/>• OpenCV Image Analysis<br/>• Gemini LLM Parsing"]
     end
 
     subgraph Data_Tier [Data Tier]
@@ -69,19 +66,16 @@ graph TD
     end
 
     %% Connections
-    Flutter -- "HTTP/JSON<br/>(API Requests)" --> PHP
-    Flutter -- "Multipart Form<br/>(Image Uploads)" --> Python
+    Flutter -- "HTTP/JSON (CRUD)<br/>Multipart (OCR)" --> Python
     
-    PHP -- "Read/Write" --> MySQL
+    Python -- "PyMySQL<br/>(Read/Write)" --> MySQL
 
     %% Styling
     classDef flutter fill:#02569B,stroke:#0175C2,stroke-width:2px,color:#fff;
-    classDef php fill:#777BB4,stroke:#4F5B93,stroke-width:2px,color:#fff;
     classDef python fill:#009688,stroke:#00796B,stroke-width:2px,color:#fff;
     classDef db fill:#4479A1,stroke:#345D7D,stroke-width:2px,color:#fff;
     
     class Flutter flutter;
-    class PHP php;
     class Python python;
     class MySQL db;
 ```
@@ -109,27 +103,18 @@ graph TD
 
 ---
 
-## ⚙ Backend — PHP (CRUD & Auth)
-
-**Architecture**: Vanilla PHP 8.x with PDO MySQL — no framework overhead. Each endpoint is a standalone script dispatched via `?action=` query parameter.
-
-**Server**: PHP built-in development server (`php -S 0.0.0.0:8000`)
-
-### API Endpoints Overview
-
-- `user.php` — Student Authentication & Search
-- `admin.php` — Librarian Operations
-- `borrow.php` — Checkout & Returns
-- `get_dashboard.php` — Dashboard Data
-- `book_details.php` — Single Book Details
-- `categories.php` — Categories Management
-
----
-
-## 🐍 Backend — Python (AI/Vision)
+## ⚙ Backend — Python FastAPI
 
 **Framework**: FastAPI 0.115 with Uvicorn ASGI server
-**Purpose**: Dedicated microservice for AI image processing — fully decoupled from CRUD operations.
+**Architecture**: A unified monolithic backend handling both RESTful CRUD operations via PyMySQL and AI image processing.
+
+### API Routers Overview
+
+- `user.py` — Student Authentication & Search
+- `admin.py` — Librarian Operations
+- `borrow.py` — Checkout & Returns
+- `dashboard.py` — Dashboard Data & Analytics
+- `settings.py` — User Settings Management
 
 ### ML Pipeline
 
@@ -158,8 +143,7 @@ MySQL 8.x — `smart_library` database with core tables optimized for physical t
 | Dependency | Version | Purpose |
 |---|---|---|
 | Flutter SDK | ≥ 3.12 | Mobile app framework |
-| PHP | ≥ 8.0 | CRUD backend |
-| Python | ≥ 3.9 | AI/Vision backend |
+| Python | ≥ 3.9 | Monolithic backend |
 | MySQL | ≥ 8.0 | Database |
 | Tesseract OCR | ≥ 5.0 | Text recognition engine |
 
@@ -172,20 +156,14 @@ MySQL 8.x — `smart_library` database with core tables optimized for physical t
 mysql -u root -p < backend/current_database_schema.sql
 ```
 
-### 2. PHP Backend (Port 8000)
-```bash
-cd backend/php_backend
-php -S 0.0.0.0:8000
-```
-
-### 3. Python Backend (Port 8001)
+### 2. Python Backend (Port 8001)
 ```bash
 cd backend/py_backend
 pip install -r requirements.txt
 python main.py
 ```
 
-### 4. Flutter App
+### 3. Flutter App
 ```bash
 cd smart_library_app
 flutter pub get
@@ -220,14 +198,14 @@ For development, API keys are configured in constants. For production, transitio
 > **Status**: Early Development.
 
 1. **Database**: Migrate to AWS RDS / managed MySQL.
-2. **PHP Backend**: Deploy behind Nginx with PHP-FPM.
-3. **Python Backend**: Containerize with Docker.
-4. **App**: Build release binaries (`flutter build apk`).
+2. **Python Backend**: Containerize with Docker and deploy via Uvicorn/Gunicorn.
+3. **App**: Build release binaries (`flutter build apk`).
 
 ---
 
 ## 📝 Changelog
 
+- **[July 2026] Architecture Unification**: Migrated all legacy PHP CRUD endpoints into the FastAPI backend, resulting in a single, robust, and unified Python backend architecture.
 - **[July 2026] Documentation Audit**: Completed a comprehensive review and rewrite of all architectural documentation (`README.md`, `critical_analysis.md`, `database_schema_reference.md`, `ocr_workflow.md`, `walkthrough.md`) elevating the technical rigor and precision of the project's documentation suite.
 - **[July 2026] Schema Synchronization**: Standardized the transactional ledger table nomenclature to `borrow_records` across the MySQL schema and PHP PDO queries, resolving a previous integration discrepancy.
 - **[June 2026] Security & Speed**: Introduced JWT token refresh authentication strategy, `FULLTEXT` indexing on books, and Flutter asset caching layers (`CachedNetworkImage`).
@@ -240,5 +218,5 @@ For development, API keys are configured in constants. For production, transitio
 This project is licensed under the **MIT License**.
 
 <p align="center">
-  Built with ❤️ using Flutter, PHP, FastAPI, and OpenCV
+  Built with ❤️ using Flutter, FastAPI, and OpenCV
 </p>

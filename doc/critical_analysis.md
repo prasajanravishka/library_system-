@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This project demonstrates strong competence across the full stack, encompassing a mobile UI, dual-backend microservice separation, relational database design, and a robust AI/computer vision pipeline. The architecture cleanly segregates concerns (CRUD vs. AI) across two discrete backend services. Furthermore, the Flutter frontend exhibits significant maturity in its UI/UX, leveraging a design-token system, micro-animations, and Riverpod state management.
+This project demonstrates strong competence across the full stack, encompassing a mobile UI, unified monolithic Python backend, relational database design, and a robust AI/computer vision pipeline. The architecture seamlessly integrates RESTful CRUD operations and AI capabilities within a single FastAPI service. Furthermore, the Flutter frontend exhibits significant maturity in its UI/UX, leveraging a design-token system, micro-animations, and Riverpod state management.
 
 This production-grade review surfaces key security boundaries, scalability metrics, and edge-case behaviors that have been identified and documented for future iterations.
 
@@ -26,19 +26,14 @@ graph TB
         API["ApiService (HTTP Client)"]
     end
 
-    subgraph "PHP Backend — Port 8000"
-        PHP_AUTH["user.php / admin.php"]
-        PHP_CRUD["borrow.php / admin.php"]
-        PHP_DASH["get_dashboard.php"]
-        DB_CONN["db_connect.php (PDO + API Key)"]
-    end
-
     subgraph "Python FastAPI — Port 8001"
+        PY_CRUD["user.py / borrow.py / admin.py / dashboard.py"]
         PY_SCAN["/api/scan-book"]
         PY_ANALYZE["/api/analyze-cover"]
         PY_SPINE["/api/detect-spines"]
         OCR["OpenCV + Tesseract OCR"]
         LLM["LLM Parser (Optional)"]
+        DB_CONN["database.py (PyMySQL + API Key)"]
     end
 
     subgraph "MySQL Database"
@@ -49,20 +44,21 @@ graph TB
     end
 
     UI --> SP --> API
-    API -- "CRUD / Auth" --> PHP_AUTH
+    API -- "CRUD / Auth" --> PY_CRUD
     API -- "AI / Vision" --> PY_SCAN
-    PHP_AUTH --> DB_CONN --> T_USERS
-    PHP_CRUD --> DB_CONN --> T_BOOKS
-    PHP_DASH --> DB_CONN --> T_BORROW
+    PY_CRUD --> DB_CONN
     PY_SCAN --> OCR --> LLM
+    DB_CONN --> T_USERS
+    DB_CONN --> T_BOOKS
+    DB_CONN --> T_BORROW
 ```
 
 ### 1.2 Strengths
 
 | Aspect | Assessment |
 |---|---|
-| **Separation of Concerns** | Exceptional. The CRUD logic (PHP) and AI logic (Python) are isolated. Either service can be scaled, restarted, or replaced independently. |
-| **Stateless Backends** | Both PHP and FastAPI implementations are stateless. Session data resides securely in the Flutter application's local storage, drastically simplifying horizontal scaling. |
+| **Separation of Concerns** | Well-structured monolithic design. The CRUD logic and AI logic are implemented as distinct router modules within FastAPI, allowing easy future decoupling if necessary. |
+| **Stateless Backends** | The FastAPI implementation is entirely stateless. Session data resides securely in the Flutter application's local storage, drastically simplifying horizontal scaling. |
 | **Single Source of Truth** | All persistent state lives in a centralized MySQL database, eliminating data synchronization anomalies. |
 | **Unified Codebase (RBAC)** | Patron and Librarian roles utilize a single Flutter binary with conditional UI rendering based on robust RBAC. |
 
@@ -71,7 +67,7 @@ graph TB
 | Risk | Severity | Mitigation Strategy |
 |---|---|---|
 | **Absence of API Gateway** | Medium | Introduce an Nginx or Traefik reverse proxy to provide a unified entry point, centralize CORS management, and enable rate limiting. |
-| **Dual-Language Backend** | Low | While requiring slightly more DevOps overhead, PHP is standard for ubiquitous hosting, and Python is the undisputed leader for OpenCV/LLM pipelines. |
+| **Monolithic Python Backend** | Low | Utilizing Python for both CRUD and AI streamlines deployment and reduces DevOps overhead, avoiding the need for multiple language environments. |
 
 ---
 
@@ -93,14 +89,14 @@ graph TB
 ### 3.1 Schema Strengths
 
 - **Cryptographic Hashing**: Implementation of `password_hash()` (bcrypt) represents an industry standard.
-- **Prepared Statements**: Consistent usage of PDO prepared statements entirely neutralizes SQL injection threats.
+- **Parameterized Queries**: Consistent usage of PyMySQL parameterized queries entirely neutralizes SQL injection threats.
 - **Transactional Integrity**: Checkout/return operations are wrapped in `beginTransaction()` and `commit()`, preventing partial or corrupted state mutations.
 
 ### 3.2 Addressed Issues (July 2026 Update)
 
 > [!NOTE]
 > **Resolved: Table Nomenclature Synchronization**
-> Previous iterations noted a discrepancy between the MySQL `borrowed_books` table and the PHP query references to `borrow_records`. This has been standardized to `borrow_records` across the entire codebase, resolving potential runtime PDO exceptions.
+> Previous iterations noted a discrepancy between the MySQL `borrowed_books` table and the Python query references to `borrow_records`. This has been standardized to `borrow_records` across the entire codebase, resolving potential runtime SQL exceptions.
 
 ---
 
@@ -141,7 +137,7 @@ graph TB
 
 ### Scaling Roadmap
 
-1. **Application Servers**: Transition from the PHP built-in server to PHP-FPM behind Nginx.
+1. **Application Servers**: Transition from local execution to deploying FastAPI with multiple Uvicorn/Gunicorn workers behind Nginx.
 2. **AI Workers**: Deploy FastAPI via Uvicorn with multiple workers (`--workers 4`) orchestrated by Gunicorn to handle concurrent OCR processing.
 3. **Database Topology**: Introduce connection pooling (ProxySQL) and read replicas for heavy query loads.
 4. **Blob Storage**: Migrate physical image storage from local directories to S3-compatible cloud object storage.
@@ -150,6 +146,6 @@ graph TB
 
 ## 7. Final Verdict
 
-This project exhibits **genuine full-stack engineering maturity**. The architectural decisions—specifically the dual-backend microservice split, the human-in-the-loop AI pipeline, and the cohesive Flutter design system—demonstrate system design capabilities extending well beyond standard academic criteria. 
+This project exhibits **genuine full-stack engineering maturity**. The architectural decisions—specifically the unified backend structure handling both API logic and AI processing, the human-in-the-loop validation pipeline, and the cohesive Flutter design system—demonstrate system design capabilities extending well beyond standard academic criteria. 
 
 The noted security and scalability gaps are standard for rapid prototyping environments and provide a clear, actionable roadmap for production deployment.

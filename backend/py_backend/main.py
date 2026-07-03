@@ -28,7 +28,7 @@ from dotenv import load_dotenv
 from vision_modules.ocr_engine import process_book_cover
 from vision_modules.feature_matcher import analyze_cover, detect_spine_region
 
-from routers import user, borrow, admin, dashboard, settings
+from routers import user, borrow, admin, dashboard, settings, locations
 # Load environment variables
 load_dotenv()
 
@@ -68,6 +68,7 @@ app.include_router(borrow.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
+app.include_router(locations.router, prefix="/api")
 
 
 # ── Health Check ─────────────────────────────────────────────────────────────

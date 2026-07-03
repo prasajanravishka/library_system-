@@ -1,15 +1,17 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   Users Page — User management with status toggle
+   Users Page — User management with CRUD operations
    ══════════════════════════════════════════════════════════════════════════ */
 
 import { useEffect, useState, useMemo } from 'react';
-import { Search, Shield, ShieldOff, Users } from 'lucide-react';
+import { Search, Shield, ShieldOff, Users, Plus, Edit2, Trash2 } from 'lucide-react';
 import { usersApi } from '../api/users.api';
 import type { User } from '../types/user.types';
 import Badge from '../components/ui/Badge';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { Skeleton } from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
+import Modal from '../components/ui/Modal';
+import UserForm, { type UserFormData } from '../components/forms/UserForm';
 import { formatDate, getErrorMessage } from '../lib/utils';
 import { toast } from 'sonner';
 
@@ -19,6 +21,11 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -66,6 +73,47 @@ export default function UsersPage() {
     }
   };
 
+  const handleAddUser = () => {
+    setEditingUser(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+    try {
+      await usersApi.delete(userId);
+      setUsers((prev) => prev.filter((u) => u.user_id !== userId));
+      toast.success('User deleted successfully');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const handleFormSubmit = async (data: UserFormData) => {
+    setIsSubmitting(true);
+    try {
+      if (editingUser) {
+        const updated = await usersApi.update(editingUser.user_id, data);
+        setUsers((prev) => prev.map((u) => (u.user_id === editingUser.user_id ? updated : u)));
+        toast.success('User updated successfully');
+      } else {
+        const created = await usersApi.create(data);
+        setUsers((prev) => [created, ...prev]);
+        toast.success('User created successfully');
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const selectClass =
     'px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors cursor-pointer';
 
@@ -92,11 +140,20 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Users</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Manage student accounts · {users.length} registered
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Users</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Manage student accounts · {users.length} registered
+          </p>
+        </div>
+        <button
+          onClick={handleAddUser}
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all duration-300 active:scale-[0.98]"
+        >
+          <Plus size={18} />
+          Add User
+        </button>
       </div>
 
       {/* ── Filters ───────────────────────────────────────────────────── */}
@@ -170,28 +227,34 @@ export default function UsersPage() {
                     </td>
                     <td className="py-3 px-4 text-slate-500 text-xs">{formatDate(user.created_at)}</td>
                     <td className="py-3 px-4">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => handleToggle(user.user_id)}
                           disabled={togglingId === user.user_id}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 disabled:opacity-50 active:scale-[0.97] ${
-                            user.account_status === 'active'
-                              ? 'text-amber-600 hover:bg-amber-50'
-                              : 'text-emerald-600 hover:bg-emerald-50'
-                          }`}
+                          className={`flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all duration-200 disabled:opacity-50 active:scale-[0.97]`}
                           title={
                             user.account_status === 'active' ? 'Suspend user' : 'Activate user'
                           }
                         >
                           {user.account_status === 'active' ? (
-                            <>
-                              <ShieldOff size={14} /> Suspend
-                            </>
+                            <ShieldOff size={16} />
                           ) : (
-                            <>
-                              <Shield size={14} /> Activate
-                            </>
+                            <Shield size={16} />
                           )}
+                        </button>
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
+                          title="Edit user"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.user_id)}
+                          className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200"
+                          title="Delete user"
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
@@ -207,6 +270,16 @@ export default function UsersPage() {
           </p>
         </div>
       </div>
+
+      {/* ── User Form Modal ───────────────────────────────────────────── */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => !isSubmitting && setIsModalOpen(false)}
+        title={editingUser ? 'Edit User' : 'Add New User'}
+        size="md"
+      >
+        <UserForm user={editingUser} onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
+      </Modal>
     </div>
   );
 }

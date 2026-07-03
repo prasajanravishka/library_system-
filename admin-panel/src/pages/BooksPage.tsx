@@ -3,11 +3,14 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Pencil, Eye, BookOpen } from 'lucide-react';
 import { booksApi } from '../api/books.api';
 import { dashboardApi } from '../api/dashboard.api';
+import { locationsApi } from '../api/locations.api';
 import type { Book, AddBookPayload, UpdateBookPayload } from '../types/book.types';
 import type { Category } from '../types/category.types';
+import type { Location } from '../types/location.types';
 import type { BookFormData } from '../components/forms/BookForm';
 import Modal from '../components/ui/Modal';
 import Badge from '../components/ui/Badge';
@@ -19,8 +22,10 @@ import { formatDate, getErrorMessage } from '../lib/utils';
 import { toast } from 'sonner';
 
 export default function BooksPage() {
+  const navigate = useNavigate();
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -28,18 +33,22 @@ export default function BooksPage() {
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchBooks = async () => {
     try {
-      const [booksData, catsData] = await Promise.all([
+      const [booksData, catsData, locsData] = await Promise.all([
         booksApi.getAll(),
         dashboardApi.getCategories(),
+        locationsApi.getAll().catch((err) => {
+          console.warn('Failed to fetch locations (endpoint might not exist yet):', err);
+          return [];
+        }),
       ]);
       setBooks(booksData);
       setCategories(catsData);
+      setLocations(locsData);
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -206,7 +215,7 @@ export default function BooksPage() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-md shadow-sm">
                 <tr className="border-b border-slate-200">
-                  {['Title', 'Author', 'ISBN', 'Publisher', 'Year', 'Copies', 'Status', 'Actions'].map(
+                  {['Title', 'Author', 'ISBN', 'Publisher', 'Year', 'Copies', 'Location', 'Status', 'Actions'].map(
                     (col) => (
                       <th
                         key={col}
@@ -246,6 +255,11 @@ export default function BooksPage() {
                       <span className="text-slate-900 font-medium">{book.available_copies}</span>
                       <span className="text-slate-500"> / {book.total_copies}</span>
                     </td>
+                    <td className="py-3 px-4 text-slate-600 truncate max-w-[120px]">
+                      {book.location_id
+                        ? locations.find((l) => l.location_id === book.location_id)?.name || 'Unknown'
+                        : '—'}
+                    </td>
                     <td className="py-3 px-4">
                       <Badge status={book.availability_status} />
                     </td>
@@ -253,8 +267,7 @@ export default function BooksPage() {
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => {
-                            setSelectedBook(book);
-                            setShowDetailModal(true);
+                            navigate(`/books/${book.book_id}`);
                           }}
                           className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50 active:scale-[0.97] transition-all"
                           title="View Details"
@@ -297,6 +310,7 @@ export default function BooksPage() {
       >
         <BookForm
           categories={categories}
+          locations={locations}
           onSubmit={handleAddBook}
           isSubmitting={isSubmitting}
         />
@@ -314,48 +328,11 @@ export default function BooksPage() {
       >
         <BookForm
           book={selectedBook}
+          categories={categories}
+          locations={locations}
           onSubmit={handleEditBook}
           isSubmitting={isSubmitting}
         />
-      </Modal>
-
-      {/* ── Detail Modal ──────────────────────────────────────────────── */}
-      <Modal
-        isOpen={showDetailModal}
-        onClose={() => {
-          setShowDetailModal(false);
-          setSelectedBook(null);
-        }}
-        title="Book Details"
-        size="md"
-      >
-        {selectedBook && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              {[
-                ['Title', selectedBook.title],
-                ['Author', selectedBook.author || '—'],
-                ['ISBN', selectedBook.isbn || '—'],
-                ['Publisher', selectedBook.publisher || '—'],
-                ['Year', selectedBook.publication_year?.toString() || '—'],
-                ['Language', selectedBook.language],
-                ['Total Copies', selectedBook.total_copies?.toString()],
-                ['Available', selectedBook.available_copies?.toString()],
-                ['Location ID', selectedBook.location_id?.toString() || '—'],
-                ['Added', formatDate(selectedBook.added_at)],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <p className="text-xs text-slate-500 mb-0.5">{label}</p>
-                  <p className="text-slate-900 font-medium">{value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="pt-3 border-t border-slate-200">
-              <p className="text-xs text-slate-500 mb-1">Status</p>
-              <Badge status={selectedBook.availability_status} />
-            </div>
-          </div>
-        )}
       </Modal>
     </div>
   );

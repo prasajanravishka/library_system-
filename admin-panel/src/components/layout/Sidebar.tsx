@@ -13,6 +13,7 @@ import {
   Library,
   ChevronLeft,
   ChevronRight,
+  MapPin,
 } from 'lucide-react';
 import { useUiStore } from '../../store/uiStore';
 import { cn } from '../../lib/utils';
@@ -24,6 +25,7 @@ const iconMap: Record<string, React.ElementType> = {
   ArrowRightLeft,
   Tags,
   LifeBuoy,
+  MapPin,
 };
 
 const navItems = [
@@ -32,6 +34,7 @@ const navItems = [
   { label: 'Users', path: '/users', icon: 'Users' },
   { label: 'Borrows', path: '/borrows', icon: 'ArrowRightLeft' },
   { label: 'Categories', path: '/categories', icon: 'Tags' },
+  { label: 'Locations', path: '/locations', icon: 'MapPin' },
   { label: 'Support', path: '/support', icon: 'LifeBuoy' },
 ];
 

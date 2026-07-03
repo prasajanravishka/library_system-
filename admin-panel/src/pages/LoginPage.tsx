@@ -40,22 +40,19 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      {/* Decorative orbs */}
-      <div className="fixed top-1/4 left-1/4 w-96 h-96 bg-indigo-100 rounded-full blur-3xl pointer-events-none" />
-      <div className="fixed bottom-1/4 right-1/4 w-80 h-80 bg-violet-100 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md" style={{ animation: 'pageIn 400ms ease-out' }}>
         {/* ── Logo ────────────────────────────────────────────────────── */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-2xl shadow-indigo-500/30 mb-4">
-            <Library size={32} className="text-white" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 mb-4">
+            <Library size={24} className="text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Smart Library</h1>
           <p className="text-sm text-slate-500 mt-1">Admin Panel — Sign In</p>
         </div>
 
         {/* ── Card ────────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl p-8 shadow-xl border border-slate-200">
+        <div className="bg-white rounded-xl p-8 shadow-sm border border-slate-200">
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Username */}
             <div>
@@ -98,7 +95,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-semibold text-sm hover:shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <Loader2 size={18} className="animate-spin" />

@@ -19,6 +19,10 @@ export interface Book {
   added_at?: string;
   synopsis?: string | null;
   shelf_location?: string | null;
+  // Extra fields returned by details endpoint
+  category_name?: string | null;
+  location_name?: string | null;
+  borrowed_by?: string | null;
 }
 
 export interface AddBookPayload {

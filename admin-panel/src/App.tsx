@@ -12,9 +12,11 @@ import AdminLayout from './components/layout/AdminLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import BooksPage from './pages/BooksPage';
+import BookDetailsPage from './pages/BookDetailsPage';
 import UsersPage from './pages/UsersPage';
 import BorrowsPage from './pages/BorrowsPage';
 import CategoriesPage from './pages/CategoriesPage';
+import LocationsPage from './pages/LocationsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -44,9 +46,11 @@ export default function App() {
         <Route element={<AdminLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/books" element={<BooksPage />} />
+          <Route path="/books/:id" element={<BookDetailsPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/borrows" element={<BorrowsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/locations" element={<LocationsPage />} />
           <Route path="/support" element={<SupportTicketsPage />} />
         </Route>
 

@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { Loader2 } from 'lucide-react';
 import type { Book } from '../../types/book.types';
 import type { Category } from '../../types/category.types';
+import type { Location } from '../../types/location.types';
 
 const bookSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -28,11 +29,12 @@ type BookFormData = z.infer<typeof bookSchema>;
 interface Props {
   book?: Book | null;
   categories?: Category[];
+  locations?: Location[];
   onSubmit: (data: BookFormData) => Promise<void>;
   isSubmitting: boolean;
 }
 
-export default function BookForm({ book, categories = [], onSubmit, isSubmitting }: Props) {
+export default function BookForm({ book, categories = [], locations = [], onSubmit, isSubmitting }: Props) {
   const {
     register,
     handleSubmit,
@@ -110,13 +112,18 @@ export default function BookForm({ book, categories = [], onSubmit, isSubmitting
           {errors.language && <p className={errorClass}>{errors.language.message}</p>}
         </div>
         <div>
-          <label className={labelClass}>Location ID</label>
-          <input
-            type="number"
+          <label className={labelClass}>Location</label>
+          <select
             {...register('location_id')}
             className={inputClass(!!errors.location_id)}
-            placeholder="Shelf location ID"
-          />
+          >
+            <option value="">Select a location</option>
+            {locations.map((loc) => (
+              <option key={loc.location_id} value={loc.location_id}>
+                {loc.name} {loc.floor ? `(${loc.floor})` : ''}
+              </option>
+            ))}
+          </select>
           {errors.location_id && <p className={errorClass}>{errors.location_id.message}</p>}
         </div>
 

@@ -19,4 +19,21 @@ export const usersApi = {
     );
     return { new_status: data.new_status };
   },
+
+  /** POST /api/admin/users — Create a new user */
+  create: async (userData: Partial<User> & { password?: string }): Promise<User> => {
+    const { data } = await client.post<{ status: string; user: User }>('/admin/users', userData);
+    return data.user;
+  },
+
+  /** PUT /api/admin/users/{id} — Update an existing user */
+  update: async (userId: number, userData: Partial<User>): Promise<User> => {
+    const { data } = await client.put<{ status: string; user: User }>(`/admin/users/${userId}`, userData);
+    return data.user;
+  },
+
+  /** DELETE /api/admin/users/{id} — Delete a user */
+  delete: async (userId: number): Promise<void> => {
+    await client.delete(`/admin/users/${userId}`);
+  },
 };

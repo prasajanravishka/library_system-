@@ -1,16 +1,20 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   Categories Page — Card grid with book counts and expandable book lists
+   Categories Page — Card grid with CRUD operations and expandable book lists
    ══════════════════════════════════════════════════════════════════════════ */
 
 import { useEffect, useState } from 'react';
-import { Tags, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
-import { dashboardApi } from '../api/dashboard.api';
+import { Tags, BookOpen, ChevronDown, ChevronUp, Plus, Edit2, Trash2 } from 'lucide-react';
+import { categoriesApi } from '../api/categories.api';
 import type { Category } from '../types/category.types';
 import type { Book } from '../types/book.types';
 import Badge from '../components/ui/Badge';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import Modal from '../components/ui/Modal';
+import CategoryForm, { type CategoryFormData } from '../components/forms/CategoryForm';
 import { getErrorMessage } from '../lib/utils';
 import { toast } from 'sonner';
+// A quick mapping to allow dynamic rendering of Lucide icons based on string
+import * as LucideIcons from 'lucide-react';
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -19,10 +23,15 @@ export default function CategoriesPage() {
   const [categoryBooks, setCategoryBooks] = useState<Book[]>([]);
   const [loadingBooks, setLoadingBooks] = useState(false);
 
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     const fetch = async () => {
       try {
-        const data = await dashboardApi.getCategories();
+        const data = await categoriesApi.getAll();
         setCategories(data);
       } catch (err) {
         toast.error(getErrorMessage(err));
@@ -43,7 +52,7 @@ export default function CategoriesPage() {
     setExpandedId(categoryId);
     setLoadingBooks(true);
     try {
-      const { books } = await dashboardApi.getCategoryBooks(categoryId);
+      const { books } = await categoriesApi.getCategoryBooks(categoryId);
       setCategoryBooks(books);
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -53,16 +62,82 @@ export default function CategoriesPage() {
     }
   };
 
+  const handleAddCategory = () => {
+    setEditingCategory(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditCategory = (e: React.MouseEvent, category: Category) => {
+    e.stopPropagation(); // Prevent expanding the card
+    setEditingCategory(category);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteCategory = async (e: React.MouseEvent, categoryId: number) => {
+    e.stopPropagation(); // Prevent expanding the card
+    if (!window.confirm('Are you sure you want to delete this category?')) return;
+    try {
+      await categoriesApi.delete(categoryId);
+      setCategories((prev) => prev.filter((c) => c.id !== categoryId));
+      if (expandedId === categoryId) {
+        setExpandedId(null);
+        setCategoryBooks([]);
+      }
+      toast.success('Category deleted successfully');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const handleFormSubmit = async (data: CategoryFormData) => {
+    setIsSubmitting(true);
+    try {
+      if (editingCategory) {
+        const updated = await categoriesApi.update(editingCategory.id, data);
+        setCategories((prev) => prev.map((c) => (c.id === editingCategory.id ? updated : c)));
+        toast.success('Category updated successfully');
+      } else {
+        const created = await categoriesApi.create(data);
+        setCategories((prev) => [...prev, created]);
+        toast.success('Category created successfully');
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderIcon = (iconName?: string | null) => {
+    if (!iconName) return <Tags size={20} className="text-indigo-600" />;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const IconComponent = (LucideIcons as any)[iconName];
+    if (IconComponent) {
+      return <IconComponent size={20} className="text-indigo-600" />;
+    }
+    return <Tags size={20} className="text-indigo-600" />;
+  };
+
   if (loading) return <LoadingSpinner fullPage label="Loading categories…" />;
 
   return (
     <div className="space-y-6">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Categories</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Browse book categories · {categories.length} categories
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Categories</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Browse and manage book categories · {categories.length} categories
+          </p>
+        </div>
+        <button
+          onClick={handleAddCategory}
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all duration-300 active:scale-[0.98]"
+        >
+          <Plus size={18} />
+          Add Category
+        </button>
       </div>
 
       {/* ── Category Cards ────────────────────────────────────────────── */}
@@ -70,16 +145,16 @@ export default function CategoriesPage() {
         {categories.map((cat) => (
           <div
             key={cat.id}
-            className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300"
+            className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300 group"
           >
             {/* Card Header */}
-            <button
+            <div
               onClick={() => handleExpand(cat.id)}
-              className="w-full flex items-center justify-between px-6 py-5 hover:bg-slate-50 transition-colors"
+              className="w-full flex items-center justify-between px-6 py-5 hover:bg-slate-50 transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-4">
                 <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100">
-                  <Tags size={20} className="text-indigo-600" />
+                  {renderIcon(cat.icon)}
                 </div>
                 <div className="text-left">
                   <h3 className="text-base font-semibold text-slate-900">{cat.name}</h3>
@@ -88,9 +163,25 @@ export default function CategoriesPage() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => handleEditCategory(e, cat)}
+                    className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
+                    title="Edit category"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button
+                    onClick={(e) => handleDeleteCategory(e, cat.id)}
+                    className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200"
+                    title="Delete category"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-slate-900">{cat.book_count}</p>
+                  <p className="text-lg font-bold text-slate-900">{cat.book_count || 0}</p>
                   <p className="text-xs text-slate-500">books</p>
                 </div>
                 {expandedId === cat.id ? (
@@ -99,7 +190,7 @@ export default function CategoriesPage() {
                   <ChevronDown size={18} className="text-slate-500" />
                 )}
               </div>
-            </button>
+            </div>
 
             {/* Expanded Book List */}
             {expandedId === cat.id && (
@@ -164,6 +255,20 @@ export default function CategoriesPage() {
           </div>
         )}
       </div>
+
+      {/* ── Category Form Modal ───────────────────────────────────────── */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => !isSubmitting && setIsModalOpen(false)}
+        title={editingCategory ? 'Edit Category' : 'Add New Category'}
+        size="sm"
+      >
+        <CategoryForm
+          category={editingCategory}
+          onSubmit={handleFormSubmit}
+          isSubmitting={isSubmitting}
+        />
+      </Modal>
     </div>
   );
 }

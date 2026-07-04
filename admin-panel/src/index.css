@@ -11,6 +11,39 @@
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
   }
+  
+  :root {
+    --bg-primary: #0F172A;
+    --bg-secondary: #1E293B;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --accent-primary: #38BDF8;
+    --border-color: #334155;
+  }
+
+  [data-theme='light'] {
+    --bg-primary: #F8FAFC;
+    --bg-secondary: #FFFFFF;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --accent-primary: #0284C7;
+    --border-color: #E2E8F0;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+@theme {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-accent-primary: var(--accent-primary);
+  --color-border-color: var(--border-color);
 }
 
 /* ── Custom Scrollbar (Subtle for Light Mode) ────────────────────────────── */

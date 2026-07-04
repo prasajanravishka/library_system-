@@ -19,6 +19,7 @@ import CategoriesPage from './pages/CategoriesPage';
 import LocationsPage from './pages/LocationsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
 import CirculationPage from './pages/CirculationPage';
+import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
@@ -29,9 +30,9 @@ export default function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: '#1e293b',
-            border: '1px solid rgba(148,163,184,0.12)',
-            color: '#f8fafc',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-primary)',
             fontSize: '14px',
             borderRadius: '12px',
           },
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/locations" element={<LocationsPage />} />
           <Route path="/support" element={<SupportTicketsPage />} />
+          <Route path="/profile" element={<ProfileSettingsPage />} />
         </Route>
 
         {/* 404 */}

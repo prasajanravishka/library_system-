@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
+  Settings,
 } from 'lucide-react';
 import { useUiStore } from '../../store/uiStore';
 import { cn } from '../../lib/utils';
@@ -26,6 +27,7 @@ const iconMap: Record<string, React.ElementType> = {
   Tags,
   LifeBuoy,
   MapPin,
+  Settings,
 };
 
 const navItems = [
@@ -37,6 +39,7 @@ const navItems = [
   { label: 'Categories', path: '/categories', icon: 'Tags' },
   { label: 'Locations', path: '/locations', icon: 'MapPin' },
   { label: 'Support', path: '/support', icon: 'LifeBuoy' },
+  { label: 'Profile', path: '/profile', icon: 'Settings' },
 ];
 
 export default function Sidebar() {

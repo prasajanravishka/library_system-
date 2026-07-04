@@ -20,13 +20,17 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
   static ThemeMode _loadThemeMode(SharedPreferences prefs) {
     final savedMode = prefs.getString(_themeKey);
     if (savedMode == 'light') return ThemeMode.light;
-    if (savedMode == 'dark') return ThemeMode.dark;
-    return ThemeMode.system;
+    return ThemeMode.dark; // Default to dark as requested
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
     state = mode;
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString(_themeKey, mode.name);
+  }
+
+  Future<void> toggleTheme() async {
+    final newMode = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    await setThemeMode(newMode);
   }
 }

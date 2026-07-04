@@ -31,7 +31,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.lightBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: IndexedStack(index: _currentIndex, children: screens),
 
       // Center-docked Scanner FAB with pulse animation
@@ -67,14 +67,14 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
       // Bottom navigation bar with BottomAppBar for center-docked FAB
       bottomNavigationBar: BottomAppBar(
-        color: AppColors.lightBg,
+        color: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         notchMargin: 8,
         shape: const CircularNotchedRectangle(),
         child: Container(
           decoration: BoxDecoration(
             border: Border(
-              top: BorderSide(color: AppColors.lightBorderSubtle, width: 1),
+              top: BorderSide(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1), width: 1),
             ),
           ),
           child: Row(

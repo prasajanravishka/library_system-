@@ -97,7 +97,7 @@ class BookCard extends StatelessWidget {
                             children: [
                               if (borrowDate != null) ...[
                                 Icon(Icons.calendar_today_rounded,
-                                    size: 12, color: AppColors.textSecondary),
+                                    size: 12, color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey),
                                 const SizedBox(width: 4),
                                 Text(
                                   borrowDate!,

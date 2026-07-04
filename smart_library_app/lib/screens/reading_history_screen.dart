@@ -20,9 +20,9 @@ class ReadingHistoryScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: FadeInDown(child: Text('Reading History', style: AppTextStyles.heading2.copyWith(color: AppColors.lightTextPrimary))),
+        title: FadeInDown(child: Text('Reading History', style: AppTextStyles.heading2.copyWith(color: Theme.of(context).colorScheme.onSurface))),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: AppColors.lightTextPrimary),
+        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
       ),
       body: historyAsync.when(
         loading: () => Center(child: CircularProgressIndicator(color: AppColors.cyan)),
@@ -30,7 +30,7 @@ class ReadingHistoryScreen extends ConsumerWidget {
         data: (historyList) {
           final history = historyList.map((h) => BorrowModel.fromJson(h)).toList();
           if (history.isEmpty) {
-            return Center(child: Text('No reading history', style: TextStyle(color: AppColors.lightTextSecondary)));
+            return Center(child: Text('No reading history', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)));
           }
           
           return Center(
@@ -62,7 +62,7 @@ class ReadingHistoryScreen extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.lightBorderSubtle),
+                            border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1)),
                           ),
                           child: Row(
                             children: [
@@ -71,14 +71,14 @@ class ReadingHistoryScreen extends ConsumerWidget {
                                 child: Container(
                                   width: 60,
                                   height: 80,
-                                  color: AppColors.lightBorderSubtle,
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                                   child: item.coverImageUrl != null && item.coverImageUrl!.isNotEmpty
                                       ? Image.network(item.coverImageUrl!, fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => _buildPlaceholderCover())
+                                          errorBuilder: (_, __, ___) => _buildPlaceholderCover(context))
                                       : (item.coverImagePath != null && item.coverImagePath!.isNotEmpty
                                           ? Image.network(item.coverImagePath!, fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) => _buildPlaceholderCover())
-                                          : _buildPlaceholderCover()),
+                                              errorBuilder: (_, __, ___) => _buildPlaceholderCover(context))
+                                          : _buildPlaceholderCover(context)),
                                 ),
                               ),
                               SizedBox(width: 16),
@@ -86,11 +86,11 @@ class ReadingHistoryScreen extends ConsumerWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(item.title, style: AppTextStyles.heading3.copyWith(color: AppColors.lightTextPrimary)),
+                                    Text(item.title, style: AppTextStyles.heading3.copyWith(color: Theme.of(context).colorScheme.onSurface)),
                                     SizedBox(height: 4),
-                                    Text('Read', style: TextStyle(color: AppColors.lightTextSecondary, fontSize: 12)),
+                                    Text('Read', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 12)),
                                     SizedBox(height: 8),
-                                    Text('Borrowed: ${item.borrowDate}', style: TextStyle(color: AppColors.lightTextSecondary.withValues(alpha: 0.8), fontSize: 12)),
+                                    Text('Borrowed: ${item.borrowDate}', style: TextStyle(color: (Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey).withValues(alpha: 0.8), fontSize: 12)),
                                   ],
                                 ),
                               ),
@@ -125,7 +125,7 @@ class ReadingHistoryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPlaceholderCover() {
-    return Icon(Icons.book, color: AppColors.lightTextSecondary, size: 30);
+  Widget _buildPlaceholderCover(BuildContext context) {
+    return Icon(Icons.book, color: Theme.of(context).textTheme.bodyMedium?.color, size: 30);
   }
 }

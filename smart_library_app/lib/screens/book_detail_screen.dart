@@ -12,13 +12,25 @@ class BookDetailScreen extends ConsumerWidget {
     final bookAsync = ref.watch(bookDetailProvider(bookId));
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
-        title: const Text('Book Detail', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
+        title: Text('Book Detail', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
         centerTitle: true,
+        actions: [
+          Consumer(builder: (context, ref, child) {
+            final savedBooks = ref.watch(savedBooksProvider);
+            final isSaved = savedBooks.contains(bookId);
+            return IconButton(
+              icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
+              onPressed: () {
+                ref.read(savedBooksProvider.notifier).toggleSaved(bookId);
+              },
+            );
+          }),
+        ],
       ),
       body: bookAsync.when(
         data: (bookData) {
@@ -48,9 +60,9 @@ class BookDetailScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(16.0),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: Theme.of(context).dividerColor),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
@@ -70,16 +82,16 @@ class BookDetailScreen extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: Theme.of(context).dividerColor),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.science_outlined, size: 18, color: Colors.black54),
+                            Icon(Icons.science_outlined, size: 18, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
                             const SizedBox(width: 8),
                             Text(
                               category,
-                              style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+                              style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
                             ),
                           ],
                         ),
@@ -90,10 +102,10 @@ class BookDetailScreen extends ConsumerWidget {
                       Text(
                         title,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -102,26 +114,26 @@ class BookDetailScreen extends ConsumerWidget {
                       Text(
                         synopsis,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: Colors.black54,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           height: 1.5,
                         ),
                       ),
                       const SizedBox(height: 32),
                       
                       // Summary Metadata
-                      _buildMetadataRow('Stock', stock),
+                      _buildMetadataRow(context, 'Stock', stock),
                       const SizedBox(height: 12),
-                      _buildMetadataRow('Borrowed by', borrowedBy),
+                      _buildMetadataRow(context, 'Borrowed by', borrowedBy),
                       const SizedBox(height: 12),
-                      _buildMetadataRow('Book position', bookPosition),
+                      _buildMetadataRow(context, 'Book position', bookPosition),
                       const SizedBox(height: 12),
-                      _buildMetadataRow('Publisher', publisher),
+                      _buildMetadataRow(context, 'Publisher', publisher),
                       const SizedBox(height: 12),
-                      _buildMetadataRow('Writer', writer),
+                      _buildMetadataRow(context, 'Writer', writer),
                       const SizedBox(height: 12),
-                      _buildMetadataRow('Language', language),
+                      _buildMetadataRow(context, 'Language', language),
                     ],
                   ),
                 ),
@@ -172,7 +184,7 @@ class BookDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMetadataRow(String label, String value) {
+  Widget _buildMetadataRow(BuildContext context, String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -187,7 +199,7 @@ class BookDetailScreen extends ConsumerWidget {
           flex: 3,
           child: Text(
             value,
-            style: const TextStyle(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14, fontWeight: FontWeight.bold),
           ),
         ),
       ],
@@ -212,8 +224,8 @@ class BookDetailScreen extends ConsumerWidget {
       builder: (context) {
         return Container(
           height: MediaQuery.sizeOf(context).height * 0.85,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
@@ -226,7 +238,7 @@ class BookDetailScreen extends ConsumerWidget {
                   width: 40,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: Theme.of(context).dividerColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -248,12 +260,12 @@ class BookDetailScreen extends ConsumerWidget {
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
                             height: 180,
-                            color: Colors.grey[200],
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                             child: const Center(child: Icon(Icons.library_books, size: 50, color: Colors.grey)),
                           ),
                         ) : Container(
                           height: 180,
-                          color: Colors.grey[200],
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                           child: const Center(child: Icon(Icons.library_books, size: 50, color: Colors.grey)),
                         ),
                       ),
@@ -264,7 +276,7 @@ class BookDetailScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: Theme.of(context).dividerColor),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -275,7 +287,7 @@ class BookDetailScreen extends ConsumerWidget {
                                 children: [
                                   const Text('Location', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w600)),
                                   const SizedBox(height: 4),
-                                  Text(location, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                  Text(location, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).colorScheme.onSurface)),
                                 ],
                               ),
                             ),
@@ -297,50 +309,50 @@ class BookDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 32),
                       
                       // Section 1: Book Information
-                      const Text(
+                      Text(
                         'Book Information',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                       ),
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
                           children: [
-                            _buildMetadataRow('Stock', stock),
+                            _buildMetadataRow(context, 'Stock', stock),
                             const SizedBox(height: 12),
-                            _buildMetadataRow('Borrowed by', borrowedBy),
+                            _buildMetadataRow(context, 'Borrowed by', borrowedBy),
                           ],
                         ),
                       ),
                       const SizedBox(height: 24),
                       
                       // Section 2: Book Identity
-                      const Text(
+                      Text(
                         'Book Identity',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                       ),
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
                           children: [
-                            _buildMetadataRow('Title', title),
+                            _buildMetadataRow(context, 'Title', title),
                             const SizedBox(height: 12),
-                            _buildMetadataRow('Writer', writer),
+                            _buildMetadataRow(context, 'Writer', writer),
                             const SizedBox(height: 12),
-                            _buildMetadataRow('ISBN', isbn),
+                            _buildMetadataRow(context, 'ISBN', isbn),
                             const SizedBox(height: 12),
-                            _buildMetadataRow('Publisher', publisher),
+                            _buildMetadataRow(context, 'Publisher', publisher),
                             const SizedBox(height: 12),
-                            _buildMetadataRow('Year published', year),
+                            _buildMetadataRow(context, 'Year published', year),
                           ],
                         ),
                       ),

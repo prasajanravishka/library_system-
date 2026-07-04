@@ -187,6 +187,42 @@ class ApiService {
   }
 
 
+
+  // ── Saved Books ─────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> saveBook(int bookId) async {
+    final url = Uri.parse('$_base/books/$bookId/save');
+    final response = await http.post(url, headers: _authHeaders);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to save book: ${response.statusCode} ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> unsaveBook(int bookId) async {
+    final url = Uri.parse('$_base/books/$bookId/save');
+    final response = await http.delete(url, headers: _authHeaders);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to remove saved book: ${response.statusCode} ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> getSavedBooks() async {
+    final url = Uri.parse('$_base/users/me/saved-books');
+    final response = await http.get(url, headers: _authHeaders);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load saved books: ${response.statusCode} ${response.body}');
+    }
+  }
+
   // ── User Library (Borrow History) ───────────────────────────────────────
 
   Future<Map<String, dynamic>> getUserLibrary(int userId) async {

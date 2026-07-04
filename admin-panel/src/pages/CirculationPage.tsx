@@ -24,18 +24,59 @@ export default function CirculationPage() {
   // Checkout state
   const [checkoutStudentId, setCheckoutStudentId] = useState('');
   const [checkoutBookName, setCheckoutBookName] = useState('');
+  const [checkoutIsbn, setCheckoutIsbn] = useState('');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  // Date calculations
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + 14);
+  const dueDateStr = dueDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+  // Effect to auto-fill Book Name when ISBN is entered
+  useEffect(() => {
+    if (checkoutIsbn) {
+      const book = books.find(b => b.isbn === checkoutIsbn);
+      if (book) {
+        setCheckoutBookName(book.title);
+      }
+    }
+  }, [checkoutIsbn, books]);
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!checkoutStudentId || !checkoutBookName) {
-      toast.error('Please enter both Student ID and Book Name');
+    if (!checkoutStudentId) {
+      toast.error('Please enter a Student ID');
+      return;
+    }
+    
+    if (!checkoutBookName && !checkoutIsbn) {
+      toast.error('Please enter a Book Title or ISBN');
       return;
     }
 
-    const selectedBook = books.find(b => b.title === checkoutBookName);
+    let selectedBook;
+    if (checkoutIsbn) {
+      selectedBook = books.find(b => b.isbn === checkoutIsbn);
+      if (!selectedBook) {
+        toast.error('Invalid ISBN. Book not found.');
+        return;
+      }
+    } else if (checkoutBookName) {
+      const matchingBooks = books.filter(b => b.title === checkoutBookName);
+      if (matchingBooks.length === 0) {
+        toast.error('Book not found in the catalog.');
+        return;
+      } else if (matchingBooks.length > 1) {
+        toast.error('Multiple editions found! Please select the specific ISBN.');
+        return;
+      } else {
+        selectedBook = matchingBooks[0];
+      }
+    }
+
     if (!selectedBook) {
-      toast.error('Book not found in the catalog.');
+      toast.error('Unable to determine book selection.');
       return;
     }
     
@@ -45,6 +86,7 @@ export default function CirculationPage() {
       toast.success('Book checked out successfully!');
       setCheckoutStudentId('');
       setCheckoutBookName('');
+      setCheckoutIsbn('');
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -54,6 +96,14 @@ export default function CirculationPage() {
 
   const inputClass = "w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all";
   const labelClass = "block text-sm font-semibold text-slate-700 mb-2";
+
+  const filteredBooksForIsbn = checkoutBookName 
+    ? books.filter(b => b.title === checkoutBookName && b.isbn)
+    : books.filter(b => b.isbn);
+
+  const isbnLabel = (checkoutBookName && filteredBooksForIsbn.length > 1)
+    ? 'ISBN (Required for this title)'
+    : 'ISBN (Optional)';
 
   return (
     <div className="flex flex-col h-full bg-slate-50 relative z-0">
@@ -82,8 +132,15 @@ export default function CirculationPage() {
           </div>
 
           <datalist id="booksList">
-            {books.map(book => (
-              <option key={book.book_id} value={book.title} />
+            {/* We can unique the titles so the dropdown doesn't show duplicates */}
+            {Array.from(new Set(books.map(b => b.title))).map(title => (
+              <option key={title} value={title} />
+            ))}
+          </datalist>
+
+          <datalist id="isbnList">
+            {filteredBooksForIsbn.map(book => (
+              <option key={`isbn-${book.book_id}`} value={book.isbn} />
             ))}
           </datalist>
 
@@ -105,16 +162,58 @@ export default function CirculationPage() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Book Name</label>
+                  <label className={labelClass}>Book Title</label>
                   <div className="relative">
                     <Book className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                       type="text"
                       list="booksList"
                       value={checkoutBookName}
-                      onChange={(e) => setCheckoutBookName(e.target.value)}
-                      placeholder="Search for a book..."
+                      onChange={(e) => {
+                        setCheckoutBookName(e.target.value);
+                      }}
+                      placeholder="Search for a book by title..."
                       className={`${inputClass} pl-11`}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={`${labelClass} ${isbnLabel.includes('Required') ? 'text-rose-600' : ''}`}>
+                    {isbnLabel}
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                      type="text"
+                      list="isbnList"
+                      value={checkoutIsbn}
+                      onChange={(e) => {
+                        setCheckoutIsbn(e.target.value);
+                      }}
+                      placeholder="Scan or enter ISBN..."
+                      className={`${inputClass} pl-11`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className={labelClass}>Borrow Date</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={today}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-100/50 border border-slate-200 text-slate-500 text-sm font-medium focus:outline-none cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Due Date</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={dueDateStr}
+                      className="w-full px-4 py-3 rounded-xl bg-indigo-50/50 border border-indigo-100 text-indigo-700 text-sm font-medium focus:outline-none cursor-not-allowed"
                     />
                   </div>
                 </div>

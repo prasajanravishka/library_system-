@@ -35,7 +35,7 @@ class SearchBarWidget extends StatelessWidget {
               child: Text(
                 hintText,
                 style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textSecondary.withValues(alpha: 0.6),
+                  color: (Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey).withValues(alpha: 0.6),
                 ),
               ),
             ),

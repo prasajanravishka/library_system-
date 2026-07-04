@@ -66,9 +66,9 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: FadeInDown(child: Text('Help & Support', style: AppTextStyles.heading2.copyWith(color: AppColors.lightTextPrimary))),
+        title: FadeInDown(child: Text('Help & Support', style: AppTextStyles.heading2.copyWith(color: Theme.of(context).colorScheme.onSurface))),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: AppColors.lightTextPrimary),
+        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -122,7 +122,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                 const SizedBox(height: 30),
                 FadeInUp(
                   delay: const Duration(milliseconds: 150),
-                  child: Text('Your Tickets', style: AppTextStyles.heading3.copyWith(color: AppColors.lightTextPrimary)),
+                  child: Text('Your Tickets', style: AppTextStyles.heading3.copyWith(color: Theme.of(context).colorScheme.onSurface)),
                 ),
                 const SizedBox(height: 10),
                 ticketsAsync.when(
@@ -130,7 +130,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                   error: (e, _) => Center(child: Text('Error loading tickets: $e')),
                   data: (tickets) {
                     if (tickets.isEmpty) {
-                      return Center(child: Text('No support tickets found', style: TextStyle(color: AppColors.lightTextSecondary)));
+                      return Center(child: Text('No support tickets found', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)));
                     }
                     return ListView.builder(
                       shrinkWrap: true,
@@ -169,9 +169,9 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 8),
-                                Text(ticket['message'] ?? '', style: TextStyle(color: AppColors.lightTextSecondary, fontSize: 14)),
+                                Text(ticket['message'] ?? '', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 14)),
                                 const SizedBox(height: 8),
-                                Text(ticket['created_at'] ?? '', style: TextStyle(color: AppColors.lightTextSecondary.withValues(alpha: 0.6), fontSize: 12)),
+                                Text(ticket['created_at'] ?? '', style: TextStyle(color: (Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey).withValues(alpha: 0.6), fontSize: 12)),
                               ],
                             ),
                           ),
@@ -183,7 +183,7 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
                 const SizedBox(height: 30),
                 FadeInUp(
                   delay: const Duration(milliseconds: 200),
-                  child: Text('Frequently Asked Questions', style: AppTextStyles.heading3.copyWith(color: AppColors.lightTextPrimary)),
+                  child: Text('Frequently Asked Questions', style: AppTextStyles.heading3.copyWith(color: Theme.of(context).colorScheme.onSurface)),
                 ),
                 const SizedBox(height: 10),
                 FadeInUp(
@@ -208,13 +208,13 @@ class _SupportScreenState extends ConsumerState<SupportScreen> {
       child: GlassCard(
         padding: const EdgeInsets.all(0),
         child: ExpansionTile(
-          collapsedIconColor: AppColors.lightTextPrimary,
+          collapsedIconColor: Theme.of(context).colorScheme.onSurface,
           iconColor: AppColors.cyan,
           title: Text(question, style: const TextStyle(fontWeight: FontWeight.bold)),
           children: [
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Text(answer, style: TextStyle(color: AppColors.lightTextSecondary)),
+              child: Text(answer, style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
             )
           ],
         ),

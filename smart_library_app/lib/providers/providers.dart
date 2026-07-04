@@ -243,3 +243,58 @@ final supportTicketsProvider = FutureProvider.family<List<dynamic>, int>((ref, u
   final response = await apiService.getSupportTickets(userId);
   return response['tickets'] ?? [];
 });
+
+// ── Saved Books Provider ────────────────────────────────────────────────────
+
+class SavedBooksNotifier extends Notifier<List<int>> {
+  @override
+  List<int> build() {
+    _loadSavedBooks();
+    return [];
+  }
+
+  Future<void> _loadSavedBooks() async {
+    try {
+      final response = await ref.read(apiServiceProvider).getSavedBooks();
+      final List<dynamic> books = response['books'] ?? [];
+      state = books.map((e) {
+        final id = e['book_id'];
+        if (id is String) return int.parse(id);
+        return id as int;
+      }).toList();
+    } catch (e) {
+      // Error loading saved books
+    }
+  }
+
+  Future<void> toggleSaved(int bookId) async {
+    final currentList = List<int>.from(state);
+    final api = ref.read(apiServiceProvider);
+    
+    try {
+      if (currentList.contains(bookId)) {
+        currentList.remove(bookId);
+        state = currentList; // optimistic UI update
+        await api.unsaveBook(bookId);
+      } else {
+        currentList.add(bookId);
+        state = currentList; // optimistic UI update
+        await api.saveBook(bookId);
+      }
+      // Refresh the details provider to update the Library tab
+      ref.invalidate(savedBooksDetailsProvider);
+    } catch (e) {
+      // Rollback on error
+      ref.invalidateSelf();
+    }
+  }
+}
+
+final savedBooksProvider = NotifierProvider<SavedBooksNotifier, List<int>>(SavedBooksNotifier.new);
+
+final savedBooksDetailsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final apiService = ref.read(apiServiceProvider);
+  final response = await apiService.getSavedBooks();
+  final List<dynamic> rawList = response['books'] ?? [];
+  return List<Map<String, dynamic>>.from(rawList);
+});

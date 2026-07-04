@@ -74,15 +74,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           child: Text(
             'Notifications',
             style: AppTextStyles.heading2.copyWith(
-              color: AppColors.lightTextPrimary,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: AppColors.lightTextPrimary),
+        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
         actions: [
           IconButton(
-            icon: const Icon(Icons.done_all, color: AppColors.lightTextPrimary),
+            icon: Icon(Icons.done_all, color: Theme.of(context).colorScheme.onSurface),
             onPressed: _markAllAsRead,
             tooltip: 'Mark all as read',
           ),
@@ -103,7 +103,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             return Center(
               child: Text(
                 'No notifications',
-                style: TextStyle(color: AppColors.lightTextSecondary),
+                style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
               ),
             );
           }
@@ -166,7 +166,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: isRead
-                                    ? AppColors.lightBorderSubtle
+                                    ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1)
                                     : AppColors.cyan.withValues(alpha: 0.3),
                               ),
                             ),
@@ -186,7 +186,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                           fontWeight: isRead
                                               ? FontWeight.normal
                                               : FontWeight.bold,
-                                          color: AppColors.lightTextPrimary,
+                                          color: Theme.of(context).colorScheme.onSurface,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -194,8 +194,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                         notif['message'],
                                         style: TextStyle(
                                           color: isRead
-                                              ? AppColors.lightTextSecondary
-                                              : AppColors.lightTextPrimary,
+                                              ? Theme.of(context).textTheme.bodyMedium?.color
+                                              : Theme.of(context).colorScheme.onSurface,
                                         ),
                                       ),
                                     ],

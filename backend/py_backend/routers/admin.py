@@ -324,6 +324,12 @@ def circulation_checkout(req: CirculationCheckoutRequest, admin = Depends(get_ad
             if user['account_status'] != 'active':
                 raise HTTPException(status_code=400, detail="Student account is suspended")
             
+            # Check unpaid fines
+            cursor.execute("SELECT SUM(fine_amount) as total_fine FROM borrow_records WHERE user_id = %s AND fine_paid = 0", (user['user_id'],))
+            fine_record = cursor.fetchone()
+            if fine_record and fine_record['total_fine'] and fine_record['total_fine'] > 0:
+                raise HTTPException(status_code=400, detail=f"Student has unpaid fines (${float(fine_record['total_fine']):.2f})")
+            
             # Check book
             cursor.execute("SELECT availability_status, available_copies FROM books WHERE book_id = %s", (req.book_id,))
             book = cursor.fetchone()

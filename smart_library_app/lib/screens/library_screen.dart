@@ -44,83 +44,156 @@ class _StudentLibrary extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final libraryAsync = ref.watch(userLibraryProvider(userId));
-
-    return libraryAsync.when(
-      data: (books) {
-        if (books.isEmpty) {
-          return _EmptyState(
-            icon: Icons.library_books_outlined,
-            title: 'No Books Yet',
-            subtitle: 'Scan a book cover to borrow your first book!',
-          );
-        }
-
-        return RefreshIndicator(
-          color: AppColors.cyan,
-          backgroundColor: AppColors.surface,
-          onRefresh: () async {
-            ref.invalidate(userLibraryProvider(userId));
-          },
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-            itemCount: books.length,
-            itemBuilder: (context, index) {
-              final book = Map<String, dynamic>.from(books[index]);
-              final daysLeft = book['days_left'] as int? ?? 0;
-
-              return FadeInUp(
-                delay: Duration(milliseconds: 80 * index),
-                child: BookCard(
-                  title: book['title'] ?? 'Unknown Title',
-                  author: book['author'] ?? 'Unknown Author',
-                  status: daysLeft < 0 ? 'overdue' : (book['status'] ?? 'borrowed'),
-                  borrowDate: book['borrow_date'],
-                  dueDate: book['due_date'],
-                  daysLeft: daysLeft,
-                  coverImageUrl: book['cover_image_url'] ?? book['cover_image_path'],
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BookDetailScreen(
-                          bookId: book['book_id'] is String
-                              ? int.parse(book['book_id'])
-                              : book['book_id'] as int,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
+    return DefaultTabController(
+      length: 4,
+      child: Column(
+        children: [
+          TabBar(
+            isScrollable: true,
+            labelColor: AppColors.cyan,
+            unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withAlpha(128),
+            indicatorColor: AppColors.cyan,
+            tabs: const [
+              Tab(text: 'Saved'),
+              Tab(text: 'On Borrow'),
+              Tab(text: 'Returned'),
+              Tab(text: 'Overdue'),
+            ],
           ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _SavedBooksTab(),
+                _OnBorrowTab(userId: userId),
+                _ReturnedTab(userId: userId),
+                _OverdueTab(userId: userId),
+              ],
             ),
           ),
-        );
-      },
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: AppColors.cyan),
-      ),
-      error: (e, _) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline_rounded,
-                color: AppColors.red, size: 48),
-            const SizedBox(height: 12),
-            Text('Failed to load library',
-                style: AppTextStyles.heading3),
-            const SizedBox(height: 8),
-            Text('$e', style: AppTextStyles.bodySmall),
-          ],
-        ),
+        ],
       ),
     );
   }
+}
+
+class _SavedBooksTab extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final booksAsync = ref.watch(savedBooksDetailsProvider);
+    return booksAsync.when(
+      data: (books) => _buildBookList(books, 'No saved books', 'Saved books will appear here.'),
+      loading: () => const Center(child: CircularProgressIndicator(color: AppColors.cyan)),
+      error: (e, _) => Center(child: Text('Error: ', style: const TextStyle(color: AppColors.red))),
+    );
+  }
+}
+
+class _OnBorrowTab extends ConsumerWidget {
+  final int userId;
+  const _OnBorrowTab({required this.userId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final libraryAsync = ref.watch(userLibraryProvider(userId));
+    return libraryAsync.when(
+      data: (books) {
+        final onBorrow = books.where((b) {
+          final daysLeft = b['days_left'] as int? ?? 0;
+          final status = b['status'] ?? 'borrowed';
+          return status == 'borrowed' && daysLeft >= 0;
+        }).toList();
+        return _buildBookList(onBorrow, 'No books on borrow', 'Borrow a book to see it here.');
+      },
+      loading: () => const Center(child: CircularProgressIndicator(color: AppColors.cyan)),
+      error: (e, _) => Center(child: Text('Error: ', style: const TextStyle(color: AppColors.red))),
+    );
+  }
+}
+
+class _ReturnedTab extends ConsumerWidget {
+  final int userId;
+  const _ReturnedTab({required this.userId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final historyAsync = ref.watch(readingHistoryProvider(userId));
+    return historyAsync.when(
+      data: (books) => _buildBookList(books, 'No returned books', 'Books you return will appear here.'),
+      loading: () => const Center(child: CircularProgressIndicator(color: AppColors.cyan)),
+      error: (e, _) => Center(child: Text('Error: ', style: const TextStyle(color: AppColors.red))),
+    );
+  }
+}
+
+class _OverdueTab extends ConsumerWidget {
+  final int userId;
+  const _OverdueTab({required this.userId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final libraryAsync = ref.watch(userLibraryProvider(userId));
+    return libraryAsync.when(
+      data: (books) {
+        final overdue = books.where((b) {
+          final daysLeft = b['days_left'] as int? ?? 0;
+          final status = b['status'] ?? 'borrowed';
+          return status == 'borrowed' && daysLeft < 0;
+        }).toList();
+        return _buildBookList(overdue, 'No overdue books', 'You have no overdue books. Great job!');
+      },
+      loading: () => const Center(child: CircularProgressIndicator(color: AppColors.cyan)),
+      error: (e, _) => Center(child: Text('Error: ', style: const TextStyle(color: AppColors.red))),
+    );
+  }
+}
+
+Widget _buildBookList(List<dynamic> books, String emptyTitle, String emptySubtitle) {
+  if (books.isEmpty) {
+    return _EmptyState(
+      icon: Icons.library_books_outlined,
+      title: emptyTitle,
+      subtitle: emptySubtitle,
+    );
+  }
+
+  return Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 800),
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+        itemCount: books.length,
+        itemBuilder: (context, index) {
+          final book = Map<String, dynamic>.from(books[index]);
+          final daysLeft = book['days_left'] as int? ?? 0;
+
+          return FadeInUp(
+            delay: Duration(milliseconds: 80 * index),
+            child: BookCard(
+              title: book['title'] ?? 'Unknown Title',
+              author: book['author'] ?? 'Unknown Author',
+              status: daysLeft < 0 ? 'overdue' : (book['status'] ?? 'borrowed'),
+              borrowDate: book['borrow_date'],
+              dueDate: book['due_date'],
+              daysLeft: daysLeft,
+              coverImageUrl: book['cover_image_url'] ?? book['cover_image_path'],
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BookDetailScreen(
+                      bookId: book['book_id'] is String
+                          ? int.parse(book['book_id'])
+                          : book['book_id'] as int,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    ),
+  );
 }
 
 /// ── Librarian: full inventory ─────────────────────────────────────────────

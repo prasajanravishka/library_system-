@@ -42,13 +42,6 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
         setState(() {
           _pushNotifications = settings['push_notifications'] == 1 || settings['push_notifications'] == true;
           _emailNotifications = settings['email_notifications'] == 1 || settings['email_notifications'] == true;
-          
-          final themeModeStr = settings['theme_mode'];
-          if (themeModeStr == 'dark') {
-            ref.read(themeProvider.notifier).setThemeMode(ThemeMode.dark);
-          } else {
-            ref.read(themeProvider.notifier).setThemeMode(ThemeMode.light);
-          }
         });
       }
     } catch (e) {
@@ -166,14 +159,7 @@ class _AccountSettingsScreenState extends ConsumerState<AccountSettingsScreen> {
                           activeColor: AppColors.cyan,
                           onChanged: (val) => setState(() => _emailNotifications = val),
                         ),
-                        SwitchListTile(
-                          title: const Text('Dark Mode'),
-                          value: ref.watch(themeProvider) == ThemeMode.dark,
-                          activeColor: AppColors.cyan,
-                          onChanged: (val) {
-                            ref.read(themeProvider.notifier).setThemeMode(val ? ThemeMode.dark : ThemeMode.light);
-                          },
-                        ),
+
                       ],
                     ),
                   ),

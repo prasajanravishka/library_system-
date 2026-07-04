@@ -39,6 +39,7 @@ export interface AddBookPayload {
   available_copies?: number | null;
   location_id?: number | null;
   category_ids?: number[];
+  synopsis?: string | null;
 }
 
 export interface UpdateBookPayload {
@@ -51,4 +52,6 @@ export interface UpdateBookPayload {
   total_copies?: number;
   available_copies?: number;
   location_id?: number | null;
+  category_ids?: number[];
+  synopsis?: string | null;
 }

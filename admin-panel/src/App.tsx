@@ -18,6 +18,7 @@ import BorrowsPage from './pages/BorrowsPage';
 import CategoriesPage from './pages/CategoriesPage';
 import LocationsPage from './pages/LocationsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
+import CirculationPage from './pages/CirculationPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/books" element={<BooksPage />} />
           <Route path="/books/:id" element={<BookDetailsPage />} />
+          <Route path="/circulation" element={<CirculationPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/borrows" element={<BorrowsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />

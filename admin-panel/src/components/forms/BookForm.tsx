@@ -21,7 +21,13 @@ const bookSchema = z.object({
   available_copies: z.coerce.number().min(0).optional(),
   location_id: z.coerce.number().optional(),
   cover_image_url: z.string().optional(),
-  category_ids: z.array(z.number()).optional(),
+  synopsis: z.string().optional(),
+  category_ids: z.preprocess((val) => {
+    if (Array.isArray(val)) return val.map(Number);
+    if (typeof val === 'string') return [Number(val)];
+    if (val === false || val === undefined) return [];
+    return [];
+  }, z.array(z.number())).optional(),
 });
 
 type BookFormData = z.infer<typeof bookSchema>;
@@ -53,6 +59,7 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
       available_copies: book?.available_copies || 1,
       location_id: book?.location_id || undefined,
       cover_image_url: book?.cover_image_url || '',
+      synopsis: book?.synopsis || '',
       category_ids: [],
     },
   });
@@ -147,6 +154,17 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
         {errors.cover_image_url && <p className={errorClass}>{errors.cover_image_url.message}</p>}
       </div>
 
+      {/* Synopsis */}
+      <div>
+        <label className={labelClass}>Synopsis</label>
+        <textarea
+          {...register('synopsis')}
+          className={`${inputClass(!!errors.synopsis)} resize-y min-h-[100px]`}
+          placeholder="Brief summary or description of the book..."
+        />
+        {errors.synopsis && <p className={errorClass}>{errors.synopsis.message}</p>}
+      </div>
+
       {/* Categories (checkboxes) */}
       {!book && categories.length > 0 && (
         <div className="pt-2">
@@ -160,9 +178,7 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
                 <input
                   type="checkbox"
                   value={cat.id}
-                  {...register('category_ids', {
-                    setValueAs: (v: string[]) => v?.map(Number),
-                  })}
+                  {...register('category_ids')}
                   className="w-4 h-4 rounded border-slate-300 bg-white text-indigo-600 focus:ring-indigo-500"
                 />
                 <span className="text-sm font-medium text-slate-700">{cat.name}</span>

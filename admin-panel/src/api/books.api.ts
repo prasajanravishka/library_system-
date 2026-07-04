@@ -32,6 +32,11 @@ export const booksApi = {
     await client.put(`/admin/books/${bookId}`, payload);
   },
 
+  /** DELETE /api/admin/books/{id} — Delete a book */
+  delete: async (bookId: number): Promise<void> => {
+    await client.delete(`/admin/books/${bookId}`);
+  },
+
   /** GET /api/books/search?q=... — Search books by title/author/ISBN */
   search: async (query: string, categoryId?: number): Promise<Book[]> => {
     const params: Record<string, string | number> = { q: query };

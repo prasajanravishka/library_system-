@@ -19,12 +19,12 @@ def borrow_book(req: BorrowRequest, current_user: dict = Depends(get_current_use
     try:
         with db.cursor() as cursor:
             # Check book availability
-            cursor.execute("SELECT availability_status FROM books WHERE book_id = %s", (book_id,))
+            cursor.execute("SELECT availability_status, available_copies FROM books WHERE book_id = %s", (book_id,))
             book = cursor.fetchone()
             
             if not book:
                 raise HTTPException(status_code=404, detail="Book not found")
-            if book['availability_status'] != 'available':
+            if book['available_copies'] <= 0 or book['availability_status'] != 'available':
                 raise HTTPException(status_code=400, detail="Book is not available for borrowing")
             
             # Insert borrow record (14-day loan period)
@@ -36,8 +36,10 @@ def borrow_book(req: BorrowRequest, current_user: dict = Depends(get_current_use
             )
             borrow_id = cursor.lastrowid
             
-            # Update book status
-            cursor.execute("UPDATE books SET availability_status = 'borrowed' WHERE book_id = %s", (book_id,))
+            # Update book status and copies
+            new_available = book['available_copies'] - 1
+            new_status = 'borrowed' if new_available == 0 else 'available'
+            cursor.execute("UPDATE books SET availability_status = %s, available_copies = %s WHERE book_id = %s", (new_status, new_available, book_id))
             
         db.commit()
         
@@ -89,8 +91,8 @@ def return_book(req: BorrowRequest, current_user: dict = Depends(get_current_use
                 (fine_amount, borrow['borrow_id'])
             )
             
-            # Update book status
-            cursor.execute("UPDATE books SET availability_status = 'available' WHERE book_id = %s", (book_id,))
+            # Update book status and increment copies
+            cursor.execute("UPDATE books SET availability_status = 'available', available_copies = available_copies + 1 WHERE book_id = %s", (book_id,))
             
             # Update user rank/badge
             cursor.execute("SELECT COUNT(*) as count FROM borrow_records WHERE user_id = %s", (user_id,))

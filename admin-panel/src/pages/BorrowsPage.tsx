@@ -9,24 +9,7 @@ import Badge from '../components/ui/Badge';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { formatDate, getErrorMessage } from '../lib/utils';
 import { toast } from 'sonner';
-import client from '../api/client';
-
-interface AdminBorrowRecord {
-  borrow_id: number;
-  user_id: number;
-  book_id: number;
-  borrow_date: string;
-  due_date: string;
-  return_date: string | null;
-  status: string;
-  fine_amount: number;
-  fine_paid: boolean;
-  // Joined fields
-  title?: string;
-  author?: string;
-  student_id?: string;
-  full_name?: string;
-}
+import { borrowsApi, type AdminBorrowRecord } from '../api/borrows.api';
 
 export default function BorrowsPage() {
   const [records, setRecords] = useState<AdminBorrowRecord[]>([]);
@@ -34,96 +17,40 @@ export default function BorrowsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const borrows = await borrowsApi.getAll();
+      setRecords(borrows);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch all books and users to cross-reference borrow data
-        const [booksRes, usersRes] = await Promise.all([
-          client.get('/admin/books'),
-          client.get('/admin/users'),
-        ]);
-
-        const books = booksRes.data.books || [];
-        const users = usersRes.data.users || [];
-
-        // Since we don't have a dedicated admin borrow list endpoint,
-        // we create a synthetic overview from the stats + available data
-        // For now, show books that are currently borrowed with user info
-        const borrowedBooks = books.filter(
-          (b: { availability_status: string }) => b.availability_status === 'borrowed'
-        );
-
-        // Create placeholder records from borrowed books
-        const syntheticRecords: AdminBorrowRecord[] = borrowedBooks.map(
-          (book: {
-            book_id: number;
-            title: string;
-            author: string;
-            added_at: string;
-          }) => ({
-            borrow_id: book.book_id, // placeholder ID
-            user_id: 0,
-            book_id: book.book_id,
-            borrow_date: book.added_at || new Date().toISOString(),
-            due_date: new Date(
-              Date.now() + 14 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            return_date: null,
-            status: 'borrowed',
-            fine_amount: 0,
-            fine_paid: false,
-            title: book.title,
-            author: book.author,
-          })
-        );
-
-        // Add returned books (available books as "returned" historical records)
-        const returnedBooks = books
-          .filter(
-            (b: { availability_status: string }) => b.availability_status === 'available'
-          )
-          .slice(0, 10);
-
-        const returnedRecords: AdminBorrowRecord[] = returnedBooks.map(
-          (book: {
-            book_id: number;
-            title: string;
-            author: string;
-            added_at: string;
-          }) => ({
-            borrow_id: book.book_id + 10000,
-            user_id: 0,
-            book_id: book.book_id,
-            borrow_date: book.added_at || new Date().toISOString(),
-            due_date: new Date(
-              Date.now() - 7 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            return_date: new Date().toISOString(),
-            status: 'returned',
-            fine_amount: 0,
-            fine_paid: false,
-            title: book.title,
-            author: book.author,
-          })
-        );
-
-        setRecords([...syntheticRecords, ...returnedRecords]);
-        void users; // Users fetched for future cross-reference
-      } catch (err) {
-        toast.error(getErrorMessage(err));
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
+
+  const handleReturn = async (borrowId: number) => {
+    if (!window.confirm('Mark this book as returned?')) return;
+    try {
+      await borrowsApi.returnBook(borrowId);
+      toast.success('Book returned successfully');
+      fetchData();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
 
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
       const matchesSearch =
         !searchQuery ||
         r.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.author?.toLowerCase().includes(searchQuery.toLowerCase());
+        r.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.student_id?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -141,15 +68,6 @@ export default function BorrowsPage() {
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Borrow Records</h1>
         <p className="text-sm text-slate-500 mt-1">
           View checkout and return activity · {records.length} records
-        </p>
-      </div>
-
-      {/* Info Banner */}
-      <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-blue-50 border border-blue-200">
-        <Info size={18} className="text-blue-600 mt-0.5 shrink-0" />
-        <p className="text-sm text-blue-800">
-          This view shows borrow activity derived from the current book catalog. A dedicated admin
-          borrow records API would enable full historical tracking with user attribution.
         </p>
       </div>
 
@@ -183,7 +101,7 @@ export default function BorrowsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200">
-                {['Book', 'Author', 'Borrow Date', 'Due Date', 'Return Date', 'Fine', 'Status'].map(
+                {['Book', 'Student', 'Borrow Date', 'Due Date', 'Return Date', 'Fine', 'Status', 'Actions'].map(
                   (col) => (
                     <th
                       key={col}
@@ -211,7 +129,12 @@ export default function BorrowsPage() {
                       </span>
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-slate-500">{record.author || '—'}</td>
+                  <td className="py-3 px-4 text-slate-500">
+                    <div className="flex flex-col">
+                      <span className="text-slate-900 font-medium">{record.full_name}</span>
+                      <span className="text-xs text-slate-400">{record.student_id}</span>
+                    </div>
+                  </td>
                   <td className="py-3 px-4 text-slate-500 text-xs">
                     {formatDate(record.borrow_date)}
                   </td>
@@ -233,11 +156,21 @@ export default function BorrowsPage() {
                   <td className="py-3 px-4">
                     <Badge status={record.status} />
                   </td>
+                  <td className="py-3 px-4">
+                    {record.status === 'borrowed' && (
+                      <button
+                        onClick={() => handleReturn(record.borrow_id)}
+                        className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+                      >
+                        Return
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {filteredRecords.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center text-slate-500">
+                  <td colSpan={8} className="py-16 text-center text-slate-500">
                     No borrow records found.
                   </td>
                 </tr>

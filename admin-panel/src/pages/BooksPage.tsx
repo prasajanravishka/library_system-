@@ -4,7 +4,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Pencil, Eye, BookOpen } from 'lucide-react';
+import { Plus, Search, Pencil, Eye, BookOpen, Trash2 } from 'lucide-react';
 import { booksApi } from '../api/books.api';
 import { dashboardApi } from '../api/dashboard.api';
 import { locationsApi } from '../api/locations.api';
@@ -89,6 +89,7 @@ export default function BooksPage() {
         cover_image_url: formData.cover_image_url || '',
         location_id: formData.location_id ? Number(formData.location_id) : undefined,
         category_ids: formData.category_ids || [],
+        synopsis: formData.synopsis || undefined,
       };
       await booksApi.create(payload);
       toast.success('Book added successfully!');
@@ -117,6 +118,8 @@ export default function BooksPage() {
       if (formData.available_copies !== undefined)
         payload.available_copies = formData.available_copies;
       if (formData.location_id) payload.location_id = Number(formData.location_id);
+      if (formData.category_ids !== undefined) payload.category_ids = formData.category_ids || [];
+      if (formData.synopsis !== undefined) payload.synopsis = formData.synopsis;
 
       await booksApi.update(selectedBook.book_id, payload);
       toast.success('Book updated successfully!');
@@ -127,6 +130,18 @@ export default function BooksPage() {
       toast.error(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Delete book handler
+  const handleDeleteBook = async (bookId: number) => {
+    if (!window.confirm('Are you sure you want to delete this book? This action cannot be undone.')) return;
+    try {
+      await booksApi.delete(bookId);
+      toast.success('Book deleted successfully!');
+      fetchBooks();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
     }
   };
 
@@ -283,6 +298,13 @@ export default function BooksPage() {
                           title="Edit Book"
                         >
                           <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBook(book.book_id)}
+                          className="p-1.5 rounded-lg bg-white border border-slate-200 text-red-600 hover:text-red-700 hover:bg-red-50 active:scale-[0.97] transition-all"
+                          title="Delete Book"
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>

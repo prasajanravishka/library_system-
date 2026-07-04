@@ -217,7 +217,7 @@ class HeroSectionWidget extends ConsumerWidget {
             ),
           ),
           
-          const SizedBox(height: 10)
+          const SizedBox(height: 10),
 
 // --- Search / Action Bar ---
           FadeInDown(

@@ -1,0 +1,27 @@
+# Python / FastAPI Backend
+**/__pycache__/
+**/*.pyc
+backend/py_backend/uploads/*
+!backend/py_backend/uploads/.gitkeep
+backend/py_backend/.env
+backend/py_backend/venv/
+backend/py_backend/.venv/
+
+# Flutter / Dart Mobile App
+smart_library_app/.dart_tool/
+smart_library_app/.flutter-plugins
+smart_library_app/.flutter-plugins-dependencies
+smart_library_app/build/
+smart_library_app/*.iml
+smart_library_app/.idea/
+smart_library_app/.env
+
+# React / Node Admin Panel
+admin-panel/node_modules/
+admin-panel/dist/
+admin-panel/.env
+admin-panel/*.log
+
+# Global OS Files
+.DS_Store
+Thumbs.db

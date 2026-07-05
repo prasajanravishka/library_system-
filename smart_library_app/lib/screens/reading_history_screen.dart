@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:animate_do/animate_do.dart';
 import '../core/app_theme.dart';
-import '../widgets/glass_card.dart';
 import '../providers/providers.dart';
 import '../models/borrow_model.dart';
 import 'book_detail_screen.dart';

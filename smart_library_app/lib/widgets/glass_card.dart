@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../core/app_theme.dart';
 
 /// A reusable glassmorphism container widget.
 /// Uses the design system surface color with alpha transparency and optional backdrop blur.

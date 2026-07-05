@@ -140,7 +140,7 @@ export default function CirculationPage() {
 
           <datalist id="isbnList">
             {filteredBooksForIsbn.map(book => (
-              <option key={`isbn-${book.book_id}`} value={book.isbn} />
+              <option key={`isbn-${book.book_id}`} value={book.isbn ?? ''} />
             ))}
           </datalist>
 

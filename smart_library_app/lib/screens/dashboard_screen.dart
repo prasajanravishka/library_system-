@@ -5,10 +5,7 @@ import '../core/app_theme.dart';
 import '../providers/providers.dart';
 import '../models/category_model.dart';
 import '../widgets/hero_section.dart';
-import 'search_results_screen.dart';
 import 'category_books_screen.dart';
-import 'book_detail_screen.dart';
-import 'notifications_screen.dart';
 import '../widgets/interactive_cards.dart';
 import 'all_categories_screen.dart';
 import 'all_featured_books_screen.dart';
@@ -19,7 +16,6 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final dashboardAsync = ref.watch(userDashboardProvider(authState.userId));
     final featuredAsync = ref.watch(featuredBooksProvider);
     final trendingAsync = ref.watch(trendingBooksProvider);
     final categoriesAsync = ref.watch(categoriesProvider);

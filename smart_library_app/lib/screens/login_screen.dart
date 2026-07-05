@@ -6,7 +6,6 @@ import '../core/app_theme.dart';
 import '../core/app_constants.dart';
 import '../providers/providers.dart';
 import '../widgets/glass_card.dart';
-import 'main_screen.dart';
 
 /// Login screen with glassmorphism text fields and cyan gradient button.
 class LoginScreen extends ConsumerStatefulWidget {
@@ -36,7 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    final success = await ref
+    await ref
         .read(authProvider.notifier)
         .login(studentId, password);
 

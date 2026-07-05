@@ -4,6 +4,8 @@ import 'package:animate_do/animate_do.dart';
 import '../core/app_theme.dart';
 import '../providers/providers.dart';
 import '../widgets/glass_card.dart';
+import 'book_detail_screen.dart';
+import 'search_results_screen.dart';
 
 /// Book confirmation form — pre-filled with AI-extracted data.
 /// Allows manual correction of OCR results before confirming.
@@ -31,8 +33,11 @@ class _BookDetailsConfirmationScreenState
   late final TextEditingController _titleController;
   late final TextEditingController _authorController;
   late final TextEditingController _isbnController;
-  bool _isSubmitting = false;
-  bool _submitted = false;
+
+  String _availabilityStatus = 'Checking...';
+  bool _isAvailable = false;
+  int? _matchedBookId;
+  bool _isChecking = false;
 
   @override
   void initState() {
@@ -40,6 +45,90 @@ class _BookDetailsConfirmationScreenState
     _titleController = TextEditingController(text: widget.title);
     _authorController = TextEditingController(text: widget.author);
     _isbnController = TextEditingController();
+    
+    // Check database availability on open
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAvailability();
+    });
+  }
+
+  Future<void> _checkAvailability() async {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      setState(() {
+        _availabilityStatus = 'No title to search';
+        _isAvailable = false;
+        _matchedBookId = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _isChecking = true;
+      _availabilityStatus = 'Checking availability...';
+    });
+
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final response = await apiService.searchBooks(title);
+      final List<dynamic> books = response['books'] ?? [];
+
+      if (books.isEmpty) {
+        setState(() {
+          _availabilityStatus = 'Not Available in Library Catalog';
+          _isAvailable = false;
+          _matchedBookId = null;
+        });
+      } else {
+        // Try exact title match or fall back to first result
+        var matched = books.firstWhere(
+          (b) => b['title']?.toString().toLowerCase().trim() == title.toLowerCase().trim(),
+          orElse: () => books.first,
+        );
+
+        final copies = matched['available_copies'] ?? 0;
+        final isBookAvail = matched['availability_status'] == 'available' && copies > 0;
+
+        setState(() {
+          _matchedBookId = matched['book_id'] is String
+              ? int.parse(matched['book_id'])
+              : matched['book_id'] as int;
+          _isAvailable = isBookAvail;
+          _availabilityStatus = isBookAvail
+              ? '🟢 Available ($copies copies on shelf)'
+              : '🟡 Out of Stock (All copies borrowed)';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _availabilityStatus = 'Error checking availability';
+        _isAvailable = false;
+        _matchedBookId = null;
+      });
+    } finally {
+      setState(() {
+        _isChecking = false;
+      });
+    }
+  }
+
+  void _confirmSearch() {
+    if (_matchedBookId != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BookDetailScreen(bookId: _matchedBookId!),
+        ),
+      );
+    } else {
+      // If book not found in library, open SearchResultsScreen with the title
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SearchResultsScreen(initialQuery: _titleController.text),
+        ),
+      );
+    }
   }
 
   @override
@@ -50,74 +139,8 @@ class _BookDetailsConfirmationScreenState
     super.dispose();
   }
 
-  Future<void> _confirmAndAdd() async {
-    final title = _titleController.text.trim();
-    final author = _authorController.text.trim();
-
-    if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Title is required'),
-          backgroundColor: AppColors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      final apiService = ref.read(apiServiceProvider);
-      final response = await apiService.addBook(
-        title: title,
-        author: author,
-        isbn: _isbnController.text.trim(),
-        coverImagePath: widget.coverImagePath,
-      );
-
-      if (!mounted) return;
-
-      if (response['status'] == 'success') {
-        setState(() => _submitted = true);
-        // Invalidate providers to refresh data
-        ref.invalidate(dashboardStatsProvider);
-        ref.invalidate(allBooksProvider);
-
-        // Show success for a moment then pop
-        await Future.delayed(const Duration(seconds: 2));
-        if (mounted) {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to add book'),
-            backgroundColor: AppColors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString().replaceFirst("Exception: ", "")}'),
-            backgroundColor: AppColors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_submitted) {
-      return _buildSuccessState();
-    }
-
     return Scaffold(
       
       appBar: AppBar(
@@ -223,9 +246,69 @@ class _BookDetailsConfirmationScreenState
                 isAiExtracted: false,
               ),
             ),
+            const SizedBox(height: 24),
+
+            // Availability status card
+            FadeInUp(
+              delay: const Duration(milliseconds: 350),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Availability Status', style: AppTextStyles.bodyMedium),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.glassSurface,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.borderSubtle),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _matchedBookId != null
+                              ? (_isAvailable ? Icons.check_circle_outline_rounded : Icons.info_outline_rounded)
+                              : Icons.help_outline_rounded,
+                          color: _matchedBookId != null
+                              ? (_isAvailable ? AppColors.emerald : AppColors.amber)
+                              : AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _availabilityStatus,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        if (_isChecking)
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.cyan,
+                            ),
+                          )
+                        else
+                          IconButton(
+                            icon: const Icon(Icons.refresh_rounded, size: 20, color: AppColors.cyan),
+                            onPressed: _checkAvailability,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 32),
 
-            // Confirm & Add button
+            // Confirm & Search button
             FadeInUp(
               delay: const Duration(milliseconds: 400),
               child: Container(
@@ -244,20 +327,10 @@ class _BookDetailsConfirmationScreenState
                   ],
                 ),
                 child: ElevatedButton.icon(
-                  onPressed: _isSubmitting ? null : _confirmAndAdd,
-                  icon: _isSubmitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Icon(Icons.check_circle_outline_rounded,
-                          color: Colors.white),
+                  onPressed: _confirmSearch,
+                  icon: const Icon(Icons.search_rounded, color: Colors.white),
                   label: Text(
-                    _isSubmitting ? 'Adding...' : 'Confirm & Add',
+                    _matchedBookId != null ? 'View Book Details' : 'Search in Catalog',
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
@@ -356,46 +429,6 @@ class _BookDetailsConfirmationScreenState
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildSuccessState() {
-    return Scaffold(
-      
-      body: Center(
-        child: FadeIn(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ZoomIn(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.emerald.withValues(alpha: 0.12),
-                    border: Border.all(
-                      color: AppColors.emerald.withValues(alpha: 0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.check_rounded,
-                    size: 56,
-                    color: AppColors.emerald,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text('Book Added!', style: AppTextStyles.heading1),
-              const SizedBox(height: 8),
-              Text(
-                'Successfully added to the library catalog.',
-                style: AppTextStyles.bodyMedium,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

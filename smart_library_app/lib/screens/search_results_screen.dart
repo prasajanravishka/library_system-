@@ -10,7 +10,8 @@ import 'book_detail_screen.dart';
 
 /// Full-screen search with auto-focus, debounced API calls, and results list.
 class SearchResultsScreen extends ConsumerStatefulWidget {
-  const SearchResultsScreen({super.key});
+  final String? initialQuery;
+  const SearchResultsScreen({super.key, this.initialQuery});
 
   @override
   ConsumerState<SearchResultsScreen> createState() =>
@@ -18,9 +19,16 @@ class SearchResultsScreen extends ConsumerStatefulWidget {
 }
 
 class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
-  final _searchController = TextEditingController();
+  late final TextEditingController _searchController;
   Timer? _debounce;
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(text: widget.initialQuery ?? '');
+    _searchQuery = (widget.initialQuery ?? '').trim();
+  }
 
   @override
   void dispose() {

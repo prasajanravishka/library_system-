@@ -1,7 +1,6 @@
 import os
 import json
-# pyrefly: ignore [missing-import]
-import google.generativeai as genai
+import requests
 
 OCR_POST_PROCESSING_PROMPT = """You are an OCR Post-Processing AI for a Smart Library Management System.
 
@@ -94,33 +93,38 @@ Rules:
 
 def parse_ocr_text(extracted_text: str) -> dict:
     """
-    Takes raw OCR text and uses an LLM to parse out the title and author 
+    Takes raw OCR text and uses Ollama (gpt-oss:120b-cloud) to parse out the title and author
     based on the strict prompt.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        print("Warning: GEMINI_API_KEY not found in environment. Returning empty structure.")
-        return {"title": "", "author": ""}
-
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    url = "http://localhost:11434/api/generate"
     
     full_prompt = f"{OCR_POST_PROCESSING_PROMPT}\n\nOCR Text:\n{extracted_text}"
     
+    payload = {
+        "model": "gpt-oss:120b-cloud",
+        "prompt": full_prompt,
+        "stream": False,
+        "format": "json"
+    }
+    
     try:
-        response = model.generate_content(full_prompt)
-        text_response = response.text.strip()
+        response = requests.post(url, json=payload, timeout=30)
+        response.raise_for_status()
+        result = response.json()
+        
+        response_text = result.get("response", "").strip()
         
         # Clean up any potential markdown block backticks if the model ignores the instruction
-        if text_response.startswith("```json"):
-            text_response = text_response[7:]
-        if text_response.startswith("```"):
-            text_response = text_response[3:]
-        if text_response.endswith("```"):
-            text_response = text_response[:-3]
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
             
-        parsed_json = json.loads(text_response.strip())
+        parsed_json = json.loads(response_text.strip())
+        print(f"Ollama extraction success: {parsed_json}")
         return parsed_json
     except Exception as e:
-        print(f"Error parsing LLM response: {e}")
+        print(f"Ollama API Error: {type(e).__name__}: {e}")
         return {"title": "", "author": ""}

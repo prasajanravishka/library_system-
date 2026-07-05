@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:animate_do/animate_do.dart';
 import '../core/app_theme.dart';
 import '../providers/providers.dart';
-import '../models/category_model.dart';
 import '../widgets/hero_section.dart';
 import 'category_books_screen.dart';
 import '../widgets/interactive_cards.dart';

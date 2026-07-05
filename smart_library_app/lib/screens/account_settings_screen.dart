@@ -5,7 +5,6 @@ import '../core/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../providers/theme_provider.dart';
 import '../providers/providers.dart';
-import '../services/api_service.dart';
 
 class AccountSettingsScreen extends ConsumerStatefulWidget {
   const AccountSettingsScreen({super.key});

@@ -25,3 +25,4 @@ admin-panel/*.log
 # Global OS Files
 .DS_Store
 Thumbs.db
+*.hprof

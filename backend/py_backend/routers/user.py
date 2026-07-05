@@ -94,33 +94,46 @@ def get_profile(current_user: dict = Depends(get_current_user), db = Depends(get
 
 @router.get("/books/search")
 def search_books(q: str, category_id: Optional[int] = None, db = Depends(get_db)):
-    query_term = f"{q}*"
+    # Sanitize the query to remove MySQL boolean mode operators
+    clean_q = "".join(c for c in q if c.isalnum() or c.isspace())
+    clean_q = clean_q.strip()
+    if not clean_q:
+        return {
+            "status": "success",
+            "books": []
+        }
+        
+    # Append wildcard to each word to allow partial prefix matching
+    words = clean_q.split()
+    query_term = " ".join(f"{w}*" for w in words)
     
     with db.cursor() as cursor:
         if category_id:
             sql = """
                 SELECT b.book_id, b.title, b.author, b.isbn, b.publisher,
                        b.publication_year, b.language, b.total_copies, b.available_copies, b.location_id,
-                       b.cover_image_path, b.cover_image_url, b.availability_status
+                       b.cover_image_path, b.cover_image_url, b.availability_status,
+                       MATCH(b.title, b.author, b.isbn) AGAINST(%s IN BOOLEAN MODE) as relevance
                 FROM books b
                 JOIN book_categories bc ON b.book_id = bc.book_id
                 WHERE bc.category_id = %s
                   AND MATCH(b.title, b.author, b.isbn) AGAINST(%s IN BOOLEAN MODE)
-                ORDER BY b.title ASC
+                ORDER BY relevance DESC
                 LIMIT 50
             """
-            cursor.execute(sql, (category_id, query_term))
+            cursor.execute(sql, (query_term, category_id, query_term))
         else:
             sql = """
                 SELECT b.book_id, b.title, b.author, b.isbn, b.publisher,
                        b.publication_year, b.language, b.total_copies, b.available_copies, b.location_id,
-                       b.cover_image_path, b.cover_image_url, b.availability_status
+                       b.cover_image_path, b.cover_image_url, b.availability_status,
+                       MATCH(b.title, b.author, b.isbn) AGAINST(%s IN BOOLEAN MODE) as relevance
                 FROM books b
                 WHERE MATCH(b.title, b.author, b.isbn) AGAINST(%s IN BOOLEAN MODE)
-                ORDER BY b.title ASC
+                ORDER BY relevance DESC
                 LIMIT 50
             """
-            cursor.execute(sql, (query_term,))
+            cursor.execute(sql, (query_term, query_term))
         
         books = cursor.fetchall()
         
@@ -128,6 +141,7 @@ def search_books(q: str, category_id: Optional[int] = None, db = Depends(get_db)
         "status": "success",
         "books": books
     }
+
 
 @router.post("/books/{book_id}/save")
 def save_book(book_id: int, current_user: dict = Depends(get_current_user), db = Depends(get_db)):

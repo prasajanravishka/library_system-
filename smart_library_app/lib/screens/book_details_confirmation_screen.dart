@@ -80,10 +80,21 @@ class _BookDetailsConfirmationScreenState
           _matchedBookId = null;
         });
       } else {
-        // Try exact title match or fall back to first result
+        // Try matching logic:
+        // 1. Try exact title match
+        // 2. Try substring match (e.g. DB title is inside search title, or vice-versa)
+        // 3. Fallback to the first (highest relevance) search result
         var matched = books.firstWhere(
           (b) => b['title']?.toString().toLowerCase().trim() == title.toLowerCase().trim(),
-          orElse: () => books.first,
+          orElse: () => books.firstWhere(
+            (b) {
+              final dbTitle = b['title']?.toString().toLowerCase().trim() ?? '';
+              final searchTitle = title.toLowerCase().trim();
+              return dbTitle.isNotEmpty && searchTitle.isNotEmpty && 
+                     (dbTitle.contains(searchTitle) || searchTitle.contains(dbTitle));
+            },
+            orElse: () => books.first,
+          ),
         );
 
         final copies = matched['available_copies'] ?? 0;

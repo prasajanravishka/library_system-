@@ -6,10 +6,19 @@ import client from './client';
 import type { Book } from '../types/book.types';
 import type { Category } from '../types/category.types';
 
+export interface TrendingBook {
+  book_id: number;
+  title: string;
+  author: string;
+  cover_image_url: string;
+  borrow_count: number;
+}
+
 export interface DashboardStats {
   total_books: number;
   active_borrows: number;
   overdue: number;
+  trending_books: TrendingBook[];
 }
 
 export const dashboardApi = {

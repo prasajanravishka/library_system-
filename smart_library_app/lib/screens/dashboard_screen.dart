@@ -21,6 +21,7 @@ class DashboardScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final dashboardAsync = ref.watch(userDashboardProvider(authState.userId));
     final featuredAsync = ref.watch(featuredBooksProvider);
+    final trendingAsync = ref.watch(trendingBooksProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
 
     return Scaffold(
@@ -30,6 +31,7 @@ class DashboardScreen extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(userDashboardProvider(authState.userId));
           ref.invalidate(featuredBooksProvider);
+          ref.invalidate(trendingBooksProvider);
           ref.invalidate(categoriesProvider);
         },
         child: CustomScrollView(
@@ -68,6 +70,39 @@ class DashboardScreen extends ConsumerWidget {
                               ),
                             );
                           },
+                        );
+                      },
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator(color: AppColors.cyan)),
+                  error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppColors.red))),
+                ),
+              ),
+            ),
+
+            // Trending Books Header
+            _buildSectionHeader(context, 'Trending This Week', () {
+              // No-op for now
+            }),
+
+            // Trending Books Horizontal Carousel
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 240,
+                child: trendingAsync.when(
+                  data: (books) {
+                    if (books.isEmpty) {
+                      return Center(child: Text('No trending books.', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)));
+                    }
+                    return ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: books.length,
+                      itemBuilder: (context, index) {
+                        return FadeInRight(
+                          delay: Duration(milliseconds: 50 * index),
+                          child: BookInteractiveCard(book: books[index]),
                         );
                       },
                     );

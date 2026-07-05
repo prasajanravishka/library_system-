@@ -17,12 +17,26 @@ def get_global_stats(db = Depends(get_db)):
         cursor.execute("SELECT COUNT(*) as count FROM borrow_records WHERE status = 'borrowed' AND due_date < CURDATE()")
         overdue = cursor.fetchone()['count']
         
+        # Trending Books query
+        cursor.execute("""
+            SELECT b.book_id, b.title, b.author, b.cover_image_url, COUNT(br.borrow_id) as borrow_count
+            FROM books b
+            JOIN book_copies bc ON b.book_id = bc.book_id
+            JOIN borrow_records br ON bc.copy_id = br.copy_id
+            WHERE br.borrow_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+            GROUP BY b.book_id
+            ORDER BY borrow_count DESC
+            LIMIT 10
+        """)
+        trending_books = cursor.fetchall()
+        
     return {
         "status": "success",
         "stats": {
             "total_books": total_books,
             "active_borrows": active_borrows,
-            "overdue": overdue
+            "overdue": overdue,
+            "trending_books": trending_books
         }
     }
 
@@ -171,4 +185,24 @@ def get_book_details(book_id: int, db = Depends(get_db)):
     return {
         "status": "success",
         "book": book
+    }
+
+@router.get("/trending_books")
+def get_trending_books(db = Depends(get_db)):
+    with db.cursor() as cursor:
+        cursor.execute("""
+            SELECT b.book_id, b.title, b.author, b.cover_image_url, COUNT(br.borrow_id) as borrow_count
+            FROM books b
+            JOIN book_copies bc ON b.book_id = bc.book_id
+            JOIN borrow_records br ON bc.copy_id = br.copy_id
+            WHERE br.borrow_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+            GROUP BY b.book_id
+            ORDER BY borrow_count DESC
+            LIMIT 10
+        """)
+        trending_books = cursor.fetchall()
+        
+    return {
+        "status": "success",
+        "trending_books": trending_books
     }

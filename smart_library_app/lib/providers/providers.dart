@@ -195,6 +195,14 @@ final featuredBooksProvider = FutureProvider<List<dynamic>>((ref) async {
   return response['featured_books'] ?? [];
 });
 
+// ── Trending Books Provider ─────────────────────────────────────────────────
+
+final trendingBooksProvider = FutureProvider<List<dynamic>>((ref) async {
+  final apiService = ref.read(apiServiceProvider);
+  final response = await apiService.getTrendingBooks();
+  return response['trending_books'] ?? [];
+});
+
 // ── Categories Provider ─────────────────────────────────────────────────────
 
 final categoriesProvider = FutureProvider<List<CategoryModel>>((ref) async {

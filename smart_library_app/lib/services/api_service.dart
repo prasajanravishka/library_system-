@@ -164,6 +164,17 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> getTrendingBooks() async {
+    final url = Uri.parse('$_base/trending_books');
+    final response = await http.get(url, headers: _authHeaders);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load trending books: ${response.statusCode} ${response.body}');
+    }
+  }
+
   Future<Map<String, dynamic>> getCategories() async {
     final url = Uri.parse('$_base/categories');
     final response = await http.get(url, headers: _authHeaders);

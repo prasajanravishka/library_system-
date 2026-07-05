@@ -27,14 +27,24 @@ def borrow_book(req: BorrowRequest, current_user: dict = Depends(get_current_use
             if book['available_copies'] <= 0 or book['availability_status'] != 'available':
                 raise HTTPException(status_code=400, detail="Book is not available for borrowing")
             
+            # Find an available copy
+            cursor.execute("SELECT copy_id FROM book_copies WHERE book_id = %s AND status = 'available' LIMIT 1", (book_id,))
+            copy = cursor.fetchone()
+            if not copy:
+                raise HTTPException(status_code=400, detail="No available copies found")
+            copy_id = copy['copy_id']
+            
             # Insert borrow record (14-day loan period)
             due_date_str = (datetime.now() + timedelta(days=14)).strftime('%Y-%m-%d')
             cursor.execute(
-                """INSERT INTO borrow_records (user_id, book_id, borrow_date, due_date, status)
-                   VALUES (%s, %s, CURDATE(), %s, 'borrowed')""",
-                (user_id, book_id, due_date_str)
+                """INSERT INTO borrow_records (user_id, book_id, copy_id, borrow_date, due_date, status)
+                   VALUES (%s, %s, %s, CURDATE(), %s, 'borrowed')""",
+                (user_id, book_id, copy_id, due_date_str)
             )
             borrow_id = cursor.lastrowid
+            
+            # Update copy status
+            cursor.execute("UPDATE book_copies SET status = 'borrowed' WHERE copy_id = %s", (copy_id,))
             
             # Update book status and copies
             new_available = book['available_copies'] - 1
@@ -89,6 +99,15 @@ def return_book(req: BorrowRequest, current_user: dict = Depends(get_current_use
                        fine_amount = %s, fine_paid = FALSE
                    WHERE borrow_id = %s""",
                 (fine_amount, borrow['borrow_id'])
+            )
+            
+            # Update copy
+            cursor.execute(
+                """UPDATE book_copies bc
+                   JOIN borrow_records br ON bc.copy_id = br.copy_id
+                   SET bc.status = 'available'
+                   WHERE br.borrow_id = %s""",
+                (borrow['borrow_id'],)
             )
             
             # Update book status and increment copies

@@ -3,7 +3,7 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 import { useEffect, useState } from 'react';
-import { BookOpen, Users, ArrowRightLeft, AlertTriangle, TrendingUp } from 'lucide-react';
+import { BookOpen, Users, ArrowRightLeft, AlertTriangle, TrendingUp, Flame } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import StatCard from '../components/ui/StatCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
@@ -233,6 +233,40 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Trending Books Section ──────────────────────────────────────── */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 mt-6">
+        <div className="flex items-center gap-2 mb-5">
+          <Flame size={18} className="text-orange-500" />
+          <h2 className="text-base font-semibold text-slate-900">Trending Books (Last 7 Days)</h2>
+        </div>
+        {stats?.trending_books && stats.trending_books.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {stats.trending_books.map((book) => (
+              <div key={book.book_id} className="group relative flex flex-col items-center bg-slate-50 p-4 rounded-xl border border-slate-100 hover:border-indigo-100 hover:shadow-md transition-all cursor-pointer" onClick={() => navigate(`/books/${book.book_id}`)}>
+                <div className="relative w-24 h-32 mb-3 rounded-md overflow-hidden shadow-sm">
+                  {book.cover_image_url ? (
+                    <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full bg-slate-200 flex items-center justify-center">
+                      <BookOpen className="text-slate-400" size={24} />
+                    </div>
+                  )}
+                  <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-bold text-indigo-700 shadow-sm flex items-center gap-1">
+                    <TrendingUp size={10} /> {book.borrow_count}
+                  </div>
+                </div>
+                <h3 className="text-sm font-semibold text-slate-900 text-center line-clamp-1 w-full" title={book.title}>{book.title}</h3>
+                <p className="text-xs text-slate-500 text-center line-clamp-1 w-full" title={book.author}>{book.author || 'Unknown Author'}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center py-8 text-slate-500 text-sm">
+            No trending books this week.
+          </div>
+        )}
       </div>
 
       {/* ── Recent Books Table ────────────────────────────────────────── */}

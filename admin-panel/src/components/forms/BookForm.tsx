@@ -2,10 +2,10 @@
    BookForm — Add/Edit book form with React Hook Form + Zod validation
    ══════════════════════════════════════════════════════════════════════════ */
 
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import type { Book } from '../../types/book.types';
 import type { Category } from '../../types/category.types';
 import type { Location } from '../../types/location.types';
@@ -13,15 +13,13 @@ import type { Location } from '../../types/location.types';
 const bookSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   author: z.string().optional(),
-  isbn: z.string().optional(),
   publisher: z.string().optional(),
   publication_year: z.coerce.number().optional(),
   language: z.string().optional(),
-  total_copies: z.coerce.number().min(1, 'Must have at least 1 copy'),
-  available_copies: z.coerce.number().min(0).optional(),
   location_id: z.coerce.number().optional(),
   cover_image_url: z.string().optional(),
   synopsis: z.string().optional(),
+  copy_isbns: z.array(z.object({ value: z.string() })).optional(),
   category_ids: z.preprocess((val) => {
     if (Array.isArray(val)) return val.map(Number);
     if (typeof val === 'string') return [Number(val)];
@@ -44,6 +42,7 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<BookFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,17 +50,20 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
     defaultValues: {
       title: book?.title || '',
       author: book?.author || '',
-      isbn: book?.isbn || '',
       publisher: book?.publisher || '',
       publication_year: book?.publication_year || undefined,
       language: book?.language || 'English',
-      total_copies: book?.total_copies || 1,
-      available_copies: book?.available_copies || 1,
       location_id: book?.location_id || undefined,
       cover_image_url: book?.cover_image_url || '',
       synopsis: book?.synopsis || '',
       category_ids: [],
+      copy_isbns: [{ value: '' }],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'copy_isbns',
   });
 
   const inputClass = (hasError?: boolean) =>
@@ -83,16 +85,11 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* Author & ISBN */}
+        {/* Author */}
         <div>
           <label className={labelClass}>Author</label>
           <input {...register('author')} className={inputClass(!!errors.author)} placeholder="Author name" />
           {errors.author && <p className={errorClass}>{errors.author.message}</p>}
-        </div>
-        <div>
-          <label className={labelClass}>ISBN</label>
-          <input {...register('isbn')} className={inputClass(!!errors.isbn)} placeholder="978-0-00-000000-0" />
-          {errors.isbn && <p className={errorClass}>{errors.isbn.message}</p>}
         </div>
 
         {/* Publisher & Year */}
@@ -133,18 +130,6 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
           </select>
           {errors.location_id && <p className={errorClass}>{errors.location_id.message}</p>}
         </div>
-
-        {/* Copies */}
-        <div>
-          <label className={labelClass}>Total Copies *</label>
-          <input type="number" {...register('total_copies')} className={inputClass(!!errors.total_copies)} />
-          {errors.total_copies && <p className={errorClass}>{errors.total_copies.message}</p>}
-        </div>
-        <div>
-          <label className={labelClass}>Available Copies</label>
-          <input type="number" {...register('available_copies')} className={inputClass(!!errors.available_copies)} />
-          {errors.available_copies && <p className={errorClass}>{errors.available_copies.message}</p>}
-        </div>
       </div>
 
       {/* Cover Image URL */}
@@ -164,6 +149,44 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
         />
         {errors.synopsis && <p className={errorClass}>{errors.synopsis.message}</p>}
       </div>
+
+      {/* Book Copies (ISBNs) */}
+      {!book && (
+        <div className="pt-2">
+          <div className="flex items-center justify-between mb-2">
+            <label className={labelClass + " !mb-0"}>Book Copies (ISBNs)</label>
+            <button
+              type="button"
+              onClick={() => append({ value: '' })}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+            >
+              <Plus size={14} />
+              Add Another Copy
+            </button>
+          </div>
+          <div className="space-y-3">
+            {fields.map((field, index) => (
+              <div key={field.id} className="flex items-center gap-2">
+                <input
+                  {...register(`copy_isbns.${index}.value` as const)}
+                  className={inputClass(!!errors.copy_isbns?.[index]?.value)}
+                  placeholder={`Copy ${index + 1} ISBN/Barcode`}
+                />
+                {fields.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => remove(index)}
+                    className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Remove copy"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Categories (checkboxes) */}
       {!book && categories.length > 0 && (

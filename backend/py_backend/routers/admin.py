@@ -25,6 +25,7 @@ class AddBookRequest(BaseModel):
     location_id: Optional[int] = None
     category_ids: Optional[List[int]] = []
     synopsis: Optional[str] = None
+    copy_isbns: Optional[List[str]] = []
 
 class UpdateBookRequest(BaseModel):
     title: Optional[str] = None
@@ -81,7 +82,9 @@ def admin_login(req: AdminLoginRequest, db = Depends(get_db)):
 
 @router.post("/admin/books")
 def add_book(req: AddBookRequest, admin = Depends(get_admin_user), db = Depends(get_db)):
-    available_copies = req.available_copies if req.available_copies is not None else req.total_copies
+    # Calculate copies from copy_isbns if provided, else use the request values
+    total_copies = len(req.copy_isbns) if req.copy_isbns else req.total_copies
+    available_copies = req.available_copies if req.available_copies is not None else total_copies
     try:
         with db.cursor() as cursor:
             # Use the currently logged-in admin's ID
@@ -92,7 +95,7 @@ def add_book(req: AddBookRequest, admin = Depends(get_admin_user), db = Depends(
                                       available_copies, location_id, synopsis)
                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (req.title, req.author, req.isbn, req.publisher, req.publication_year, req.language,
-                 req.cover_image_path, req.cover_image_url, added_by_id, req.total_copies,
+                 req.cover_image_path, req.cover_image_url, added_by_id, total_copies,
                  available_copies, req.location_id, req.synopsis)
             )
             book_id = cursor.lastrowid
@@ -100,6 +103,16 @@ def add_book(req: AddBookRequest, admin = Depends(get_admin_user), db = Depends(
             if req.category_ids:
                 for cat_id in req.category_ids:
                     cursor.execute("INSERT IGNORE INTO book_categories (book_id, category_id) VALUES (%s, %s)", (book_id, cat_id))
+                    
+            # Insert individual copies
+            if req.copy_isbns:
+                for copy_isbn in req.copy_isbns:
+                    clean_isbn = copy_isbn.strip()
+                    if clean_isbn:
+                        cursor.execute(
+                            "INSERT INTO book_copies (book_id, barcode, status, `condition`) VALUES (%s, %s, %s, %s)",
+                            (book_id, clean_isbn, 'available', 'Good')
+                        )
         db.commit()
         return {"status": "success", "message": "Book added successfully", "book_id": book_id}
     except Exception as e:

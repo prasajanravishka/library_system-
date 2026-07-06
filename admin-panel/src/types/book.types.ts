@@ -40,6 +40,7 @@ export interface AddBookPayload {
   location_id?: number | null;
   category_ids?: number[];
   synopsis?: string | null;
+  copy_isbns?: string[];
 }
 
 export interface UpdateBookPayload {

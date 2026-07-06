@@ -66,8 +66,7 @@ export default function BooksPage() {
       const matchesSearch =
         !searchQuery ||
         b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.isbn?.toLowerCase().includes(searchQuery.toLowerCase());
+        b.author?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === 'all' || b.availability_status === statusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -80,16 +79,14 @@ export default function BooksPage() {
       const payload: AddBookPayload = {
         title: formData.title,
         author: formData.author || '',
-        isbn: formData.isbn || undefined,
         publisher: formData.publisher || '',
         publication_year: formData.publication_year ? Number(formData.publication_year) : undefined,
         language: formData.language || 'English',
-        total_copies: formData.total_copies,
-        available_copies: formData.available_copies,
         cover_image_url: formData.cover_image_url || '',
         location_id: formData.location_id ? Number(formData.location_id) : undefined,
         category_ids: formData.category_ids || [],
         synopsis: formData.synopsis || undefined,
+        copy_isbns: formData.copy_isbns?.map(c => c.value).filter(v => v.trim() !== '') || [],
       };
       await booksApi.create(payload);
       toast.success('Book added successfully!');
@@ -110,13 +107,9 @@ export default function BooksPage() {
       const payload: UpdateBookPayload = {};
       if (formData.title) payload.title = formData.title;
       if (formData.author) payload.author = formData.author;
-      if (formData.isbn) payload.isbn = formData.isbn;
       if (formData.publisher) payload.publisher = formData.publisher;
       if (formData.publication_year) payload.publication_year = Number(formData.publication_year);
       if (formData.language) payload.language = formData.language;
-      if (formData.total_copies) payload.total_copies = formData.total_copies;
-      if (formData.available_copies !== undefined)
-        payload.available_copies = formData.available_copies;
       if (formData.location_id) payload.location_id = Number(formData.location_id);
       if (formData.category_ids !== undefined) payload.category_ids = formData.category_ids || [];
       if (formData.synopsis !== undefined) payload.synopsis = formData.synopsis;
@@ -230,7 +223,7 @@ export default function BooksPage() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-md shadow-sm">
                 <tr className="border-b border-slate-200">
-                  {['Title', 'Author', 'ISBN', 'Publisher', 'Year', 'Copies', 'Location', 'Status', 'Actions'].map(
+                  {['Title', 'Author', 'Publisher', 'Year', 'Copies', 'Location', 'Status', 'Actions'].map(
                     (col) => (
                       <th
                         key={col}
@@ -259,9 +252,6 @@ export default function BooksPage() {
                       </div>
                     </td>
                     <td className="py-3 px-4 text-slate-600">{book.author || '—'}</td>
-                    <td className="py-3 px-4 text-slate-500 font-mono text-xs">
-                      {book.isbn || '—'}
-                    </td>
                     <td className="py-3 px-4 text-slate-600 truncate max-w-[150px]">
                       {book.publisher || '—'}
                     </td>

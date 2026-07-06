@@ -5,6 +5,7 @@
 ```mermaid
 graph TD
     A["Flutter Mobile App"] -->|CRUD & OCR via x-api-key| C["Python FastAPI :8001"]
+    B["React Admin Web"] -->|Management APIs via x-api-key| C
     C -->|PyMySQL| D["MySQL Database"]
     C -->|Tesseract + OpenCV| E["Vision Modules"]
     C -->|Gemini API| F["LLM Parser"]
@@ -12,14 +13,15 @@ graph TD
 
 ## 2. Database Schema
 
-Defined in `backend/database_schema.sql`.
+Defined in `backend/current_database_schema.sql`.
 
 | Entity | Purpose | Key Mechanisms |
 |---|---|---|
 | `admins` | Administrative access | bcrypt password hashing |
 | `users` | Patron accounts | `account_status` ENUM for soft bans |
-| `books` | Master catalog | `FULLTEXT` indices, FK to admins/locations |
-| `borrow_records` | Transaction history | Due date computations, cascade configurations |
+| `books` | Master catalog metadata | `FULLTEXT` indices, FK to admins/locations |
+| `book_copies` | Physical copy tracking | Unique barcode tracking per physical item |
+| `borrow_records` | Transaction history | Linked to specific `copy_id`, due date computations |
 
 *Note: Seed data is provided in `backend/sample_data.sql` for rapid local provisioning.*
 
@@ -27,7 +29,7 @@ Defined in `backend/database_schema.sql`.
 
 ## 3. Python FastAPI Backend (Port 8001)
 
-Unified monolithic backend (`main.py`) handling both RESTful CRUD operations and AI/Vision tasks.
+Unified monolithic backend (`main.py`) handling both RESTful CRUD operations and AI/Vision tasks for the dual-frontend ecosystem.
 
 | Router / Endpoint | Purpose | Subsystems |
 |---|---|---|
@@ -43,26 +45,19 @@ Unified monolithic backend (`main.py`) handling both RESTful CRUD operations and
 
 ---
 
-## 4. Flutter Application
+## 4. Frontend Ecosystem
 
-### Core Architecture
-- **State Management**: Utilizes Riverpod for reactive state (e.g., `AuthNotifier` for sessions, `FutureProvider` for asynchronous network requests).
-- **API Client**: A unified API service managing distinct base URLs for the PHP and Python microservices.
-- **Design System**: A cohesive glassmorphism visual language enforced via `app_theme.dart`.
+### A. React Admin Panel (Librarians)
+A fully functional administrative dashboard.
+- **Framework**: React 18 + Vite.
+- **Styling**: Tailwind CSS ensuring a responsive, Glassmorphism-inspired aesthetic.
+- **Capabilities**: Inventory tracking, multi-copy barcode assignment, location tracking, and real-time dashboard analytics.
 
-### Screen Topology
-
-| Screen | Core Functionality |
-|---|---|
-| **Onboarding** | Sequential feature introduction with persistent flags |
-| **Login** | Dual-role authentication gateway with error state handling |
-| **Main** | Scaffold with `IndexedStack` and primary navigation |
-| **Dashboard** | Real-time aggregate metrics and personalized active reads |
-| **Library** | Context-aware inventory views (Patron vs. Admin) |
-| **Scanner** | Hardware camera integration with AI processing states |
-| **Confirmation** | Human-in-the-loop metadata validation post-OCR |
-| **Profile** | Gamification ranks, settings, and session termination |
-| **Search** | Debounced `FULLTEXT` catalog querying |
+### B. Flutter Mobile Application (Students)
+A streamlined application optimized for discovery and borrowing.
+- **State Management**: Utilizes Riverpod for reactive state.
+- **Design System**: A cohesive visual language enforced via `app_theme.dart`.
+- **Capabilities**: Book search via `FULLTEXT`, borrowing operations, gamification profile, and OCR camera scanning.
 
 ---
 
@@ -72,7 +67,7 @@ Unified monolithic backend (`main.py`) handling both RESTful CRUD operations and
 
 ```bash
 # 1. Database Initialization
-mysql -u root -p < backend/database_schema.sql
+mysql -u root -p < backend/current_database_schema.sql
 mysql -u root -p smart_library < backend/sample_data.sql
 
 # 2. Start Python Service (Terminal 1)
@@ -80,7 +75,12 @@ cd backend/py_backend
 pip install -r requirements.txt
 python main.py
 
-# 3. Launch Flutter Client (Terminal 2)
+# 3. Launch React Admin Panel (Terminal 2)
+cd admin-panel
+npm install
+npm run dev
+
+# 4. Launch Flutter Client (Terminal 3)
 cd smart_library_app
 flutter run
 ```
@@ -89,13 +89,14 @@ flutter run
 
 | Vector | Status |
 |---|---|
+| Admin Panel Build | ✅ Typescript compiling without errors |
 | `flutter analyze` | ✅ Zero issues reported |
-| Dependency Graph | ✅ Fully resolved (`flutter pub get`) |
+| Dependency Graph | ✅ Fully resolved across NPM and Pub |
 | API Authentication | ✅ Enforced globally via `x-api-key` |
-| Role-Based Access | ✅ Segregated endpoints (`user.py` vs `admin.py`) |
+| Role-Based Access | ✅ Segregated UI endpoints (React Admin vs Flutter App) |
 
 ---
 
 ## 6. Change Log
 
-- **[July 2026] Documentation & Architecture**: Completed comprehensive documentation pass. Standardized schema nomenclature and documented UI compatibility updates for modern Flutter SDKs.
+- **[July 2026] Dual-Frontend & Architecture**: Introduced the React Admin Panel, transitioned to physical copy tracking (`book_copies`), and unified all API calls into the robust Python FastAPI backend. Completed a comprehensive update of all related system documentation.

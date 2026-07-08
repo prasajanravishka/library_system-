@@ -1,10 +1,10 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   Login Page — Glassmorphism centered login card
+   Login Page — Premium Full Split-Screen Design
    ══════════════════════════════════════════════════════════════════════════ */
 
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Library, Eye, EyeOff, LogIn, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, BookOpen } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { toast } from 'sonner';
 
@@ -16,7 +16,6 @@ export default function LoginPage() {
   const { login, isLoading, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
-  // Already logged in — redirect to dashboard
   if (isAuthenticated) return <Navigate to="/" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,91 +34,139 @@ export default function LoginPage() {
     }
   };
 
-  const inputClass =
-    'w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all duration-200';
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-
-      <div className="w-full max-w-md" style={{ animation: 'pageIn 400ms ease-out' }}>
-        {/* ── Logo ────────────────────────────────────────────────────── */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 mb-4">
-            <Library size={24} className="text-white" />
+    <div className="min-h-screen flex w-full font-sans bg-white">
+      
+      {/* ── Left Side (Photography & Branding) ───────────────────────── */}
+      <div className="hidden lg:flex relative w-1/2 bg-slate-900 overflow-hidden">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'url("https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&q=80&w=2000")',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        {/* Gradient Overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/60 to-slate-900/30"></div>
+        
+        {/* Content */}
+        <div className="relative z-10 w-full h-full flex flex-col justify-between p-12 lg:p-20">
+          {/* Logo / Top Header */}
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shadow-lg">
+               <BookOpen size={22} className="text-[#0d59f2]" strokeWidth={2.5} />
+            </div>
+            <span className="text-2xl font-bold text-white tracking-tight drop-shadow-md">Smart Library</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Smart Library</h1>
-          <p className="text-sm text-slate-500 mt-1">Admin Panel — Sign In</p>
+
+          {/* Main Text */}
+          <div className="max-w-xl">
+            <h1 className="text-4xl lg:text-5xl font-extrabold text-white mb-6 leading-[1.15] tracking-tight drop-shadow-md">
+              Fast, Efficient and Productive.
+            </h1>
+            <p className="text-slate-300 text-[17px] leading-relaxed drop-shadow-sm font-medium">
+              Manage your library effortlessly. Everything you need to track books, members, and loans in one beautifully designed workspace.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right Side (Login Form) ──────────────────────────────────── */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 lg:p-12 relative bg-white">
+        
+        {/* Top right language/help (optional, adds premium feel) */}
+        <div className="absolute top-10 right-10 hidden sm:flex items-center gap-6 text-sm font-medium text-slate-500">
+           <div className="flex items-center gap-2 cursor-pointer hover:text-slate-900 transition-colors">
+              <span className="text-lg leading-none">🇺🇸</span>
+              <span>English</span>
+           </div>
+           <a href="#" className="hover:text-slate-900 transition-colors">Support</a>
         </div>
 
-        {/* ── Card ────────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-xl p-8 shadow-sm border border-slate-200">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Username */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Username</label>
+        <div className="w-full max-w-[400px]">
+          
+          <div className="mb-10 text-center lg:text-left">
+             <h2 className="text-[32px] font-bold text-slate-900 mb-2 tracking-tight">Welcome back</h2>
+             <p className="text-slate-500 text-[15px]">Please enter your details to sign in.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Username Field */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Username</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className={inputClass}
-                placeholder="Enter admin username"
+                className="w-full px-4 py-4 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:border-[#0d59f2] focus:ring-1 focus:ring-[#0d59f2] transition-all placeholder:text-slate-400 shadow-sm"
+                placeholder="Enter your username"
                 autoComplete="username"
                 autoFocus
               />
             </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
+            {/* Password Field */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={inputClass}
-                  placeholder="Enter your password"
+                  className="w-full pl-4 pr-12 py-4 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm focus:outline-none focus:border-[#0d59f2] focus:ring-1 focus:ring-[#0d59f2] transition-all placeholder:text-slate-400 shadow-sm"
+                  placeholder="••••••••"
                   autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={18} strokeWidth={2.5} /> : <Eye size={18} strokeWidth={2.5} />}
                 </button>
+              </div>
+              <div className="flex justify-between items-center mt-2 px-1">
+                 <p className="text-[12px] text-slate-500">Use 8 or more characters</p>
+                 <a href="#" className="text-[12px] font-semibold text-[#0d59f2] hover:underline">Forgot password?</a>
               </div>
             </div>
 
-            {/* Submit */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-4 mt-6 rounded-xl bg-[#0d59f2] text-white font-semibold text-[15px] tracking-wide hover:bg-blue-700 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(13,89,242,0.3)]"
             >
               {isLoading ? (
                 <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <LogIn size={18} />
-              )}
+              ) : null}
               {isLoading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
 
-          {/* Hint */}
-          <div className="mt-6 pt-5 border-t border-slate-100">
-            <p className="text-xs text-slate-500 text-center">
-              Default credentials: <span className="text-slate-700 font-mono">librarian</span> /{' '}
-              <span className="text-slate-700 font-mono">password123</span>
+          <div className="mt-10 text-center">
+            <p className="text-[14px] text-slate-600">
+              Don't have an account?{' '}
+              <a href="#" className="text-[#0d59f2] font-semibold hover:underline">
+                Contact your administrator
+              </a>
             </p>
           </div>
+          
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-slate-400 mt-6">
-          Smart Library Management System © {new Date().getFullYear()}
-        </p>
+        {/* Footer for mobile only */}
+        <div className="absolute bottom-8 flex sm:hidden items-center gap-6 text-xs font-medium text-slate-500">
+           <div className="flex items-center gap-2">
+              <span className="text-base leading-none">🇺🇸</span> English
+           </div>
+           <a href="#">Support</a>
+        </div>
       </div>
+
     </div>
   );
 }

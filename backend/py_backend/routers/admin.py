@@ -43,6 +43,8 @@ class UpdateBookRequest(BaseModel):
 class CirculationCheckoutRequest(BaseModel):
     student_id: str
     book_id: int
+    due_date: Optional[str] = None
+    barcode: Optional[str] = None
 
 class CirculationCheckinRequest(BaseModel):
     student_id: str
@@ -177,6 +179,23 @@ def all_books(admin = Depends(get_admin_user), db = Depends(get_db)):
                FROM books ORDER BY added_at DESC"""
         )
         books = cursor.fetchall()
+        
+        # Fetch available barcodes for physical copies
+        cursor.execute("SELECT book_id, barcode FROM book_copies WHERE status = 'available'")
+        available_copies = cursor.fetchall()
+        
+        # Group barcodes by book_id
+        copies_map = {}
+        for row in available_copies:
+            b_id = row['book_id']
+            if b_id not in copies_map:
+                copies_map[b_id] = []
+            copies_map[b_id].append(row['barcode'])
+            
+        # Attach barcodes to the book payloads
+        for book in books:
+            book['copy_barcodes'] = copies_map.get(book['book_id'], [])
+            
     return {"status": "success", "books": books}
 
 @router.get("/admin/users")
@@ -352,14 +371,20 @@ def circulation_checkout(req: CirculationCheckoutRequest, admin = Depends(get_ad
                 raise HTTPException(status_code=400, detail="Book is out of stock or not available")
             
             # Find an available copy
-            cursor.execute("SELECT copy_id FROM book_copies WHERE book_id = %s AND status = 'available' LIMIT 1", (req.book_id,))
+            if req.barcode:
+                cursor.execute("SELECT copy_id FROM book_copies WHERE book_id = %s AND barcode = %s AND status = 'available' LIMIT 1", (req.book_id, req.barcode))
+            else:
+                cursor.execute("SELECT copy_id FROM book_copies WHERE book_id = %s AND status = 'available' LIMIT 1", (req.book_id,))
             copy = cursor.fetchone()
             if not copy:
-                raise HTTPException(status_code=400, detail="No available copies found")
+                raise HTTPException(status_code=400, detail="No available copies found with that barcode or in stock")
             copy_id = copy['copy_id']
             
             # Create record
-            due_date_str = (datetime.now() + timedelta(days=14)).strftime('%Y-%m-%d')
+            if req.due_date:
+                due_date_str = req.due_date
+            else:
+                due_date_str = (datetime.now() + timedelta(days=14)).strftime('%Y-%m-%d')
             cursor.execute(
                 """INSERT INTO borrow_records (user_id, book_id, copy_id, borrow_date, due_date, status)
                    VALUES (%s, %s, %s, CURDATE(), %s, 'borrowed')""",

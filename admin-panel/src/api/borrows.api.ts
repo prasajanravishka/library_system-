@@ -65,11 +65,13 @@ export const borrowsApi = {
    * 
    * @param student_id - The student ID of the borrower
    * @param book_id - The ID of the book being borrowed
+   * @param due_date - Optional custom due date (YYYY-MM-DD)
+   * @param barcode - Optional barcode of the specific physical copy
    * @returns A promise that resolves when the checkout completes
    */
-  checkout: async (student_id: string, book_id: number): Promise<void> => {
-    // Send checkout request payload containing student and book identifiers
-    await client.post('/admin/circulation/checkout', { student_id, book_id });
+  checkout: async (student_id: string, book_id: number, due_date?: string, barcode?: string): Promise<void> => {
+    // Send checkout request payload containing student, book, optional custom due date, and specific physical barcode
+    await client.post('/admin/circulation/checkout', { student_id, book_id, due_date, barcode });
   },
 
   /**

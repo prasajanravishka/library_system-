@@ -26,6 +26,7 @@ export interface Book {
   category_name?: string | null;
   location_name?: string | null;
   borrowed_by?: string | null;
+  copy_barcodes?: string[];
 }
 
 /**

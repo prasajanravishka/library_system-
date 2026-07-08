@@ -8,13 +8,25 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { getErrorMessage, formatDate } from '../lib/utils';
 import { toast } from 'sonner';
 
+/**
+ * BookDetailsPage Component
+ * 
+ * Displays detailed information about a specific book, including cover image,
+ * metadata (ISBN, publisher, year, etc.), inventory status, and current borrowing status.
+ * Fetches data based on the route parameter `id`.
+ */
 export default function BookDetailsPage() {
+  // Retrieve the book ID from the URL parameters
   const { id } = useParams<{ id: string }>();
+  // Hook for programmatic navigation
   const navigate = useNavigate();
   
+  // Local state for storing the fetched book details
   const [book, setBook] = useState<Book | null>(null);
+  // Loading state to show skeletons while fetching data
   const [loading, setLoading] = useState(true);
 
+  // Fetch book details when the component mounts or when the ID changes
   useEffect(() => {
     if (!id) return;
     
@@ -57,6 +69,7 @@ export default function BookDetailsPage() {
   if (!book) return null;
 
   return (
+    // Main layout container for the book details page
     <div className="max-w-5xl mx-auto space-y-8">
       {/* ── Back Navigation ── */}
       <button
@@ -158,6 +171,12 @@ export default function BookDetailsPage() {
   );
 }
 
+/**
+ * DetailItem Component
+ * 
+ * A reusable UI component for displaying a specific piece of book metadata
+ * with an accompanying icon, label, and optional sub-value.
+ */
 function DetailItem({ icon: Icon, label, value, subValue }: { icon: any, label: string, value: string, subValue?: string }) {
   return (
     <div className="flex items-start gap-3">

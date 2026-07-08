@@ -24,7 +24,21 @@ interface Props {
   isSubmitting: boolean;
 }
 
+/**
+ * UserForm Component
+ * 
+ * Renders a form for adding a new user or editing an existing user.
+ * Captures user details such as student ID, name, email, password, and account status.
+ * 
+ * @param {Props} props - The component props.
+ * @param {User|null} [props.user] - Optional user data for edit mode. If null, the form is for a new user.
+ * @param {Function} props.onSubmit - Callback invoked with valid form data on submission.
+ * @param {boolean} props.isSubmitting - Tracks the loading state of the submission process.
+ * @returns {JSX.Element} The rendered UserForm component.
+ */
 export default function UserForm({ user, onSubmit, isSubmitting }: Props) {
+  // Initialize react-hook-form with Zod schema validation
+  // Provide default values based on the 'user' prop to support editing
   const {
     register,
     handleSubmit,
@@ -41,15 +55,19 @@ export default function UserForm({ user, onSubmit, isSubmitting }: Props) {
     },
   });
 
+  // Helper method to compute conditional class names for input fields based on validation state
   const inputClass = (hasError?: boolean) =>
     `w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 transition-colors ${
       hasError
         ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
         : 'focus:border-indigo-500 focus:ring-indigo-500'
     }`;
+    
+  // Standardized CSS classes for form labels and validation error messages
   const labelClass = 'block text-sm font-medium text-slate-700 mb-1.5';
   const errorClass = 'text-xs text-red-600 mt-1.5 flex items-center gap-1 before:content-["•"]';
 
+  // Render the user form fields and attach the submit event handler
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -76,6 +94,7 @@ export default function UserForm({ user, onSubmit, isSubmitting }: Props) {
       </div>
 
       {/* Password - Only show for new users (optional) or if we want to allow password resets */}
+      {/* Conditionally render password field only when creating a new user */}
       {!user && (
         <div>
           <label className={labelClass}>Password</label>

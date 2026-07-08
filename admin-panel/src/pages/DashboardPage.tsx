@@ -22,16 +22,25 @@ import { useAuthStore } from '../store/authStore';
 
 const CHART_COLORS = ['#6366f1', '#8b5cf6', '#22c55e', '#f59e0b', '#3b82f6', '#ec4899', '#14b8a6', '#f97316', '#a855f7', '#06b6d4', '#84cc16'];
 
+/**
+ * DashboardPage Component
+ * 
+ * Provides a high-level overview of the library system. Displays key statistics,
+ * charts (category distribution), trending books, and recently added books.
+ */
 export default function DashboardPage() {
+  // Navigation hook and authenticated user context
   const navigate = useNavigate();
   const { user } = useAuthStore();
   
+  // State variables for various dashboard metrics and datasets
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentBooks, setRecentBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
+  // Fetch all required data concurrently for the dashboard
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -75,7 +84,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Prepare pie chart data from categories
+  // Transform category data into the format required for the PieChart component
   const categoryChartData = categories
     .filter((c) => c.book_count > 0)
     .map((c) => ({ name: c.name, value: c.book_count }));

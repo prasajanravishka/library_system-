@@ -11,13 +11,23 @@ import { formatDate, getErrorMessage } from '../lib/utils';
 import { toast } from 'sonner';
 import { ticketsApi, type AdminTicket } from '../api/tickets.api';
 
+/**
+ * SupportTicketsPage Component
+ * 
+ * Admin interface for managing and reviewing user support requests.
+ * Features a table of tickets, status updates, and a detailed view modal.
+ */
 export default function SupportTicketsPage() {
+  // State for tickets list and UI controls
   const [tickets, setTickets] = useState<AdminTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  // State for the currently selected ticket to view details
   const [selectedTicket, setSelectedTicket] = useState<AdminTicket | null>(null);
 
+  // Fetches support tickets from the API
   const fetchTickets = async () => {
     try {
       setLoading(true);
@@ -34,6 +44,7 @@ export default function SupportTicketsPage() {
     fetchTickets();
   }, []);
 
+  // Updates the status of a specific support ticket and refreshes the local state
   const handleUpdateStatus = async (ticketId: number, status: string) => {
     try {
       await ticketsApi.updateStatus(ticketId, status);
@@ -47,6 +58,7 @@ export default function SupportTicketsPage() {
     }
   };
 
+  // Memoized ticket list filtered by search text across multiple fields and status
   const filteredTickets = useMemo(() => {
     return tickets.filter((t) => {
       const matchesSearch =

@@ -2,6 +2,9 @@
    Category Entity Types
    ══════════════════════════════════════════════════════════════════════════ */
 
+/**
+ * Represents a Category entity.
+ */
 export interface Category {
   id: number;
   name: string;
@@ -10,6 +13,9 @@ export interface Category {
   description?: string | null;
 }
 
+/**
+ * Represents a Support Ticket entity.
+ */
 export interface SupportTicket {
   ticket_id: number;
   user_id: number;

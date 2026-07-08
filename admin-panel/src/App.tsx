@@ -22,10 +22,19 @@ import CirculationPage from './pages/CirculationPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
 import NotFoundPage from './pages/NotFoundPage';
 
+/**
+ * Root Application Component
+ * 
+ * Sets up the React Router, global toast notifications, and defines
+ * the route hierarchy for the admin panel.
+ * 
+ * @returns {JSX.Element} The rendered application component.
+ */
 export default function App() {
   return (
+    // Initialize BrowserRouter for standard client-side routing
     <BrowserRouter>
-      {/* Sonner toast notifications */}
+      {/* Global toast notification provider for displaying alerts across the app */}
       <Toaster
         position="top-right"
         toastOptions={{
@@ -40,11 +49,12 @@ export default function App() {
         richColors
       />
 
+      {/* Define the main routing structure for the application */}
       <Routes>
-        {/* Public route */}
+        {/* Public route - Accessible without authentication */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Protected routes — wrapped by AdminLayout auth guard */}
+        {/* Protected routes - Wrapped by AdminLayout which enforces authentication checks */}
         <Route element={<AdminLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/books" element={<BooksPage />} />
@@ -58,7 +68,7 @@ export default function App() {
           <Route path="/profile" element={<ProfileSettingsPage />} />
         </Route>
 
-        {/* 404 */}
+        {/* Catch-all route for handling undefined paths (404 Page Not Found) */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>

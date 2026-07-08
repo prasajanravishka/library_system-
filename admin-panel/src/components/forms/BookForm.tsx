@@ -38,7 +38,23 @@ interface Props {
   isSubmitting: boolean;
 }
 
+/**
+ * BookForm Component
+ * 
+ * Renders a form to add a new book or edit an existing one.
+ * Includes fields for book details, multiple copies, and categories.
+ * 
+ * @param {Props} props - The component props.
+ * @param {Book|null} [props.book] - Optional book data for edit mode.
+ * @param {Category[]} [props.categories] - Array of categories for the selection list.
+ * @param {Location[]} [props.locations] - Array of locations for the selection list.
+ * @param {Function} props.onSubmit - Function called upon valid form submission.
+ * @param {boolean} props.isSubmitting - Loading state for the submit button.
+ * @returns {JSX.Element} The rendered BookForm component.
+ */
 export default function BookForm({ book, categories = [], locations = [], onSubmit, isSubmitting }: Props) {
+  // Initialize react-hook-form with Zod schema validation
+  // Set default values based on whether a book object is provided (edit mode) or not (create mode)
   const {
     register,
     handleSubmit,
@@ -61,20 +77,25 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
     },
   });
 
+  // Setup field array for dynamic ISBN inputs, allowing multiple copies to be added at once
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'copy_isbns',
   });
 
+  // Helper function to generate input styles based on error state
   const inputClass = (hasError?: boolean) =>
     `w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 transition-colors ${
       hasError
         ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
         : 'focus:border-indigo-500 focus:ring-indigo-500'
     }`;
+    
+  // Reusable utility classes for labels and error messages
   const labelClass = 'block text-sm font-medium text-slate-700 mb-1.5';
   const errorClass = 'text-xs text-red-600 mt-1.5 flex items-center gap-1 before:content-["•"]';
 
+  // Render the form, binding the onSubmit handler via react-hook-form's handleSubmit
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {/* Title */}
@@ -151,6 +172,7 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
       </div>
 
       {/* Book Copies (ISBNs) */}
+      {/* Only render dynamic ISBN fields when adding a new book, not in edit mode */}
       {!book && (
         <div className="pt-2">
           <div className="flex items-center justify-between mb-2">
@@ -189,6 +211,7 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
       )}
 
       {/* Categories (checkboxes) */}
+      {/* Conditionally render category checkboxes for new books if categories exist */}
       {!book && categories.length > 0 && (
         <div className="pt-2">
           <label className={labelClass}>Categories</label>
@@ -212,6 +235,7 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
       )}
 
       {/* Submit */}
+      {/* Render the submit button with loading state support */}
       <div className="flex justify-end gap-3 pt-5 border-t border-slate-200 mt-6">
         <button
           type="submit"

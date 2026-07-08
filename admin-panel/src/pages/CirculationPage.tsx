@@ -6,9 +6,17 @@ import { borrowsApi } from '../api/borrows.api';
 import { booksApi } from '../api/books.api';
 import type { Book as BookType } from '../types/book.types';
 
+/**
+ * CirculationPage Component
+ * 
+ * Provides an interface for the circulation desk to manage book check-outs.
+ * Handles the logic for issuing books to students with validation for ISBN/Title.
+ */
 export default function CirculationPage() {
+  // State for storing the catalog of books to facilitate search/autocomplete during checkout
   const [books, setBooks] = useState<BookType[]>([]);
 
+  // Fetch the full catalog of books when the component mounts
   useEffect(() => {
     const fetchBooks = async () => {
       try {
@@ -21,13 +29,13 @@ export default function CirculationPage() {
     fetchBooks();
   }, []);
 
-  // Checkout state
+  // State variables for managing the checkout form inputs and submission status
   const [checkoutStudentId, setCheckoutStudentId] = useState('');
   const [checkoutBookName, setCheckoutBookName] = useState('');
   const [checkoutIsbn, setCheckoutIsbn] = useState('');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
-  // Date calculations
+  // Date calculations: determine today's date and the standard due date (14 days from today)
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 14);
@@ -43,6 +51,7 @@ export default function CirculationPage() {
     }
   }, [checkoutIsbn, books]);
 
+  // Handles the checkout form submission, validates inputs, and triggers the checkout API
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!checkoutStudentId) {

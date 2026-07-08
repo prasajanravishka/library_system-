@@ -2,6 +2,9 @@
    User Entity Types
    ══════════════════════════════════════════════════════════════════════════ */
 
+/**
+ * Represents a User entity.
+ */
 export interface User {
   user_id: number;
   student_id: string;

@@ -2,7 +2,14 @@ import React from 'react';
 import { useTheme } from '../lib/ThemeProvider';
 import { Moon, Sun, User } from 'lucide-react';
 
+/**
+ * ProfileSettingsPage Component
+ * 
+ * Allows the admin user to manage their account preferences and application
+ * appearance, such as toggling between light and dark themes.
+ */
 export default function ProfileSettingsPage() {
+  // Consume the theme context to get current theme state and the toggle function
   const { theme, toggleTheme } = useTheme();
 
   return (

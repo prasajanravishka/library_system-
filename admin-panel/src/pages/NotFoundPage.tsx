@@ -5,7 +5,14 @@
 import { useNavigate } from 'react-router-dom';
 import { Home, ArrowLeft } from 'lucide-react';
 
+/**
+ * NotFoundPage Component
+ * 
+ * Standard 404 error page displayed when a user navigates to an undefined route.
+ * Provides options to return to the previous page or go to the dashboard.
+ */
 export default function NotFoundPage() {
+  // Hook for programmatic navigation
   const navigate = useNavigate();
 
   return (

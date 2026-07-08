@@ -2,6 +2,9 @@
    Book Entity Types
    ══════════════════════════════════════════════════════════════════════════ */
 
+/**
+ * Represents a Book entity with all its details.
+ */
 export interface Book {
   book_id: number;
   title: string;
@@ -25,6 +28,9 @@ export interface Book {
   borrowed_by?: string | null;
 }
 
+/**
+ * Payload required for adding a new book.
+ */
 export interface AddBookPayload {
   title: string;
   author?: string;
@@ -43,6 +49,9 @@ export interface AddBookPayload {
   copy_isbns?: string[];
 }
 
+/**
+ * Payload required for updating an existing book.
+ */
 export interface UpdateBookPayload {
   title?: string;
   author?: string;

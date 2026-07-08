@@ -14,16 +14,24 @@ import LocationForm, { type LocationFormData } from '../components/forms/Locatio
 import { getErrorMessage } from '../lib/utils';
 import { toast } from 'sonner';
 
+/**
+ * LocationsPage Component
+ * 
+ * Manages physical locations within the library (e.g., shelves, floors, sections).
+ * Provides a data table with search and filtering, plus CRUD operations via modals.
+ */
 export default function LocationsPage() {
+  // State for storing location data and managing UI feedback
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Modal State
+  // State variables for the add/edit location modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetches all library locations from the backend API
   const fetchLocations = async () => {
     try {
       const data = await locationsApi.getAll();
@@ -39,6 +47,7 @@ export default function LocationsPage() {
     fetchLocations();
   }, []);
 
+  // Memoized array of locations filtered by search query matching name or floor
   const filteredLocations = useMemo(() => {
     return locations.filter((l) =>
       !searchQuery ||

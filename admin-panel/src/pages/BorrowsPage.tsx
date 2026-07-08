@@ -11,12 +11,21 @@ import { formatDate, getErrorMessage } from '../lib/utils';
 import { toast } from 'sonner';
 import { borrowsApi, type AdminBorrowRecord } from '../api/borrows.api';
 
+/**
+ * BorrowsPage Component
+ * 
+ * Displays a read-only list of all book borrow records. Includes search,
+ * filtering by status, and the ability to mark a borrowed book as returned.
+ */
 export default function BorrowsPage() {
+  // State for storing the list of borrow records
   const [records, setRecords] = useState<AdminBorrowRecord[]>([]);
+  // UI states for loading indicator and filters
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  // Fetches borrow records from the API
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -33,6 +42,7 @@ export default function BorrowsPage() {
     fetchData();
   }, []);
 
+  // Handler for marking a borrowed book as returned
   const handleReturn = async (borrowId: number) => {
     if (!window.confirm('Mark this book as returned?')) return;
     try {
@@ -44,6 +54,7 @@ export default function BorrowsPage() {
     }
   };
 
+  // Memoized array of records filtered by search query and borrow status
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
       const matchesSearch =

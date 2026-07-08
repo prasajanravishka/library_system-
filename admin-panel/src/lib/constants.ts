@@ -2,7 +2,10 @@
    Application Constants
    ══════════════════════════════════════════════════════════════════════════ */
 
+/** The name of the application. */
 export const APP_NAME = 'Smart Library';
+
+/** The subtitle of the application. */
 export const APP_SUBTITLE = 'Admin Panel';
 
 /** Navigation items for the sidebar. Icon names correspond to lucide-react. */

@@ -15,18 +15,28 @@ import UserForm, { type UserFormData } from '../components/forms/UserForm';
 import { formatDate, getErrorMessage } from '../lib/utils';
 import { toast } from 'sonner';
 
+/**
+ * UsersPage Component
+ * 
+ * Main interface for managing student accounts (users). Supports full CRUD
+ * operations, status toggling (active/suspended), search, and filtering.
+ */
 export default function UsersPage() {
+  // State for the list of users and main UI tracking variables
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  // Tracks which user's status is currently being toggled to disable the button
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
-  // Modal State
+  // State for user creation/editing modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetches all users from the backend
   const fetchUsers = async () => {
     try {
       const data = await usersApi.getAll();
@@ -42,6 +52,7 @@ export default function UsersPage() {
     fetchUsers();
   }, []);
 
+  // Memoized array of users filtered by search query and account status
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
       const matchesSearch =
@@ -54,6 +65,7 @@ export default function UsersPage() {
     });
   }, [users, searchQuery, statusFilter]);
 
+  // Toggles a user's account status between active and suspended
   const handleToggle = async (userId: number) => {
     setTogglingId(userId);
     try {

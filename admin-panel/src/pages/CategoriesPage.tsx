@@ -16,18 +16,28 @@ import { toast } from 'sonner';
 // A quick mapping to allow dynamic rendering of Lucide icons based on string
 import * as LucideIcons from 'lucide-react';
 
+/**
+ * CategoriesPage Component
+ * 
+ * Manages the library's book categories. Displays categories as cards with
+ * expandable lists of associated books. Supports full CRUD operations for categories.
+ */
 export default function CategoriesPage() {
+  // State for storing the list of categories and managing the loading indicator
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // State for managing the expanded view of books within a category
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [categoryBooks, setCategoryBooks] = useState<Book[]>([]);
   const [loadingBooks, setLoadingBooks] = useState(false);
 
-  // Modal State
+  // Modal state variables for creating/editing categories
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetch all categories on initial component mount
   useEffect(() => {
     const fetch = async () => {
       try {
@@ -42,6 +52,7 @@ export default function CategoriesPage() {
     fetch();
   }, []);
 
+  // Toggles the expanded state of a category to show/hide its books
   const handleExpand = async (categoryId: number) => {
     if (expandedId === categoryId) {
       setExpandedId(null);
@@ -89,6 +100,7 @@ export default function CategoriesPage() {
     }
   };
 
+  // Handles form submission for both creating a new category and updating an existing one
   const handleFormSubmit = async (data: CategoryFormData) => {
     setIsSubmitting(true);
     try {

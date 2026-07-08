@@ -21,21 +21,34 @@ import BookForm from '../components/forms/BookForm';
 import { formatDate, getErrorMessage } from '../lib/utils';
 import { toast } from 'sonner';
 
+/**
+ * BooksPage Component
+ * 
+ * Main page for managing the library catalog. Provides a data table of all books
+ * with filtering and search capabilities, and supports full CRUD operations
+ * (Create, Read, Update, Delete) via modals.
+ */
 export default function BooksPage() {
+  // Hook for programmatic navigation
   const navigate = useNavigate();
+  
+  // State for holding fetched data (books, categories, locations)
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
+  
+  // UI states for loading and filtering
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // Modal state
+  // State variables for managing modals (Add/Edit)
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetch all necessary data concurrently (books, categories, and locations)
   const fetchBooks = async () => {
     try {
       const [booksData, catsData, locsData] = await Promise.all([
@@ -60,7 +73,7 @@ export default function BooksPage() {
     fetchBooks();
   }, []);
 
-  // Filtered books
+  // Memoized array of books filtered by both search query (title/author) and status
   const filteredBooks = useMemo(() => {
     return books.filter((b) => {
       const matchesSearch =
@@ -165,6 +178,7 @@ export default function BooksPage() {
   }
 
   return (
+    // Main layout container for the Books page
     <div className="space-y-6">
       {/* ── Page Header ───────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">

@@ -22,7 +22,21 @@ interface Props {
   isSubmitting: boolean;
 }
 
+/**
+ * CategoryForm Component
+ * 
+ * Renders a form for creating a new category or editing an existing one.
+ * Includes fields for category name, description, and an icon identifier.
+ * 
+ * @param {Props} props - The component props.
+ * @param {Category|null} [props.category] - Optional category object to populate form fields in edit mode.
+ * @param {Function} props.onSubmit - Callback invoked with form data when validation passes.
+ * @param {boolean} props.isSubmitting - Indicates whether the form is currently submitting.
+ * @returns {JSX.Element} The rendered CategoryForm component.
+ */
 export default function CategoryForm({ category, onSubmit, isSubmitting }: Props) {
+  // Initialize react-hook-form with Zod schema validation
+  // Pre-fill values if an existing category is provided
   const {
     register,
     handleSubmit,
@@ -37,15 +51,19 @@ export default function CategoryForm({ category, onSubmit, isSubmitting }: Props
     },
   });
 
+  // Helper function to generate styling for inputs based on validation error state
   const inputClass = (hasError?: boolean) =>
     `w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 transition-colors ${
       hasError
         ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
         : 'focus:border-indigo-500 focus:ring-indigo-500'
     }`;
+    
+  // Shared Tailwind CSS classes for labels and error messages
   const labelClass = 'block text-sm font-medium text-slate-700 mb-1.5';
   const errorClass = 'text-xs text-red-600 mt-1.5 flex items-center gap-1 before:content-["•"]';
 
+  // Render the form, delegating the submit event to react-hook-form
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {/* Category Name */}

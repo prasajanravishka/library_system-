@@ -22,7 +22,21 @@ interface Props {
   isSubmitting: boolean;
 }
 
+/**
+ * LocationForm Component
+ * 
+ * Renders a form for adding a new location or editing an existing location.
+ * Provides inputs for name, floor, and description.
+ * 
+ * @param {Props} props - The component props.
+ * @param {Location|null} [props.location] - The location data to edit. If null, operates in create mode.
+ * @param {Function} props.onSubmit - Function executed upon valid form submission.
+ * @param {boolean} props.isSubmitting - Indicates if the form submission is in progress.
+ * @returns {JSX.Element} The rendered LocationForm component.
+ */
 export default function LocationForm({ location, onSubmit, isSubmitting }: Props) {
+  // Initialize react-hook-form with Zod validation
+  // Populate form with existing location data if in edit mode
   const {
     register,
     handleSubmit,
@@ -37,15 +51,19 @@ export default function LocationForm({ location, onSubmit, isSubmitting }: Props
     },
   });
 
+  // Generates conditional styling for input elements, highlighting errors if present
   const inputClass = (hasError?: boolean) =>
     `w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-1 transition-colors ${
       hasError
         ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
         : 'focus:border-indigo-500 focus:ring-indigo-500'
     }`;
+    
+  // Constants for standard label and error message styling
   const labelClass = 'block text-sm font-medium text-slate-700 mb-1.5';
   const errorClass = 'text-xs text-red-600 mt-1.5 flex items-center gap-1 before:content-["•"]';
 
+  // Render form wrapper and attach submission handler
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {/* Location Name */}

@@ -23,6 +23,12 @@ class AddUserRequest(BaseModel):
     email: str
     password: Optional[str] = None
 
+class EditUserRequest(BaseModel):
+    student_id: str
+    full_name: str
+    email: str
+    account_status: str
+
 class PasswordResetRequest(BaseModel):
     new_password: Optional[str] = None
 
@@ -307,8 +313,8 @@ def add_user(req: AddUserRequest, admin = Depends(get_admin_user), db = Depends(
                 raise HTTPException(status_code=400, detail="User with this student_id or email already exists")
                 
             cursor.execute(
-                """INSERT INTO users (student_id, full_name, email, password_hash, account_status) 
-                   VALUES (%s, %s, %s, %s, 'active')""",
+                """INSERT INTO users (student_id, full_name, email, password_hash, is_temp_password, account_status) 
+                   VALUES (%s, %s, %s, %s, 1, 'active')""",
                 (req.student_id, req.full_name, req.email, hashed_password)
             )
             user_id = cursor.lastrowid
@@ -322,6 +328,52 @@ def add_user(req: AddUserRequest, admin = Depends(get_admin_user), db = Depends(
             "full_name": req.full_name,
             "email": req.email,
             "plain_password": plain_password
+        }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/admin/users/{user_id}")
+@router.put("/admin/users/{user_id}/")
+def update_user(user_id: int, req: EditUserRequest, admin = Depends(get_admin_user), db = Depends(get_db)):
+    try:
+        with db.cursor() as cursor:
+            # 1. Verify user exists
+            cursor.execute("SELECT user_id FROM users WHERE user_id = %s", (user_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=404, detail="User not found")
+                
+            # 2. Check for duplicate student_id or email among other users
+            cursor.execute(
+                "SELECT user_id FROM users WHERE (student_id = %s OR email = %s) AND user_id != %s",
+                (req.student_id, req.email, user_id)
+            )
+            if cursor.fetchone():
+                raise HTTPException(status_code=400, detail="User with this student_id or email already exists")
+                
+            # 3. Perform update
+            cursor.execute(
+                """UPDATE users 
+                   SET student_id = %s, full_name = %s, email = %s, account_status = %s 
+                   WHERE user_id = %s""",
+                (req.student_id, req.full_name, req.email, req.account_status, user_id)
+            )
+            
+            # 4. Fetch the updated user details to return in response
+            cursor.execute(
+                "SELECT user_id, student_id, full_name, email, account_status, created_at FROM users WHERE user_id = %s",
+                (user_id,)
+            )
+            updated_user = cursor.fetchone()
+            
+        db.commit()
+        return {
+            "status": "success",
+            "message": "User updated successfully",
+            "user": updated_user
         }
     except HTTPException:
         db.rollback()
@@ -364,7 +416,7 @@ def reset_password(user_id: int, req: PasswordResetRequest, admin = Depends(get_
                 
             hashed_password = get_password_hash(plain_password)
             
-            cursor.execute("UPDATE users SET password_hash = %s WHERE user_id = %s", (hashed_password, user_id))
+            cursor.execute("UPDATE users SET password_hash = %s, is_temp_password = 1 WHERE user_id = %s", (hashed_password, user_id))
             
         db.commit()
         return {
@@ -878,6 +930,82 @@ def update_ticket(ticket_id: int, req: TicketUpdate, admin = Depends(get_admin_u
                 raise HTTPException(status_code=404, detail="Ticket not found")
         db.commit()
         return {"status": "success", "message": "Ticket status updated successfully"}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class PaymentActionRequest(BaseModel):
+    action: str
+
+@router.get("/admin/payments")
+def get_all_payments(admin = Depends(get_admin_user), db = Depends(get_db)):
+    with db.cursor() as cursor:
+        sql = """
+            SELECT p.payment_id, p.amount_paid, p.payment_method, p.status, 
+                   p.transaction_reference, p.receipt_image_path, p.paid_at,
+                   u.student_id, u.full_name as student_name, b.title as book_title
+            FROM payments p
+            JOIN users u ON p.user_id = u.user_id
+            JOIN fines f ON p.fine_id = f.fine_id
+            JOIN borrow_records br ON f.borrow_id = br.borrow_id
+            JOIN books b ON br.book_id = b.book_id
+            ORDER BY p.paid_at DESC
+        """
+        cursor.execute(sql)
+        payments = cursor.fetchall()
+        for p in payments:
+            if isinstance(p['paid_at'], datetime):
+                p['paid_at'] = p['paid_at'].isoformat()
+    return {"status": "success", "payments": payments}
+
+@router.put("/admin/payments/{payment_id}/action")
+def action_payment(payment_id: int, req: PaymentActionRequest, admin = Depends(get_admin_user), db = Depends(get_db)):
+    if req.action not in ['approved', 'rejected']:
+        raise HTTPException(status_code=400, detail="Invalid action. Must be 'approved' or 'rejected'")
+        
+    try:
+        with db.cursor() as cursor:
+            # Check if payment exists and is pending
+            cursor.execute("SELECT user_id, fine_id, amount_paid, transaction_reference FROM payments WHERE payment_id = %s", (payment_id,))
+            payment = cursor.fetchone()
+            if not payment:
+                raise HTTPException(status_code=404, detail="Payment record not found")
+                
+            user_id = payment['user_id']
+            fine_id = payment['fine_id']
+            amount = float(payment['amount_paid'])
+            txn_ref = payment['transaction_reference']
+            
+            # Update payment status
+            cursor.execute("UPDATE payments SET status = %s WHERE payment_id = %s", (req.action, payment_id))
+            
+            # If approved, mark the fine as paid in borrow_records
+            if req.action == 'approved':
+                cursor.execute("SELECT borrow_id FROM fines WHERE fine_id = %s", (fine_id,))
+                fine = cursor.fetchone()
+                if fine:
+                    borrow_id = fine['borrow_id']
+                    cursor.execute("UPDATE borrow_records SET fine_paid = TRUE WHERE borrow_id = %s", (borrow_id,))
+                    
+            # Send notification to student
+            title = "Fine Payment Approved" if req.action == 'approved' else "Fine Payment Rejected"
+            message = (
+                f"Your payment of ${amount} for txn {txn_ref} has been approved."
+                if req.action == 'approved' else
+                f"Your payment receipt for txn {txn_ref} was rejected. Please upload a valid bank slip."
+            )
+            cursor.execute(
+                """INSERT INTO notifications (user_id, title, message, type, is_read)
+                   VALUES (%s, %s, %s, 'fine', 0)""",
+                (user_id, title, message)
+            )
+            
+        db.commit()
+        return {"status": "success", "message": f"Payment status updated to {req.action}"}
     except HTTPException:
         db.rollback()
         raise

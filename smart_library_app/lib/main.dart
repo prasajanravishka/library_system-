@@ -7,6 +7,7 @@ import 'providers/theme_provider.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
+import 'screens/change_password_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -101,6 +102,9 @@ class _AppGateState extends ConsumerState<AppGate> {
           return const OnboardingScreen();
         }
         if (authState.isAuthenticated) {
+          if (authState.user!.isTempPassword) {
+            return const ChangePasswordScreen(forceChange: true);
+          }
           return const MainScreen();
         }
         return const LoginScreen();

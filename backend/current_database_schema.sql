@@ -243,6 +243,7 @@ CREATE TABLE `users` (
   `full_name` varchar(100) NOT NULL,
   `email` varchar(100) NOT NULL,
   `password_hash` varchar(255) NOT NULL,
+  `is_temp_password` tinyint(1) NOT NULL DEFAULT 1,
   `profile_image_url` varchar(500) DEFAULT NULL,
   `account_status` enum('active','suspended') DEFAULT 'active',
   `rank` varchar(20) NOT NULL DEFAULT 'Bronze',

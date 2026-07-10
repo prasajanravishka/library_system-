@@ -58,6 +58,7 @@ class AuthNotifier extends Notifier<AuthState> {
         fullName: prefs.getString(AppConstants.prefUserName) ?? '',
         email: prefs.getString(AppConstants.prefUserEmail) ?? '',
         role: prefs.getString(AppConstants.prefUserRole) ?? 'student',
+        isTempPassword: prefs.getBool('is_temp_password') ?? false,
       );
       state = AuthState(user: user);
     }
@@ -83,12 +84,51 @@ class AuthNotifier extends Notifier<AuthState> {
         await prefs.setString(AppConstants.prefUserName, user.fullName);
         await prefs.setString(AppConstants.prefStudentId, user.studentId);
         await prefs.setString(AppConstants.prefUserEmail, user.email);
+        await prefs.setBool('is_temp_password', user.isTempPassword);
 
         return true;
       } else {
         state = state.copyWith(
           isLoading: false,
           error: response['message'] ?? 'Login failed',
+        );
+        return false;
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
+      return false;
+    }
+  }
+
+  /// Change user password and update state
+  Future<bool> changePassword(String currentPassword, String newPassword) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await _apiService.changePassword(currentPassword, newPassword);
+      if (response['status'] == 'success') {
+        if (state.user != null) {
+          final updatedUser = UserModel(
+            userId: state.user!.userId,
+            studentId: state.user!.studentId,
+            fullName: state.user!.fullName,
+            email: state.user!.email,
+            role: state.user!.role,
+            isTempPassword: false,
+          );
+          state = AuthState(user: updatedUser);
+
+          // Update persisted session
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('is_temp_password', false);
+        }
+        return true;
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          error: response['message'] ?? 'Password update failed',
         );
         return false;
       }
@@ -110,6 +150,7 @@ class AuthNotifier extends Notifier<AuthState> {
     await prefs.remove(AppConstants.prefUserName);
     await prefs.remove(AppConstants.prefStudentId);
     await prefs.remove(AppConstants.prefUserEmail);
+    await prefs.remove('is_temp_password');
     _apiService.setToken(null);
     state = const AuthState();
   }

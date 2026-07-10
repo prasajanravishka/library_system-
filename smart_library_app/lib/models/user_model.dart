@@ -5,6 +5,7 @@ class UserModel {
   final String fullName;
   final String email;
   final String role; // 'student' or 'librarian'
+  final bool isTempPassword;
 
   const UserModel({
     required this.userId,
@@ -12,6 +13,7 @@ class UserModel {
     required this.fullName,
     required this.email,
     required this.role,
+    this.isTempPassword = false,
   });
 
   bool get isLibrarian => role == 'librarian';
@@ -24,6 +26,7 @@ class UserModel {
       fullName: json['full_name'] as String,
       email: json['email'] as String,
       role: json['role'] as String? ?? 'student',
+      isTempPassword: json['is_temp_password'] as bool? ?? false,
     );
   }
 
@@ -34,6 +37,7 @@ class UserModel {
       'full_name': fullName,
       'email': email,
       'role': role,
+      'is_temp_password': isTempPassword,
     };
   }
 }

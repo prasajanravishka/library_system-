@@ -23,7 +23,7 @@ class LoginRequest(BaseModel):
 @router.post("/users/login")
 def login(req: LoginRequest, db = Depends(get_db)):
     with db.cursor() as cursor:
-        cursor.execute("SELECT user_id, student_id, full_name, email, password_hash, account_status FROM users WHERE student_id = %s LIMIT 1", (req.student_id,))
+        cursor.execute("SELECT user_id, student_id, full_name, email, password_hash, account_status, is_temp_password FROM users WHERE student_id = %s LIMIT 1", (req.student_id,))
         user = cursor.fetchone()
         
     if not user:
@@ -52,7 +52,8 @@ def login(req: LoginRequest, db = Depends(get_db)):
             "student_id": user['student_id'],
             "full_name": user['full_name'],
             "email": user['email'],
-            "role": "student"
+            "role": "student",
+            "is_temp_password": bool(user['is_temp_password'])
         }
     }
 
@@ -115,7 +116,7 @@ def change_password(req: ChangePasswordRequest, current_user: dict = Depends(get
     
     try:
         with db.cursor() as cursor:
-            cursor.execute("UPDATE users SET password_hash = %s WHERE user_id = %s", (new_hash, user_id))
+            cursor.execute("UPDATE users SET password_hash = %s, is_temp_password = 0 WHERE user_id = %s", (new_hash, user_id))
         db.commit()
     except Exception as e:
         db.rollback()

@@ -105,6 +105,39 @@ class ApiService {
     }
   }
 
+  /// Change Password for logged-in user
+  Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword) async {
+    try {
+      final url = Uri.parse('$_base/users/me/password');
+      final response = await http.put(
+        url,
+        headers: _headers,
+        body: jsonEncode({
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        try {
+          final body = jsonDecode(response.body);
+          throw Exception(body['detail'] ?? 'Failed to update password');
+        } catch (e) {
+          if (e is FormatException) {
+            throw Exception('Server error (${response.statusCode}): ${response.body}');
+          }
+          rethrow;
+        }
+      }
+    } on SocketException catch (_) {
+      throw Exception('Server unreachable. Ensure the backend is running.');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// ── Testing ──────────────────────────────────────────────────────────────
 
   /// Test end-to-end connectivity with MySQL database via backend

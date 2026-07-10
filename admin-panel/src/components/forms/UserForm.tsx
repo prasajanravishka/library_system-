@@ -72,19 +72,24 @@ export default function UserForm({ user, onSubmit, isSubmitting }: Props) {
 
   // Render the user form fields and attach the submit event handler
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" autoComplete="off">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Student ID */}
         <div>
           <label className={labelClass}>Student ID *</label>
-          <input {...register('student_id')} className={inputClass(!!errors.student_id)} placeholder="e.g. S12345" />
+          <input 
+            {...register('student_id')} 
+            className={inputClass(!!errors.student_id)} 
+            placeholder="e.g. S12345" 
+            autoComplete="new-student-id"
+          />
           {errors.student_id && <p className={errorClass}>{errors.student_id.message}</p>}
         </div>
 
         {/* Full Name */}
         <div>
           <label className={labelClass}>Full Name *</label>
-          <input {...register('full_name')} className={inputClass(!!errors.full_name)} placeholder="John Doe" />
+          <input {...register('full_name')} className={inputClass(!!errors.full_name)} placeholder="John Doe" autoComplete="new-name" />
           {errors.full_name && <p className={errorClass}>{errors.full_name.message}</p>}
         </div>
       </div>
@@ -92,7 +97,7 @@ export default function UserForm({ user, onSubmit, isSubmitting }: Props) {
       {/* Email */}
       <div>
         <label className={labelClass}>Email *</label>
-        <input type="email" {...register('email')} className={inputClass(!!errors.email)} placeholder="john@example.com" />
+        <input type="email" {...register('email')} className={inputClass(!!errors.email)} placeholder="john@example.com" autoComplete="new-email" />
         {errors.email && <p className={errorClass}>{errors.email.message}</p>}
       </div>
 
@@ -107,6 +112,7 @@ export default function UserForm({ user, onSubmit, isSubmitting }: Props) {
               {...register('password')}
               className={inputClass(!!errors.password)}
               placeholder="Set a default password"
+              autoComplete="new-password"
             />
             <button
               type="button"

@@ -32,7 +32,7 @@ export default function CirculationPage() {
   // State variables for managing the checkout form inputs and submission status
   const [checkoutStudentId, setCheckoutStudentId] = useState('');
   const [checkoutBookName, setCheckoutBookName] = useState('');
-  const [checkoutIsbn, setCheckoutIsbn] = useState('');
+  const [checkoutScan, setCheckoutScan] = useState('');
   const [selectedBarcode, setSelectedBarcode] = useState<string | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
@@ -64,20 +64,38 @@ export default function CirculationPage() {
   };
   const daysGap = calculateDaysGap();
 
-  // Effect to auto-fill Book Name when ISBN is entered
+  // Effect to auto-fill Book Name and auto-select barcode when a code is scanned
   useEffect(() => {
-    if (checkoutIsbn) {
-      const book = books.find(b => b.isbn === checkoutIsbn);
-      if (book) {
-        setCheckoutBookName(book.title);
+    if (checkoutScan) {
+      let found = false;
+      for (const book of books) {
+        if (book.isbn === checkoutScan) {
+          setCheckoutBookName(book.title);
+          found = true;
+          break;
+        }
+        if (book.copies) {
+          const matchedCopy = book.copies.find(c => c.isbn === checkoutScan || c.barcode === checkoutScan);
+          if (matchedCopy) {
+            setCheckoutBookName(book.title);
+            setSelectedBarcode(matchedCopy.barcode);
+            found = true;
+            break;
+          }
+        }
+      }
+      if (!found) {
+        setSelectedBarcode(null);
       }
     }
-  }, [checkoutIsbn, books]);
+  }, [checkoutScan, books]);
 
-  // Reset selected barcode when the search criteria changes
+  // Reset selected barcode when the search criteria changes manually
   useEffect(() => {
-    setSelectedBarcode(null);
-  }, [checkoutIsbn, checkoutBookName]);
+    if (!checkoutScan) {
+      setSelectedBarcode(null);
+    }
+  }, [checkoutBookName, checkoutScan]);
 
   // Handles the checkout form submission, validates inputs, and triggers the checkout API
   const handleCheckout = async (e: React.FormEvent) => {
@@ -87,16 +105,16 @@ export default function CirculationPage() {
       return;
     }
     
-    if (!checkoutBookName && !checkoutIsbn) {
-      toast.error('Please enter a Book Title or ISBN');
+    if (!checkoutBookName && !checkoutScan) {
+      toast.error('Please enter a Book Title or Scan Code');
       return;
     }
 
     let selectedBook;
-    if (checkoutIsbn) {
-      selectedBook = books.find(b => b.isbn === checkoutIsbn);
+    if (checkoutScan) {
+      selectedBook = books.find(b => b.isbn === checkoutScan || b.copies?.some(c => c.isbn === checkoutScan || c.barcode === checkoutScan));
       if (!selectedBook) {
-        toast.error('Invalid ISBN. Book not found.');
+        toast.error('Invalid Scan Code. Book not found.');
         return;
       }
     } else if (checkoutBookName) {
@@ -117,7 +135,7 @@ export default function CirculationPage() {
       return;
     }
     
-    if (selectedBook.copy_barcodes && selectedBook.copy_barcodes.length > 0 && !selectedBarcode) {
+    if (selectedBook.copies && selectedBook.copies.length > 0 && !selectedBarcode) {
       toast.error('Please select a specific physical barcode to issue.');
       return;
     }
@@ -128,7 +146,7 @@ export default function CirculationPage() {
       toast.success('Book checked out successfully!');
       setCheckoutStudentId('');
       setCheckoutBookName('');
-      setCheckoutIsbn('');
+      setCheckoutScan('');
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -139,20 +157,20 @@ export default function CirculationPage() {
   const inputClass = "w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all";
   const labelClass = "block text-sm font-semibold text-slate-700 mb-2";
 
-  const filteredBooksForIsbn = checkoutBookName 
-    ? books.filter(b => b.title === checkoutBookName && b.isbn)
-    : books.filter(b => b.isbn);
+  const filteredBooksForScan = checkoutBookName 
+    ? books.filter(b => b.title === checkoutBookName && (b.isbn || (b.copies && b.copies.length > 0)))
+    : books.filter(b => b.isbn || (b.copies && b.copies.length > 0));
 
-  const isbnLabel = (checkoutBookName && filteredBooksForIsbn.length > 1)
-    ? 'ISBN (Required for this title)'
-    : 'ISBN (Optional)';
+  const scanLabel = (checkoutBookName && filteredBooksForScan.length > 1)
+    ? 'Scan Barcode / ISBN (Required for this title)'
+    : 'Scan Barcode / ISBN (Optional)';
 
   // Determine the actively selected book to display its info
   const selectedBookByTitle = checkoutBookName ? books.filter(b => b.title === checkoutBookName) : [];
-  const selectedBookByIsbn = checkoutIsbn 
-    ? books.find(b => b.isbn === checkoutIsbn || (b.copy_barcodes && b.copy_barcodes.includes(checkoutIsbn))) 
+  const selectedBookByScan = checkoutScan 
+    ? books.find(b => b.isbn === checkoutScan || b.copies?.some(c => c.isbn === checkoutScan || c.barcode === checkoutScan)) 
     : null;
-  const activeBook = selectedBookByIsbn || (selectedBookByTitle.length === 1 ? selectedBookByTitle[0] : null);
+  const activeBook = selectedBookByScan || (selectedBookByTitle.length === 1 ? selectedBookByTitle[0] : null);
 
   return (
     <div className="flex flex-col h-full bg-slate-50 relative z-0">
@@ -187,10 +205,18 @@ export default function CirculationPage() {
             ))}
           </datalist>
 
-          <datalist id="isbnList">
-            {filteredBooksForIsbn.map(book => (
-              <option key={`isbn-${book.book_id}`} value={book.isbn ?? ''} />
-            ))}
+          <datalist id="scanList">
+            {filteredBooksForScan.flatMap(book => {
+              const options = [];
+              if (book.isbn) options.push(<option key={`isbn-${book.book_id}`} value={book.isbn} />);
+              if (book.copies) {
+                book.copies.forEach(copy => {
+                  options.push(<option key={`bc-${copy.barcode}`} value={copy.barcode} />);
+                  if (copy.isbn) options.push(<option key={`cisbn-${copy.barcode}`} value={copy.isbn} />);
+                });
+              }
+              return options;
+            })}
           </datalist>
 
           <div className="p-8">
@@ -228,19 +254,19 @@ export default function CirculationPage() {
                 </div>
 
                 <div>
-                  <label className={`${labelClass} ${isbnLabel.includes('Required') ? 'text-rose-600' : ''}`}>
-                    {isbnLabel}
+                  <label className={`${labelClass} ${scanLabel.includes('Required') ? 'text-rose-600' : ''}`}>
+                    {scanLabel}
                   </label>
                   <div className="relative">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                       type="text"
-                      list="isbnList"
-                      value={checkoutIsbn}
+                      list="scanList"
+                      value={checkoutScan}
                       onChange={(e) => {
-                        setCheckoutIsbn(e.target.value);
+                        setCheckoutScan(e.target.value);
                       }}
-                      placeholder="Scan or enter ISBN..."
+                      placeholder="Scan or enter Barcode/ISBN..."
                       className={`${inputClass} pl-11`}
                     />
                   </div>
@@ -252,30 +278,30 @@ export default function CirculationPage() {
                         <div>
                           <p className="text-xs font-semibold text-indigo-900 mb-0.5">Selected Book</p>
                           <p className="text-sm font-medium text-slate-800 line-clamp-1">{activeBook.title}</p>
-                          <p className="text-xs text-indigo-600 font-medium mt-1">ISBN: {activeBook.isbn || 'N/A'}</p>
                         </div>
                         <div className="text-right shrink-0 ml-4 bg-white px-3 py-2 rounded-lg border border-indigo-50 shadow-sm">
-                          <p className="text-lg font-bold text-indigo-700 leading-none">{activeBook.available_copies}</p>
-                          <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mt-1">Available Copies</p>
+                          <p className="text-sm font-bold text-indigo-700 leading-none">{activeBook.isbn || 'N/A'}</p>
+                          <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mt-1">ISBN Number</p>
                         </div>
                       </div>
                       
                       {/* Physical Copies / Barcodes Display */}
-                      {activeBook.copy_barcodes && activeBook.copy_barcodes.length > 0 && (
+                      {activeBook.copies && activeBook.copies.length > 0 && (
                         <div className="pt-3 border-t border-indigo-100/60">
-                          <p className="text-xs font-semibold text-indigo-900 mb-2">Available Physical Barcodes:</p>
+                          <p className="text-xs font-semibold text-indigo-900 mb-2">Available Physical Copies:</p>
                           <div className="flex flex-wrap gap-2">
-                            {activeBook.copy_barcodes.map((barcode, idx) => (
+                            {activeBook.copies.map((copy, idx) => (
                               <button
                                 type="button"
                                 key={idx}
                                 onClick={() => {
-                                  setSelectedBarcode(barcode);
-                                  setCheckoutIsbn(barcode);
+                                  setSelectedBarcode(copy.barcode);
+                                  setCheckoutScan(copy.barcode);
                                 }}
-                                className={`inline-flex items-center px-2 py-1 border rounded text-[11px] font-mono shadow-sm transition-all ${selectedBarcode === barcode ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50'}`}
+                                className={`inline-flex flex-col items-start px-2 py-1.5 border rounded shadow-sm transition-all ${selectedBarcode === copy.barcode ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50'}`}
                               >
-                                {barcode}
+                                <span className="text-[11px] font-mono leading-none">{copy.barcode}</span>
+                                {copy.isbn && <span className="text-[9px] opacity-80 mt-1 leading-none">ISBN: {copy.isbn}</span>}
                               </button>
                             ))}
                           </div>

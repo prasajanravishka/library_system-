@@ -1,14 +1,34 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
+from datetime import datetime, timedelta
 from database import get_db
-from auth import verify_password, create_access_token, get_current_user
+from auth import verify_password, create_access_token, get_current_user, get_password_hash
+import secrets
+import string
 
 router = APIRouter()
+
+class UpdateSettingsRequest(BaseModel):
+    fine_per_day: Optional[str] = None
+    exempt_days: Optional[str] = None
 
 class AdminLoginRequest(BaseModel):
     username: str
     password: str
+
+class AddUserRequest(BaseModel):
+    student_id: str
+    full_name: str
+    email: str
+    password: Optional[str] = None
+
+class PasswordResetRequest(BaseModel):
+    new_password: Optional[str] = None
+
+class BookCopyInput(BaseModel):
+    barcode: str
+    isbn: Optional[str] = None
 
 class AddBookRequest(BaseModel):
     title: str
@@ -25,7 +45,7 @@ class AddBookRequest(BaseModel):
     location_id: Optional[int] = None
     category_ids: Optional[List[int]] = []
     synopsis: Optional[str] = None
-    copy_isbns: Optional[List[str]] = []
+    copies: Optional[List[BookCopyInput]] = []
 
 class UpdateBookRequest(BaseModel):
     title: Optional[str] = None
@@ -39,6 +59,7 @@ class UpdateBookRequest(BaseModel):
     location_id: Optional[int] = None
     category_ids: Optional[List[int]] = None
     synopsis: Optional[str] = None
+    copies: Optional[List[BookCopyInput]] = None
 
 class CirculationCheckoutRequest(BaseModel):
     student_id: str
@@ -82,10 +103,31 @@ def admin_login(req: AdminLoginRequest, db = Depends(get_db)):
         }
     }
 
+@router.get("/admin/settings")
+def get_settings(admin = Depends(get_admin_user), db = Depends(get_db)):
+    with db.cursor() as cursor:
+        cursor.execute("SELECT setting_key, setting_value FROM library_settings")
+        settings = {row['setting_key']: row['setting_value'] for row in cursor.fetchall()}
+    return {"status": "success", "settings": settings}
+
+@router.put("/admin/settings")
+def update_settings(req: UpdateSettingsRequest, admin = Depends(get_admin_user), db = Depends(get_db)):
+    try:
+        with db.cursor() as cursor:
+            if req.fine_per_day is not None:
+                cursor.execute("UPDATE library_settings SET setting_value = %s WHERE setting_key = 'fine_per_day'", (req.fine_per_day,))
+            if req.exempt_days is not None:
+                cursor.execute("UPDATE library_settings SET setting_value = %s WHERE setting_key = 'exempt_days'", (req.exempt_days,))
+        db.commit()
+        return {"status": "success", "message": "Settings updated"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/admin/books")
 def add_book(req: AddBookRequest, admin = Depends(get_admin_user), db = Depends(get_db)):
-    # Calculate copies from copy_isbns if provided, else use the request values
-    total_copies = len(req.copy_isbns) if req.copy_isbns else req.total_copies
+    # Calculate copies from req.copies if provided, else use the request values
+    total_copies = len(req.copies) if req.copies else req.total_copies
     available_copies = req.available_copies if req.available_copies is not None else total_copies
     try:
         with db.cursor() as cursor:
@@ -107,13 +149,13 @@ def add_book(req: AddBookRequest, admin = Depends(get_admin_user), db = Depends(
                     cursor.execute("INSERT IGNORE INTO book_categories (book_id, category_id) VALUES (%s, %s)", (book_id, cat_id))
                     
             # Insert individual copies
-            if req.copy_isbns:
-                for copy_isbn in req.copy_isbns:
-                    clean_isbn = copy_isbn.strip()
-                    if clean_isbn:
+            if req.copies:
+                for copy in req.copies:
+                    clean_barcode = copy.barcode.strip()
+                    if clean_barcode:
                         cursor.execute(
-                            "INSERT INTO book_copies (book_id, barcode, status, `condition`) VALUES (%s, %s, %s, %s)",
-                            (book_id, clean_isbn, 'available', 'Good')
+                            "INSERT INTO book_copies (book_id, barcode, isbn, status, `condition`) VALUES (%s, %s, %s, %s, %s)",
+                            (book_id, clean_barcode, copy.isbn, 'available', 'Good')
                         )
         db.commit()
         return {"status": "success", "message": "Book added successfully", "book_id": book_id}
@@ -127,12 +169,13 @@ def update_book(book_id: int, req: UpdateBookRequest, admin = Depends(get_admin_
     params = []
     update_data = req.dict(exclude_unset=True)
     category_ids = update_data.pop('category_ids', None)
+    copies = update_data.pop('copies', None)
 
     for key, value in update_data.items():
         updates.append(f"{key} = %s")
         params.append(value)
         
-    if not updates and category_ids is None:
+    if not updates and category_ids is None and copies is None:
         raise HTTPException(status_code=400, detail="No fields to update")
         
     try:
@@ -145,6 +188,47 @@ def update_book(book_id: int, req: UpdateBookRequest, admin = Depends(get_admin_
                 cursor.execute("DELETE FROM book_categories WHERE book_id = %s", (book_id,))
                 for cat_id in category_ids:
                     cursor.execute("INSERT IGNORE INTO book_categories (book_id, category_id) VALUES (%s, %s)", (book_id, cat_id))
+                    
+            if copies is not None:
+                cursor.execute("SELECT barcode FROM book_copies WHERE book_id = %s", (book_id,))
+                current_barcodes = {row['barcode'] for row in cursor.fetchall()}
+                new_copies_map = {c.barcode.strip(): c.isbn for c in copies if c.barcode.strip()}
+                new_barcodes = set(new_copies_map.keys())
+                
+                # Add new barcodes
+                to_add = new_barcodes - current_barcodes
+                for bc in to_add:
+                    cursor.execute(
+                        "INSERT IGNORE INTO book_copies (book_id, barcode, isbn, status, `condition`) VALUES (%s, %s, %s, %s, %s)",
+                        (book_id, bc, new_copies_map[bc], 'available', 'Good')
+                    )
+                
+                # Update existing barcodes with new ISBNs if they changed
+                to_update = current_barcodes.intersection(new_barcodes)
+                for bc in to_update:
+                    cursor.execute(
+                        "UPDATE book_copies SET isbn = %s WHERE book_id = %s AND barcode = %s",
+                        (new_copies_map[bc], book_id, bc)
+                    )
+                
+                # Remove removed barcodes (only if they have no borrow records, else mark as maintenance)
+                to_remove = current_barcodes - new_barcodes
+                for bc in to_remove:
+                    cursor.execute("SELECT copy_id FROM book_copies WHERE barcode = %s AND book_id = %s", (bc, book_id))
+                    copy_row = cursor.fetchone()
+                    if copy_row:
+                        cursor.execute("SELECT borrow_id FROM borrow_records WHERE copy_id = %s LIMIT 1", (copy_row['copy_id'],))
+                        if cursor.fetchone():
+                            cursor.execute("UPDATE book_copies SET status = 'maintenance' WHERE copy_id = %s", (copy_row['copy_id'],))
+                        else:
+                            cursor.execute("DELETE FROM book_copies WHERE copy_id = %s", (copy_row['copy_id'],))
+
+                # Update total copies in the books table to match the new count
+                cursor.execute("SELECT COUNT(*) as count FROM book_copies WHERE book_id = %s", (book_id,))
+                count_row = cursor.fetchone()
+                if count_row:
+                    cursor.execute("UPDATE books SET total_copies = %s WHERE book_id = %s", (count_row['count'], book_id))
+
         db.commit()
         return {"status": "success", "message": "Book updated successfully"}
     except Exception as e:
@@ -181,7 +265,7 @@ def all_books(admin = Depends(get_admin_user), db = Depends(get_db)):
         books = cursor.fetchall()
         
         # Fetch available barcodes for physical copies
-        cursor.execute("SELECT book_id, barcode FROM book_copies WHERE status = 'available'")
+        cursor.execute("SELECT book_id, barcode, isbn FROM book_copies WHERE status = 'available'")
         available_copies = cursor.fetchall()
         
         # Group barcodes by book_id
@@ -190,11 +274,11 @@ def all_books(admin = Depends(get_admin_user), db = Depends(get_db)):
             b_id = row['book_id']
             if b_id not in copies_map:
                 copies_map[b_id] = []
-            copies_map[b_id].append(row['barcode'])
+            copies_map[b_id].append({'barcode': row['barcode'], 'isbn': row['isbn']})
             
         # Attach barcodes to the book payloads
         for book in books:
-            book['copy_barcodes'] = copies_map.get(book['book_id'], [])
+            book['copies'] = copies_map.get(book['book_id'], [])
             
     return {"status": "success", "books": books}
 
@@ -207,7 +291,47 @@ def all_users(admin = Depends(get_admin_user), db = Depends(get_db)):
         users = cursor.fetchall()
     return {"status": "success", "users": users}
 
+@router.post("/admin/users")
+@router.post("/admin/users/")
+def add_user(req: AddUserRequest, admin = Depends(get_admin_user), db = Depends(get_db)):
+    plain_password = req.password
+    if not plain_password:
+        plain_password = f"{req.student_id}@123"
+        
+    hashed_password = get_password_hash(plain_password)
+    
+    try:
+        with db.cursor() as cursor:
+            cursor.execute("SELECT user_id FROM users WHERE student_id = %s OR email = %s", (req.student_id, req.email))
+            if cursor.fetchone():
+                raise HTTPException(status_code=400, detail="User with this student_id or email already exists")
+                
+            cursor.execute(
+                """INSERT INTO users (student_id, full_name, email, password_hash, account_status) 
+                   VALUES (%s, %s, %s, %s, 'active')""",
+                (req.student_id, req.full_name, req.email, hashed_password)
+            )
+            user_id = cursor.lastrowid
+        db.commit()
+        
+        return {
+            "status": "success", 
+            "message": "User created successfully",
+            "user_id": user_id,
+            "student_id": req.student_id,
+            "full_name": req.full_name,
+            "email": req.email,
+            "plain_password": plain_password
+        }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.put("/admin/users/{user_id}/toggle")
+@router.put("/admin/users/{user_id}/toggle/")
 def toggle_user(user_id: int, admin = Depends(get_admin_user), db = Depends(get_db)):
     try:
         with db.cursor() as cursor:
@@ -220,6 +344,147 @@ def toggle_user(user_id: int, admin = Depends(get_admin_user), db = Depends(get_
             cursor.execute("UPDATE users SET account_status = %s WHERE user_id = %s", (new_status, user_id))
         db.commit()
         return {"status": "success", "message": f"User status changed to {new_status}", "new_status": new_status}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/admin/users/{user_id}/reset-password")
+@router.put("/admin/users/{user_id}/reset-password/")
+def reset_password(user_id: int, req: PasswordResetRequest, admin = Depends(get_admin_user), db = Depends(get_db)):
+    try:
+        with db.cursor() as cursor:
+            cursor.execute("SELECT user_id FROM users WHERE user_id = %s", (user_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=404, detail="User not found")
+                
+            plain_password = req.new_password
+            if not plain_password:
+                alphabet = string.ascii_letters + string.digits
+                plain_password = ''.join(secrets.choice(alphabet) for i in range(8))
+                
+            hashed_password = get_password_hash(plain_password)
+            
+            cursor.execute("UPDATE users SET password_hash = %s WHERE user_id = %s", (hashed_password, user_id))
+            
+        db.commit()
+        return {
+            "status": "success", 
+            "message": "Password reset successfully", 
+            "plain_password": plain_password
+        }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/admin/users/{user_id}")
+@router.get("/admin/users/{user_id}/")
+def get_user_details(user_id: int, admin = Depends(get_admin_user), db = Depends(get_db)):
+    with db.cursor() as cursor:
+        cursor.execute(
+            "SELECT user_id, student_id, full_name, email, account_status, created_at FROM users WHERE user_id = %s",
+            (user_id,)
+        )
+        user = cursor.fetchone()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        cursor.execute(
+            """SELECT br.borrow_id, br.book_id, b.title, b.author, 
+                      br.borrow_date, br.due_date, br.return_date, 
+                      br.status, br.fine_amount, br.fine_paid 
+               FROM borrow_records br 
+               JOIN books b ON br.book_id = b.book_id 
+               WHERE br.user_id = %s 
+               ORDER BY br.borrow_date DESC""",
+            (user_id,)
+        )
+        borrowing_history = cursor.fetchall()
+        
+        # Calculate stats
+        total_borrowed = len(borrowing_history)
+        currently_overdue = sum(1 for r in borrowing_history if r['status'] == 'overdue')
+        unpaid_fines = sum(float(r['fine_amount']) for r in borrowing_history if r['fine_amount'] is not None and not r['fine_paid'])
+        
+    return {
+        "status": "success",
+        "user": user,
+        "borrowing_history": borrowing_history,
+        "stats": {
+            "total_borrowed": total_borrowed,
+            "currently_overdue": currently_overdue,
+            "unpaid_fines": unpaid_fines
+        }
+    }
+
+@router.get("/admin/fines")
+def get_all_fines(admin = Depends(get_admin_user), db = Depends(get_db)):
+    with db.cursor() as cursor:
+        cursor.execute(
+            """SELECT br.borrow_id, br.user_id, br.book_id, b.title, u.student_id, u.full_name,
+                      br.borrow_date, br.due_date, br.return_date, 
+                      br.status, br.fine_amount, br.fine_paid 
+               FROM borrow_records br 
+               JOIN books b ON br.book_id = b.book_id
+               JOIN users u ON br.user_id = u.user_id
+               WHERE br.fine_amount > 0
+               ORDER BY br.borrow_date DESC"""
+        )
+        fines = cursor.fetchall()
+    return {"status": "success", "fines": fines}
+
+@router.delete("/admin/users/{user_id}")
+@router.delete("/admin/users/{user_id}/")
+def delete_user(user_id: int, admin = Depends(get_admin_user), db = Depends(get_db)):
+    try:
+        import time
+        timestamp = int(time.time())
+        with db.cursor() as cursor:
+            cursor.execute("SELECT student_id, email FROM users WHERE user_id = %s", (user_id,))
+            user = cursor.fetchone()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+                
+            # Check for unreturned books
+            cursor.execute("SELECT COUNT(*) as count FROM borrow_records WHERE user_id = %s AND status IN ('borrowed', 'overdue')", (user_id,))
+            active_borrows = cursor.fetchone()
+            unreturned_books = active_borrows['count'] if active_borrows else 0
+                
+            # Check for unpaid fines
+            cursor.execute("SELECT SUM(fine_amount) as total_fines FROM borrow_records WHERE user_id = %s AND fine_paid = 0 AND fine_amount > 0", (user_id,))
+            fines_record = cursor.fetchone()
+            unpaid_fines = float(fines_record['total_fines']) if fines_record and fines_record['total_fines'] else 0.0
+
+            if unreturned_books > 0 or unpaid_fines > 0:
+                raise HTTPException(status_code=400, detail={
+                    "error": "deletion_blocked",
+                    "unreturned_books": unreturned_books,
+                    "unpaid_fines": unpaid_fines
+                })
+                
+            new_student_id = f"{user['student_id']}_del_{timestamp}"
+            new_email = f"{user['email']}_del_{timestamp}"
+            
+            cursor.execute("""
+                UPDATE users 
+                SET account_status = 'deleted', 
+                    student_id = %s, 
+                    email = %s 
+                WHERE user_id = %s
+            """, (new_student_id, new_email, user_id))
+            
+        db.commit()
+        return {
+            "status": "success", 
+            "message": "User permanently deleted and ID freed up for reuse"
+        }
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -295,9 +560,50 @@ def delete_category(category_id: int, admin = Depends(get_admin_user), db = Depe
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+def calculate_dynamic_fine(cursor, borrow_record, fine_per_day, exempt_days_list):
+    status = borrow_record['status']
+    due_date = borrow_record['due_date']
+    fine_amount = borrow_record['fine_amount']
+    
+    if status not in ('borrowed', 'overdue') or not due_date:
+        return fine_amount, status
+        
+    if isinstance(due_date, str):
+        due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
+        
+    today = datetime.now().date()
+    days_overdue = (today - due_date).days
+    
+    if days_overdue > 0:
+        if exempt_days_list:
+            current_date = due_date + timedelta(days=1)
+            exempt_count = 0
+            while current_date <= today:
+                if current_date.weekday() in exempt_days_list:
+                    exempt_count += 1
+                current_date += timedelta(days=1)
+            days_overdue -= exempt_count
+            days_overdue = max(0, days_overdue)
+            
+        calculated_fine = round(days_overdue * fine_per_day, 2)
+        
+        if status != 'overdue' or float(fine_amount or 0) != calculated_fine:
+            cursor.execute(
+                "UPDATE borrow_records SET status = 'overdue', fine_amount = %s WHERE borrow_id = %s",
+                (calculated_fine, borrow_record['borrow_id'])
+            )
+        return calculated_fine, 'overdue'
+    return fine_amount, status
+
 @router.get("/admin/borrows")
 def all_borrows(admin = Depends(get_admin_user), db = Depends(get_db)):
     with db.cursor() as cursor:
+        cursor.execute("SELECT setting_key, setting_value FROM library_settings")
+        settings = {row['setting_key']: row['setting_value'] for row in cursor.fetchall()}
+        fine_per_day = float(settings.get('fine_per_day', '0.50'))
+        exempt_days_str = settings.get('exempt_days', '')
+        exempt_days_list = [int(x.strip()) for x in exempt_days_str.split(',')] if exempt_days_str else []
+
         cursor.execute(
             """SELECT br.borrow_id, br.user_id, br.book_id, br.borrow_date, br.due_date, 
                       br.return_date, br.status, br.fine_amount, br.fine_paid,
@@ -311,9 +617,15 @@ def all_borrows(admin = Depends(get_admin_user), db = Depends(get_db)):
         records = cursor.fetchall()
         
         for r in records:
+            new_fine, new_status = calculate_dynamic_fine(cursor, r, fine_per_day, exempt_days_list)
+            r['fine_amount'] = new_fine
+            r['status'] = new_status
+
             if r['borrow_date']: r['borrow_date'] = str(r['borrow_date'])
             if r['due_date']: r['due_date'] = str(r['due_date'])
             if r['return_date']: r['return_date'] = str(r['return_date'])
+            
+        db.commit()
             
     return {"status": "success", "borrows": records}
 
@@ -321,20 +633,76 @@ def all_borrows(admin = Depends(get_admin_user), db = Depends(get_db)):
 def return_borrow(borrow_id: int, admin = Depends(get_admin_user), db = Depends(get_db)):
     try:
         with db.cursor() as cursor:
-            cursor.execute("SELECT book_id, status FROM borrow_records WHERE borrow_id = %s", (borrow_id,))
+            cursor.execute("SELECT borrow_id, book_id, status, due_date, fine_amount, copy_id FROM borrow_records WHERE borrow_id = %s", (borrow_id,))
             record = cursor.fetchone()
             if not record:
                 raise HTTPException(status_code=404, detail="Borrow record not found")
             if record['status'] == 'returned':
                 raise HTTPException(status_code=400, detail="Book is already returned")
                 
+            cursor.execute("SELECT setting_key, setting_value FROM library_settings")
+            settings = {row['setting_key']: row['setting_value'] for row in cursor.fetchall()}
+            fine_per_day = float(settings.get('fine_per_day', '0.50'))
+            exempt_days_str = settings.get('exempt_days', '')
+            exempt_days_list = [int(x.strip()) for x in exempt_days_str.split(',')] if exempt_days_str else []
+            
+            final_fine, _ = calculate_dynamic_fine(cursor, record, fine_per_day, exempt_days_list)
+            if final_fine is None: final_fine = 0.00
+                
             cursor.execute(
-                "UPDATE borrow_records SET status = 'returned', return_date = CURDATE() WHERE borrow_id = %s",
+                "UPDATE borrow_records SET status = 'returned', return_date = CURDATE(), fine_amount = %s, fine_paid = FALSE WHERE borrow_id = %s",
+                (final_fine, borrow_id)
+            )
+            
+            cursor.execute(
+                """UPDATE book_copies bc
+                   JOIN borrow_records br ON bc.copy_id = br.copy_id
+                   SET bc.status = 'available'
+                   WHERE br.borrow_id = %s""",
                 (borrow_id,)
             )
             cursor.execute("UPDATE books SET availability_status = 'available', available_copies = available_copies + 1 WHERE book_id = %s", (record['book_id'],))
+            
+            # User rank update
+            cursor.execute("SELECT COUNT(*) as count FROM borrow_records WHERE user_id = (SELECT user_id FROM borrow_records WHERE borrow_id = %s)", (borrow_id,))
+            total_borrowed = cursor.fetchone()['count']
+            if total_borrowed >= 15:
+                cursor.execute("UPDATE users SET member_rank = 'Gold', badge_icon = 'emoji_events' WHERE user_id = (SELECT user_id FROM borrow_records WHERE borrow_id = %s)", (borrow_id,))
+            elif total_borrowed >= 5:
+                cursor.execute("UPDATE users SET member_rank = 'Silver', badge_icon = 'star' WHERE user_id = (SELECT user_id FROM borrow_records WHERE borrow_id = %s)", (borrow_id,))
+                
         db.commit()
         return {"status": "success", "message": "Book returned successfully"}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/admin/borrows/{borrow_id}/pay-fine")
+def pay_fine(borrow_id: int, admin = Depends(get_admin_user), db = Depends(get_db)):
+    try:
+        with db.cursor() as cursor:
+            cursor.execute("SELECT fine_amount, fine_paid, status, book_id, copy_id FROM borrow_records WHERE borrow_id = %s", (borrow_id,))
+            record = cursor.fetchone()
+            if not record:
+                raise HTTPException(status_code=404, detail="Borrow record not found")
+            if float(record['fine_amount']) <= 0:
+                raise HTTPException(status_code=400, detail="No fine associated with this record")
+            if record['fine_paid']:
+                raise HTTPException(status_code=400, detail="Fine is already paid")
+                
+            cursor.execute("UPDATE borrow_records SET fine_paid = 1 WHERE borrow_id = %s", (borrow_id,))
+            
+            if record['status'] != 'returned':
+                cursor.execute("UPDATE borrow_records SET status = 'returned', return_date = CURDATE() WHERE borrow_id = %s", (borrow_id,))
+                if record['copy_id']:
+                    cursor.execute("UPDATE book_copies SET status = 'available' WHERE copy_id = %s", (record['copy_id'],))
+                cursor.execute("UPDATE books SET availability_status = 'available', available_copies = available_copies + 1 WHERE book_id = %s", (record['book_id'],))
+                
+        db.commit()
+        return {"status": "success", "message": "Fine marked as paid"}
     except HTTPException:
         db.rollback()
         raise
@@ -431,13 +799,31 @@ def circulation_checkin(req: CirculationCheckinRequest, admin = Depends(get_admi
                 raise HTTPException(status_code=400, detail="No active borrow record found for this student and book")
                 
             # Calculate fine
-            fine_per_day = 0.50
+            cursor.execute("SELECT setting_key, setting_value FROM library_settings")
+            settings = {row['setting_key']: row['setting_value'] for row in cursor.fetchall()}
+            fine_per_day = float(settings.get('fine_per_day', '0.50'))
+            exempt_days_str = settings.get('exempt_days', '')
+            exempt_days_list = [int(x.strip()) for x in exempt_days_str.split(',')] if exempt_days_str else []
+
             due_date = borrow['due_date']
             if isinstance(due_date, str):
                 due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
             today = datetime.now().date()
             days_overdue = (today - due_date).days
-            fine_amount = round(days_overdue * fine_per_day, 2) if days_overdue > 0 else 0.00
+            
+            if days_overdue > 0:
+                if exempt_days_list:
+                    current_date = due_date + timedelta(days=1)
+                    exempt_count = 0
+                    while current_date <= today:
+                        if current_date.weekday() in exempt_days_list:
+                            exempt_count += 1
+                        current_date += timedelta(days=1)
+                    days_overdue -= exempt_count
+                    days_overdue = max(0, days_overdue)
+                fine_amount = round(days_overdue * fine_per_day, 2)
+            else:
+                fine_amount = 0.00
             
             # Update record
             cursor.execute(

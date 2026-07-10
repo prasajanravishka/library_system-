@@ -46,6 +46,7 @@ CREATE TABLE `book_copies` (
   `copy_id` int(11) NOT NULL AUTO_INCREMENT,
   `book_id` int(11) NOT NULL,
   `barcode` varchar(100) NOT NULL,
+  `isbn` varchar(50) DEFAULT NULL,
   `condition` enum('New','Good','Fair','Poor','Damaged') DEFAULT 'Good',
   `status` enum('available','borrowed','lost','maintenance') DEFAULT 'available',
   `added_at` timestamp NOT NULL DEFAULT current_timestamp(),

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from database import get_db
-from auth import verify_password, create_access_token, get_current_user
+from auth import verify_password, create_access_token, get_current_user, get_password_hash
 
 router = APIRouter()
 
@@ -92,7 +92,39 @@ def get_profile(current_user: dict = Depends(get_current_user), db = Depends(get
         }
     }
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+@router.put("/users/me/password")
+@router.put("/users/me/password/")
+def change_password(req: ChangePasswordRequest, current_user: dict = Depends(get_current_user), db = Depends(get_db)):
+    user_id = current_user['user_id']
+    
+    with db.cursor() as cursor:
+        cursor.execute("SELECT password_hash FROM users WHERE user_id = %s", (user_id,))
+        user = cursor.fetchone()
+        
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if not verify_password(req.current_password, user['password_hash']):
+        raise HTTPException(status_code=401, detail="Incorrect current password")
+        
+    new_hash = get_password_hash(req.new_password)
+    
+    try:
+        with db.cursor() as cursor:
+            cursor.execute("UPDATE users SET password_hash = %s WHERE user_id = %s", (new_hash, user_id))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Database error occurred")
+        
+    return {"status": "success", "message": "Password updated successfully"}
+
 @router.get("/books/search")
+
 def search_books(q: str, category_id: Optional[int] = None, db = Depends(get_db)):
     # Sanitize the query to remove MySQL boolean mode operators
     clean_q = "".join(c for c in q if c.isalnum() or c.isspace())

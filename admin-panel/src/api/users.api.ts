@@ -24,6 +24,18 @@ export const usersApi = {
   },
 
   /** 
+   * Retrieves a single user's comprehensive details including borrowing history and stats.
+   * GET /api/admin/users/{id}
+   * 
+   * @param userId - The unique identifier of the user
+   * @returns A promise resolving to the user details payload
+   */
+  getUserDetails: async (userId: number): Promise<any> => {
+    const { data } = await client.get<any>(`/admin/users/${userId}`);
+    return data;
+  },
+
+  /** 
    * Toggles a user's status between active and suspended.
    * PUT /api/admin/users/{id}/toggle — Toggle active/suspended 
    * 
@@ -46,11 +58,19 @@ export const usersApi = {
    * @param userData - The details of the new user, optionally including a password
    * @returns A promise resolving to the newly created User object
    */
-  create: async (userData: Partial<User> & { password?: string }): Promise<User> => {
+  create: async (userData: Partial<User> & { password?: string }): Promise<User & { plain_password?: string }> => {
     // Send post request with the new user's payload
-    const { data } = await client.post<{ status: string; user: User }>('/admin/users', userData);
-    // Return the resulting user object
-    return data.user;
+    const { data } = await client.post<any>('/admin/users', userData);
+    // Map the flat response to a user object
+    return {
+      user_id: data.user_id,
+      student_id: data.student_id,
+      full_name: data.full_name,
+      email: data.email,
+      account_status: 'active',
+      created_at: new Date().toISOString(),
+      plain_password: data.plain_password
+    };
   },
 
   /** 

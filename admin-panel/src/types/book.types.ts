@@ -3,6 +3,14 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 /**
+ * Represents a physical copy of a book.
+ */
+export interface BookCopy {
+  barcode: string;
+  isbn?: string | null;
+}
+
+/**
  * Represents a Book entity with all its details.
  */
 export interface Book {
@@ -26,7 +34,7 @@ export interface Book {
   category_name?: string | null;
   location_name?: string | null;
   borrowed_by?: string | null;
-  copy_barcodes?: string[];
+  copies?: BookCopy[];
 }
 
 /**
@@ -47,7 +55,7 @@ export interface AddBookPayload {
   location_id?: number | null;
   category_ids?: number[];
   synopsis?: string | null;
-  copy_isbns?: string[];
+  copies?: BookCopy[];
 }
 
 /**
@@ -65,4 +73,5 @@ export interface UpdateBookPayload {
   location_id?: number | null;
   category_ids?: number[];
   synopsis?: string | null;
+  copies?: BookCopy[];
 }

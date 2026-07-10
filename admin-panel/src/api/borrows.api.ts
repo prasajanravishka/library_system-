@@ -50,6 +50,16 @@ export const borrowsApi = {
   },
 
   /**
+   * Retrieves all fine records (borrow records where fine_amount > 0).
+   * 
+   * @returns A promise that resolves to an array of AdminBorrowRecord objects
+   */
+  getFines: async (): Promise<AdminBorrowRecord[]> => {
+    const { data } = await client.get<{ status: string; fines: AdminBorrowRecord[] }>('/admin/fines');
+    return data.fines;
+  },
+
+  /**
    * Processes the return of a borrowed book by its borrow ID.
    * 
    * @param borrowId - The unique identifier of the borrow record
@@ -84,5 +94,16 @@ export const borrowsApi = {
   checkin: async (student_id: string, book_id: number): Promise<void> => {
     // Send checkin request payload to process book return
     await client.post('/admin/circulation/checkin', { student_id, book_id });
+  },
+
+  /**
+   * Marks a fine as paid for a specific borrow record.
+   * 
+   * @param borrowId - The unique identifier of the borrow record
+   * @returns A promise that resolves when the payment is recorded
+   */
+  payFine: async (borrowId: number): Promise<void> => {
+    // Send a PUT request to update the fine_paid status
+    await client.put(`/admin/borrows/${borrowId}/pay-fine`);
   },
 };

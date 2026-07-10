@@ -303,7 +303,7 @@ export default function DashboardPage() {
                   Author
                 </th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  ISBN
+                  Available Copies
                 </th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Status
@@ -318,7 +318,7 @@ export default function DashboardPage() {
                 <tr className="hover:bg-slate-50 border-b border-slate-100 transition-colors">
                   <td className="py-3 px-4 font-medium text-slate-900">{book.title}</td>
                   <td className="py-3 px-4 text-slate-500">{book.author || '—'}</td>
-                  <td className="py-3 px-4 text-slate-500 font-mono text-xs tabular-nums">{book.isbn || '—'}</td>
+                  <td className="py-3 px-4 text-slate-500 text-xs tabular-nums">{book.available_copies} / {book.total_copies}</td>
                   <td className="py-3 px-4">
                     <Badge status={book.availability_status} />
                   </td>

@@ -12,38 +12,45 @@
     scroll-behavior: smooth;
   }
   
-  :root {
-    --bg-primary: #0F172A;
-    --bg-secondary: #1E293B;
-    --text-primary: #F8FAFC;
-    --text-secondary: #94A3B8;
-    --accent-primary: #38BDF8;
-    --border-color: #334155;
-  }
-
-  [data-theme='light'] {
-    --bg-primary: #F8FAFC;
-    --bg-secondary: #FFFFFF;
-    --text-primary: #0F172A;
-    --text-secondary: #475569;
-    --accent-primary: #0284C7;
-    --border-color: #E2E8F0;
-  }
-
   body {
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
+    background-color: var(--color-slate-50);
+    color: var(--color-slate-900);
     transition: background-color 0.3s ease, color 0.3s ease;
   }
-}
 
-@theme {
-  --color-bg-primary: var(--bg-primary);
-  --color-bg-secondary: var(--bg-secondary);
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-accent-primary: var(--accent-primary);
-  --color-border-color: var(--border-color);
+  /* Global Dark Mode Palette Inversion Engine */
+  html.dark {
+    /* Invert White/Black */
+    --color-white: #020617; /* Very deep blue/black */
+    --color-black: #f8fafc;
+    
+    /* Invert Slate (Neutrals) */
+    --color-slate-50: #0f172a;  /* Actually slate-900 */
+    --color-slate-100: #1e293b; /* Actually slate-800 */
+    --color-slate-200: #334155; /* Actually slate-700 */
+    --color-slate-300: #475569; /* Actually slate-600 */
+    --color-slate-400: #64748b; /* Actually slate-500 */
+    --color-slate-500: #94a3b8; /* Actually slate-400 */
+    --color-slate-600: #cbd5e1; /* Actually slate-300 */
+    --color-slate-700: #e2e8f0; /* Actually slate-200 */
+    --color-slate-800: #f1f5f9; /* Actually slate-100 */
+    --color-slate-900: #f8fafc; /* Actually slate-50 */
+    --color-slate-950: #ffffff; /* Actually white */
+
+    /* Subtly Adjust Accents for Dark Mode Contrast */
+    --color-indigo-50: #312e81; /* indigo-900 */
+    --color-indigo-100: #3730a3; /* indigo-800 */
+    --color-indigo-600: #818cf8; /* indigo-400 */
+    --color-indigo-700: #6366f1; /* indigo-500 */
+    
+    --color-rose-50: #4c0519; /* rose-900 */
+    --color-rose-100: #881337; /* rose-800 */
+    --color-rose-600: #fb7185; /* rose-400 */
+    
+    --color-emerald-50: #064e3b; /* emerald-900 */
+    --color-emerald-100: #065f46; /* emerald-800 */
+    --color-emerald-600: #34d399; /* emerald-400 */
+  }
 }
 
 /* ── Custom Scrollbar (Subtle for Light Mode) ────────────────────────────── */
@@ -55,9 +62,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1; /* slate-300 */
+  background: var(--color-slate-300);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8; /* slate-400 */
+  background: var(--color-slate-400);
 }

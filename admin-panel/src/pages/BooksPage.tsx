@@ -91,6 +91,7 @@ export default function BooksPage() {
     try {
       const payload: AddBookPayload = {
         title: formData.title,
+        isbn: formData.isbn || undefined,
         author: formData.author || '',
         publisher: formData.publisher || '',
         publication_year: formData.publication_year ? Number(formData.publication_year) : undefined,
@@ -99,7 +100,7 @@ export default function BooksPage() {
         location_id: formData.location_id ? Number(formData.location_id) : undefined,
         category_ids: formData.category_ids || [],
         synopsis: formData.synopsis || undefined,
-        copy_isbns: formData.copy_isbns?.map(c => c.value).filter(v => v.trim() !== '') || [],
+        copies: formData.copies?.filter(c => c.barcode.trim() !== '') || [],
       };
       await booksApi.create(payload);
       toast.success('Book added successfully!');
@@ -119,6 +120,7 @@ export default function BooksPage() {
     try {
       const payload: UpdateBookPayload = {};
       if (formData.title) payload.title = formData.title;
+      if (formData.isbn) payload.isbn = formData.isbn;
       if (formData.author) payload.author = formData.author;
       if (formData.publisher) payload.publisher = formData.publisher;
       if (formData.publication_year) payload.publication_year = Number(formData.publication_year);
@@ -126,6 +128,9 @@ export default function BooksPage() {
       if (formData.location_id) payload.location_id = Number(formData.location_id);
       if (formData.category_ids !== undefined) payload.category_ids = formData.category_ids || [];
       if (formData.synopsis !== undefined) payload.synopsis = formData.synopsis;
+      if (formData.copies) {
+        payload.copies = formData.copies.filter(c => c.barcode.trim() !== '');
+      }
 
       await booksApi.update(selectedBook.book_id, payload);
       toast.success('Book updated successfully!');
@@ -235,17 +240,29 @@ export default function BooksPage() {
             />
           ) : (
             <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-md shadow-sm">
-                <tr className="border-b border-slate-200">
+              <thead className="sticky top-0 z-10 bg-slate-50/80 backdrop-blur-xl border-b border-slate-200">
+                <tr>
                   {['Title', 'Author', 'Publisher', 'Year', 'Copies', 'Location', 'Status', 'Actions'].map(
-                    (col) => (
-                      <th
-                        key={col}
-                        className="text-left py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider"
-                      >
-                        {col}
-                      </th>
-                    )
+                    (col) => {
+                      let widthClass = 'text-left w-auto';
+                      if (col === 'Title') widthClass = 'text-left w-[25%]';
+                      else if (col === 'Author') widthClass = 'text-left w-[15%]';
+                      else if (col === 'Publisher') widthClass = 'text-left w-[15%]';
+                      else if (col === 'Year') widthClass = 'text-left w-[5%]';
+                      else if (col === 'Copies') widthClass = 'text-left w-[5%]';
+                      else if (col === 'Location') widthClass = 'text-left w-[10%]';
+                      else if (col === 'Status') widthClass = 'text-left w-[10%]';
+                      else if (col === 'Actions') widthClass = 'text-right w-[15%]';
+                      
+                      return (
+                        <th
+                          key={col}
+                          className={`py-4 px-4 text-xs font-bold text-slate-500 uppercase tracking-widest ${widthClass}`}
+                        >
+                          {col}
+                        </th>
+                      );
+                    }
                   )}
                 </tr>
               </thead>
@@ -253,7 +270,7 @@ export default function BooksPage() {
                 {filteredBooks.map((book) => (
                   <tr
                     key={book.book_id}
-                    className="hover:bg-slate-50 border-b border-slate-100 transition-colors group"
+                    className="hover:bg-indigo-50/30 border-b border-slate-100 transition-all duration-300 group"
                   >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
@@ -282,14 +299,12 @@ export default function BooksPage() {
                     <td className="py-3 px-4">
                       <Badge status={book.availability_status} />
                     </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={() => {
-                            navigate(`/books/${book.book_id}`);
-                          }}
-                          className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50 active:scale-[0.97] transition-all"
-                          title="View Details"
+                          onClick={() => navigate(`/books/${book.book_id}`)}
+                          className="p-1.5 rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 transition-all duration-200 shadow-sm"
+                          title="View details"
                         >
                           <Eye size={16} />
                         </button>
@@ -298,15 +313,15 @@ export default function BooksPage() {
                             setSelectedBook(book);
                             setShowEditModal(true);
                           }}
-                          className="p-1.5 rounded-lg bg-white border border-slate-200 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 active:scale-[0.97] transition-all"
-                          title="Edit Book"
+                          className="p-1.5 rounded-lg text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-all duration-200 shadow-sm"
+                          title="Edit book"
                         >
                           <Pencil size={16} />
                         </button>
                         <button
                           onClick={() => handleDeleteBook(book.book_id)}
-                          className="p-1.5 rounded-lg bg-white border border-slate-200 text-red-600 hover:text-red-700 hover:bg-red-50 active:scale-[0.97] transition-all"
-                          title="Delete Book"
+                          className="p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all duration-200 shadow-sm"
+                          title="Delete book"
                         >
                           <Trash2 size={16} />
                         </button>

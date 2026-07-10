@@ -82,15 +82,34 @@ def return_book(req: BorrowRequest, current_user: dict = Depends(get_current_use
             if not borrow:
                 raise HTTPException(status_code=400, detail="No active borrow record found")
                 
-            # Calculate fine if overdue ($0.50 per day)
-            fine_per_day = 0.50
+            # Calculate fine if overdue
+            # Calculate fine if overdue
+            cursor.execute("SELECT setting_key, setting_value FROM library_settings")
+            settings = {row['setting_key']: row['setting_value'] for row in cursor.fetchall()}
+            fine_per_day = float(settings.get('fine_per_day', '0.50'))
+            exempt_days_str = settings.get('exempt_days', '')
+            exempt_days_list = [int(x.strip()) for x in exempt_days_str.split(',')] if exempt_days_str else []
+
             due_date = borrow['due_date']
             if isinstance(due_date, str):
                 due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
             
             today = datetime.now().date()
             days_overdue = (today - due_date).days
-            fine_amount = round(days_overdue * fine_per_day, 2) if days_overdue > 0 else 0.00
+            
+            if days_overdue > 0:
+                if exempt_days_list:
+                    current_date = due_date + timedelta(days=1)
+                    exempt_count = 0
+                    while current_date <= today:
+                        if current_date.weekday() in exempt_days_list:
+                            exempt_count += 1
+                        current_date += timedelta(days=1)
+                    days_overdue -= exempt_count
+                    days_overdue = max(0, days_overdue)
+                fine_amount = round(days_overdue * fine_per_day, 2)
+            else:
+                fine_amount = 0.00
             
             # Update borrow record
             cursor.execute(

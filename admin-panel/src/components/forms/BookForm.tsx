@@ -12,6 +12,7 @@ import type { Location } from '../../types/location.types';
 
 const bookSchema = z.object({
   title: z.string().min(1, 'Title is required'),
+  isbn: z.string().optional(),
   author: z.string().optional(),
   publisher: z.string().optional(),
   publication_year: z.coerce.number().optional(),
@@ -19,7 +20,7 @@ const bookSchema = z.object({
   location_id: z.coerce.number().optional(),
   cover_image_url: z.string().optional(),
   synopsis: z.string().optional(),
-  copy_isbns: z.array(z.object({ value: z.string() })).optional(),
+  copies: z.array(z.object({ barcode: z.string(), isbn: z.string().optional() })).optional(),
   category_ids: z.preprocess((val) => {
     if (Array.isArray(val)) return val.map(Number);
     if (typeof val === 'string') return [Number(val)];
@@ -65,6 +66,7 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
     resolver: zodResolver(bookSchema) as any,
     defaultValues: {
       title: book?.title || '',
+      isbn: book?.isbn || '',
       author: book?.author || '',
       publisher: book?.publisher || '',
       publication_year: book?.publication_year || undefined,
@@ -73,14 +75,16 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
       cover_image_url: book?.cover_image_url || '',
       synopsis: book?.synopsis || '',
       category_ids: [],
-      copy_isbns: [{ value: '' }],
+      copies: book?.copies && book.copies.length > 0
+        ? book.copies.map(c => ({ barcode: c.barcode, isbn: c.isbn || '' }))
+        : [{ barcode: '', isbn: '' }],
     },
   });
 
-  // Setup field array for dynamic ISBN inputs, allowing multiple copies to be added at once
+  // Setup field array for dynamic copy inputs, allowing multiple copies to be added at once
   const { fields, append, remove } = useFieldArray({
     control,
-    name: 'copy_isbns',
+    name: 'copies',
   });
 
   // Helper function to generate input styles based on error state
@@ -106,7 +110,12 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* Author */}
+        {/* ISBN & Author */}
+        <div>
+          <label className={labelClass}>ISBN</label>
+          <input {...register('isbn')} className={inputClass(!!errors.isbn)} placeholder="e.g. 978-3-16-148410-0" />
+          {errors.isbn && <p className={errorClass}>{errors.isbn.message}</p>}
+        </div>
         <div>
           <label className={labelClass}>Author</label>
           <input {...register('author')} className={inputClass(!!errors.author)} placeholder="Author name" />
@@ -171,44 +180,46 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
         {errors.synopsis && <p className={errorClass}>{errors.synopsis.message}</p>}
       </div>
 
-      {/* Book Copies (ISBNs) */}
-      {/* Only render dynamic ISBN fields when adding a new book, not in edit mode */}
-      {!book && (
-        <div className="pt-2">
-          <div className="flex items-center justify-between mb-2">
-            <label className={labelClass + " !mb-0"}>Book Copies (ISBNs)</label>
-            <button
-              type="button"
-              onClick={() => append({ value: '' })}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
-            >
-              <Plus size={14} />
-              Add Another Copy
-            </button>
-          </div>
-          <div className="space-y-3">
-            {fields.map((field, index) => (
-              <div key={field.id} className="flex items-center gap-2">
-                <input
-                  {...register(`copy_isbns.${index}.value` as const)}
-                  className={inputClass(!!errors.copy_isbns?.[index]?.value)}
-                  placeholder={`Copy ${index + 1} ISBN/Barcode`}
-                />
-                {fields.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => remove(index)}
-                    className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Remove copy"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+      {/* Book Copies (Barcodes & ISBNs) */}
+      <div className="pt-2">
+        <div className="flex items-center justify-between mb-2">
+          <label className={labelClass + " !mb-0"}>Book Copies (Barcode & ISBN)</label>
+          <button
+            type="button"
+            onClick={() => append({ barcode: '', isbn: '' })}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+          >
+            <Plus size={14} />
+            Add Another Copy
+          </button>
         </div>
-      )}
+        <div className="space-y-3">
+          {fields.map((field, index) => (
+            <div key={field.id} className="flex items-center gap-2">
+              <input
+                {...register(`copies.${index}.barcode` as const)}
+                className={inputClass(!!errors.copies?.[index]?.barcode)}
+                placeholder={`Copy ${index + 1} Barcode`}
+              />
+              <input
+                {...register(`copies.${index}.isbn` as const)}
+                className={inputClass(!!errors.copies?.[index]?.isbn)}
+                placeholder={`Copy ${index + 1} ISBN (Optional)`}
+              />
+              {fields.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                  title="Remove copy"
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Categories (checkboxes) */}
       {/* Conditionally render category checkboxes for new books if categories exist */}

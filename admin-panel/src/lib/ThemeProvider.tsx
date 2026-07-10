@@ -21,8 +21,8 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
  * @param children - The child components to be wrapped by the provider.
  */
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize the theme state with 'dark' as the default
-  const [theme, setTheme] = useState<Theme>('dark');
+  // Initialize the theme state with 'light' as the default
+  const [theme, setTheme] = useState<Theme>('light');
 
   // Effect to load the saved theme from localStorage on component mount
   useEffect(() => {
@@ -36,12 +36,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Effect to apply the theme to the document and save it to localStorage whenever it changes
   useEffect(() => {
-    if (theme === 'light') {
-      // Apply the 'light' theme attribute to the document element
-      document.documentElement.setAttribute('data-theme', 'light');
+    if (theme === 'dark') {
+      // Apply the 'dark' class to the document element
+      document.documentElement.classList.add('dark');
     } else {
-      // Remove the 'light' theme attribute to revert to the default (dark) theme
-      document.documentElement.removeAttribute('data-theme');
+      // Remove the 'dark' class
+      document.documentElement.classList.remove('dark');
     }
     // Save the current theme to localStorage
     localStorage.setItem('app-theme', theme);

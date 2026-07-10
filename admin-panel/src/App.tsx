@@ -14,7 +14,9 @@ import DashboardPage from './pages/DashboardPage';
 import BooksPage from './pages/BooksPage';
 import BookDetailsPage from './pages/BookDetailsPage';
 import UsersPage from './pages/UsersPage';
+import UserDetailsPage from './pages/UserDetailsPage';
 import BorrowsPage from './pages/BorrowsPage';
+import { FinesPage } from './pages/FinesPage';
 import CategoriesPage from './pages/CategoriesPage';
 import LocationsPage from './pages/LocationsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
@@ -61,7 +63,9 @@ export default function App() {
           <Route path="/books/:id" element={<BookDetailsPage />} />
           <Route path="/circulation" element={<CirculationPage />} />
           <Route path="/users" element={<UsersPage />} />
+          <Route path="/users/:id" element={<UserDetailsPage />} />
           <Route path="/borrows" element={<BorrowsPage />} />
+          <Route path="/fines" element={<FinesPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/locations" element={<LocationsPage />} />
           <Route path="/support" element={<SupportTicketsPage />} />

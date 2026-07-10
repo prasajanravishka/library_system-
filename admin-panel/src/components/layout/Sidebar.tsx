@@ -15,6 +15,7 @@ import {
   ChevronRight,
   MapPin,
   Settings,
+  Banknote,
 } from 'lucide-react';
 import { useUiStore } from '../../store/uiStore';
 import { cn } from '../../lib/utils';
@@ -28,6 +29,7 @@ const iconMap: Record<string, React.ElementType> = {
   LifeBuoy,
   MapPin,
   Settings,
+  Banknote,
 };
 
 const navItems = [
@@ -36,6 +38,7 @@ const navItems = [
   { label: 'Users', path: '/users', icon: 'Users' },
   { label: 'Circulation', path: '/circulation', icon: 'ArrowRightLeft' },
   { label: 'Borrows', path: '/borrows', icon: 'BookOpen' },
+  { label: 'Fines', path: '/fines', icon: 'Banknote' },
   { label: 'Categories', path: '/categories', icon: 'Tags' },
   { label: 'Locations', path: '/locations', icon: 'MapPin' },
   { label: 'Support', path: '/support', icon: 'LifeBuoy' },

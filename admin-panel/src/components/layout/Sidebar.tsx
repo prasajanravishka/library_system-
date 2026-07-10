@@ -38,7 +38,7 @@ const navItems = [
   { label: 'Users', path: '/users', icon: 'Users' },
   { label: 'Circulation', path: '/circulation', icon: 'ArrowRightLeft' },
   { label: 'Borrows', path: '/borrows', icon: 'BookOpen' },
-  { label: 'Fines', path: '/fines', icon: 'Banknote' },
+  { label: 'Fines & Payments', path: '/fines', icon: 'Banknote' },
   { label: 'Categories', path: '/categories', icon: 'Tags' },
   { label: 'Locations', path: '/locations', icon: 'MapPin' },
   { label: 'Support', path: '/support', icon: 'LifeBuoy' },

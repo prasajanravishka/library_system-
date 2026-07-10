@@ -29,7 +29,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _login() async {
     final studentId = _studentIdController.text.trim();
-    final password = _passwordController.text;
+    final password = _passwordController.text.trim();
 
     if (studentId.isEmpty || password.isEmpty) {
       return;

@@ -179,6 +179,14 @@ final dashboardStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async 
   return response['stats'] ?? {};
 });
 
+// ── Payment History Provider ────────────────────────────────────────────────
+
+final paymentHistoryProvider = FutureProvider<List<dynamic>>((ref) async {
+  final apiService = ref.read(apiServiceProvider);
+  final response = await apiService.getPaymentHistory();
+  return response['payments'] ?? [];
+});
+
 // ── User Dashboard Provider ─────────────────────────────────────────────────
 
 final userDashboardProvider = FutureProvider.family<Map<String, dynamic>, int>((ref, userId) async {

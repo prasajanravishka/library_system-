@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
 from typing import Optional, List, Dict, Any
 from database import get_db
 from auth import get_current_user
 import math
+import os
+import secrets
 
 router = APIRouter()
 
@@ -202,4 +204,129 @@ def get_reading_history(current_user: dict = Depends(get_current_user), db = Dep
         "status": "success",
         "history": records
     }
+
+
+@router.post("/borrow/upload-receipt")
+async def upload_receipt(
+    borrow_id: int = Form(...),
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_db)
+):
+    user_id = current_user['user_id']
+    
+    # Create receipts directory
+    upload_dir = os.path.join("uploads", "receipts")
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Save the file
+    file_extension = os.path.splitext(file.filename)[1]
+    unique_filename = f"{secrets.token_hex(8)}{file_extension}"
+    file_path = os.path.join(upload_dir, unique_filename)
+    
+    try:
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+    
+    # Forward slash path for web compatibility
+    db_file_path = f"uploads/receipts/{unique_filename}"
+    
+    try:
+        with db.cursor() as cursor:
+            # 1. Verify borrow record exists, belongs to user, and has fine
+            cursor.execute(
+                "SELECT borrow_id, fine_amount FROM borrow_records WHERE borrow_id = %s AND user_id = %s AND fine_paid = FALSE",
+                (borrow_id, user_id)
+            )
+            borrow = cursor.fetchone()
+            if not borrow:
+                raise HTTPException(status_code=400, detail="Invalid borrow record or no pending fines.")
+            
+            fine_amount = float(borrow['fine_amount'])
+            if fine_amount <= 0:
+                raise HTTPException(status_code=400, detail="This borrow record does not have a fine.")
+                
+            # 2. Get or create fine_id
+            cursor.execute("SELECT fine_id FROM fines WHERE borrow_id = %s LIMIT 1", (borrow_id,))
+            fine_row = cursor.fetchone()
+            if fine_row:
+                fine_id = fine_row['fine_id']
+            else:
+                cursor.execute(
+                    "INSERT INTO fines (borrow_id, amount, reason) VALUES (%s, %s, 'Overdue return')",
+                    (borrow_id, fine_amount)
+                )
+                fine_id = cursor.lastrowid
+                
+            # 3. Create pending payment log
+            txn_ref = f"TXN-{secrets.token_hex(4).upper()}"
+            cursor.execute(
+                """INSERT INTO payments (user_id, fine_id, amount_paid, payment_method, status, transaction_reference, receipt_image_path)
+                   VALUES (%s, %s, %s, 'online', 'pending', %s, %s)""",
+                (user_id, fine_id, fine_amount, txn_ref, db_file_path)
+            )
+            
+            # 4. Insert notification for user
+            cursor.execute(
+                """INSERT INTO notifications (user_id, title, message, type, is_read)
+                   VALUES (%s, 'Receipt Uploaded', %s, 'fine', 0)""",
+                (user_id, f"Your payment receipt for transaction {txn_ref} has been uploaded and is pending verification.")
+            )
+            
+        db.commit()
+        return {
+            "status": "success",
+            "message": "Payment receipt uploaded successfully. Awaiting administrator approval.",
+            "transaction_reference": txn_ref
+        }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/borrow/payments")
+def get_payments(current_user: dict = Depends(get_current_user), db = Depends(get_db)):
+    user_id = current_user['user_id']
+    with db.cursor() as cursor:
+        sql = """
+            SELECT p.payment_id, p.amount_paid, p.payment_method, p.status, 
+                   p.transaction_reference, p.receipt_image_path, p.paid_at,
+                   b.title as book_title
+            FROM payments p
+            JOIN fines f ON p.fine_id = f.fine_id
+            JOIN borrow_records br ON f.borrow_id = br.borrow_id
+            JOIN books b ON br.book_id = b.book_id
+            WHERE p.user_id = %s
+            ORDER BY p.paid_at DESC
+        """
+        cursor.execute(sql, (user_id,))
+        payments = cursor.fetchall()
+        
+        # Format datetimes
+        for p in payments:
+            if isinstance(p['paid_at'], datetime):
+                p['paid_at'] = p['paid_at'].isoformat()
+                
+    return {"status": "success", "payments": payments}
+
+
+@router.get("/borrow/unpaid-fines")
+def get_unpaid_fines(current_user: dict = Depends(get_current_user), db = Depends(get_db)):
+    user_id = current_user['user_id']
+    with db.cursor() as cursor:
+        sql = """
+            SELECT br.borrow_id, br.fine_amount, b.title as book_title, b.author
+            FROM borrow_records br
+            JOIN books b ON br.book_id = b.book_id
+            WHERE br.user_id = %s AND br.fine_paid = FALSE AND br.fine_amount > 0
+        """
+        cursor.execute(sql, (user_id,))
+        unpaid = cursor.fetchall()
+    return {"status": "success", "fines": unpaid}
 

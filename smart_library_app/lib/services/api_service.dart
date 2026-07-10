@@ -718,4 +718,89 @@ class ApiService {
       rethrow;
     }
   }
+
+  /// Upload payment receipt slip for overdue borrow record
+  Future<Map<String, dynamic>> uploadReceipt(int borrowId, String imagePath) async {
+    try {
+      final url = Uri.parse('$_base/borrow/upload-receipt');
+      
+      final extension = imagePath.split('.').last.toLowerCase();
+      final mimeTypes = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'bmp': 'image/bmp',
+      };
+      final contentType = mimeTypes[extension] ?? 'image/jpeg';
+
+      final request = http.MultipartRequest('POST', url)
+        ..headers.addAll(_authHeaders)
+        ..fields['borrow_id'] = borrowId.toString()
+        ..files.add(await http.MultipartFile.fromPath(
+          'file',
+          imagePath,
+          contentType: MediaType.parse(contentType),
+        ));
+
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('Upload timeout: Backend took too long to respond.'),
+      );
+
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        try {
+          final body = jsonDecode(response.body);
+          throw Exception(body['detail'] ?? 'Failed to upload receipt');
+        } catch (e) {
+          throw Exception('Upload failed with status: ${response.statusCode}');
+        }
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error: Cannot connect to backend at $_base');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get student payment slips history
+  Future<Map<String, dynamic>> getPaymentHistory() async {
+    try {
+      final url = Uri.parse('$_base/borrow/payments');
+      final response = await http.get(url, headers: _authHeaders);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to fetch payment history');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error: Cannot connect to backend at $_base');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get list of unpaid borrows with fines
+  Future<Map<String, dynamic>> getUnpaidFines() async {
+    try {
+      final url = Uri.parse('$_base/borrow/unpaid-fines');
+      final response = await http.get(url, headers: _authHeaders);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to fetch unpaid fines');
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error: Cannot connect to backend at $_base');
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

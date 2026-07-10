@@ -144,19 +144,21 @@ INSERT INTO `book_copies` (`copy_id`, `book_id`, `barcode`, `condition`, `status
 -- Seeding `borrow_records`
 INSERT INTO `borrow_records` (`borrow_id`, `user_id`, `book_id`, `copy_id`, `borrow_date`, `due_date`, `return_date`, `status`, `fine_amount`, `fine_paid`, `created_at`) VALUES
 (1, 1, 1, 1, '2026-06-01', '2026-06-15', '2026-06-20', 'returned', '2.50', 1, '2026-07-05 12:45:01'),
-(2, 1, 3, 6, '2026-06-10', '2026-06-24', NULL, 'returned', '5.50', 0, '2026-07-05 12:45:01'),
+(2, 1, 3, 6, '2026-06-10', '2026-06-24', '2026-07-05', 'returned', '5.50', 0, '2026-07-05 12:45:01'),
 (3, 2, 2, 5, '2026-06-28', '2026-07-12', NULL, 'borrowed', '0.00', 0, '2026-07-05 12:45:01'),
 (4, 4, 10, 22, '2026-07-01', '2026-07-15', NULL, 'borrowed', '0.00', 0, '2026-07-05 12:45:01'),
-(5, 4, 7, 14, '2026-06-15', '2026-06-29', '2026-06-25', 'returned', '0.00', 0, '2026-07-05 12:45:01');
+(5, 4, 7, 14, '2026-06-15', '2026-06-29', '2026-06-25', 'returned', '0.00', 0, '2026-07-05 12:45:01'),
+(6, 1, 2, 4, '2026-06-05', '2026-06-19', '2026-06-25', 'returned', '3.00', 0, '2026-07-05 12:45:01');
 
 -- Seeding `fines`
 INSERT INTO `fines` (`fine_id`, `borrow_id`, `amount`, `reason`, `created_at`) VALUES
 (1, 1, '2.50', 'Returned 5 days overdue', '2026-07-05 12:45:01'),
-(2, 2, '5.50', 'Overdue fine accumulated', '2026-07-05 12:45:01');
+(2, 2, '5.50', 'Overdue fine accumulated', '2026-07-05 12:45:01'),
+(3, 6, '3.00', 'Returned 6 days overdue', '2026-07-05 12:45:01');
 
 -- Seeding `payments`
-INSERT INTO `payments` (`payment_id`, `user_id`, `fine_id`, `amount_paid`, `payment_method`, `transaction_reference`, `paid_at`) VALUES
-(1, 1, 1, '2.50', 'online', 'TXN-982136', '2026-07-05 12:45:01');
+INSERT INTO `payments` (`payment_id`, `user_id`, `fine_id`, `amount_paid`, `payment_method`, `status`, `transaction_reference`, `paid_at`) VALUES
+(1, 1, 1, '2.50', 'online', 'approved', 'TXN-982136', '2026-07-05 12:45:01');
 
 -- Seeding `support_tickets`
 INSERT INTO `support_tickets` (`ticket_id`, `user_id`, `subject`, `message`, `status`, `created_at`, `updated_at`) VALUES

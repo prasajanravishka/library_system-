@@ -31,4 +31,7 @@ export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   in_progress: { bg: 'bg-amber-500/15', text: 'text-amber-400' },
   resolved: { bg: 'bg-emerald-500/15', text: 'text-emerald-400' },
   closed: { bg: 'bg-slate-500/15', text: 'text-slate-400' },
+  pending: { bg: 'bg-amber-500/15', text: 'text-amber-400' },
+  approved: { bg: 'bg-emerald-500/15', text: 'text-emerald-400' },
+  rejected: { bg: 'bg-red-500/15', text: 'text-red-400' },
 };

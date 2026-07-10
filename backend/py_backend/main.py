@@ -21,6 +21,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -69,6 +70,10 @@ app.include_router(admin.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
 app.include_router(locations.router, prefix="/api")
+
+# Serve uploaded files (slips, covers) statically
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 # ── Health Check ─────────────────────────────────────────────────────────────

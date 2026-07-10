@@ -106,4 +106,35 @@ export const borrowsApi = {
     // Send a PUT request to update the fine_paid status
     await client.put(`/admin/borrows/${borrowId}/pay-fine`);
   },
+
+  /**
+   * Retrieves all bank slip payments (pending, approved, rejected).
+   */
+  getAllPayments: async (): Promise<AdminPaymentSlip[]> => {
+    const { data } = await client.get<{ status: string; payments: AdminPaymentSlip[] }>('/admin/payments');
+    return data.payments;
+  },
+
+  /**
+   * Approves or rejects a pending bank slip payment.
+   */
+  actionPayment: async (paymentId: number, action: 'approved' | 'rejected'): Promise<void> => {
+    await client.put(`/admin/payments/${paymentId}/action`, { action });
+  },
 };
+
+/**
+ * Interface representing a payment receipt slip for librarian review.
+ */
+export interface AdminPaymentSlip {
+  payment_id: number;
+  amount_paid: number;
+  payment_method: string;
+  status: string;
+  transaction_reference: string;
+  receipt_image_path: string;
+  paid_at: string;
+  student_id: string;
+  student_name: string;
+  book_title: string;
+}

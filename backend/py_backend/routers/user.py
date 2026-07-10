@@ -77,6 +77,9 @@ def get_profile(current_user: dict = Depends(get_current_user), db = Depends(get
         cursor.execute("SELECT COALESCE(SUM(fine_amount), 0) as total FROM borrow_records WHERE user_id = %s AND fine_paid = FALSE AND fine_amount > 0", (user_id,))
         total_fines_pending = float(cursor.fetchone()['total'])
         
+        cursor.execute("SELECT COUNT(*) as count FROM payments WHERE user_id = %s AND status = 'pending'", (user_id,))
+        has_pending_payment = cursor.fetchone()['count'] > 0
+        
     return {
         "status": "success",
         "profile": {
@@ -87,6 +90,7 @@ def get_profile(current_user: dict = Depends(get_current_user), db = Depends(get
             "total_borrowed": total_borrowed,
             "total_overdue": total_overdue,
             "total_fines_pending": total_fines_pending,
+            "has_pending_payment": has_pending_payment,
             "rank": user['rank'] or "Bronze",
             "badge_icon": user['badge_icon'] or "military_tech",
             "total_books_read": user['total_books_read'] or 0

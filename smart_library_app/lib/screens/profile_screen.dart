@@ -1,7 +1,9 @@
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:image_picker/image_picker.dart';
 import '../core/app_theme.dart';
 import '../providers/providers.dart';
 import '../providers/theme_provider.dart';
@@ -11,6 +13,7 @@ import 'account_settings_screen.dart';
 import 'reading_history_screen.dart';
 import 'notifications_screen.dart';
 import 'support_screen.dart';
+import 'payment_history_screen.dart';
 
 /// Profile & Settings screen — user details, stats, reading history, and logout.
 class ProfileScreen extends ConsumerWidget {
@@ -88,6 +91,7 @@ class ProfileScreen extends ConsumerWidget {
     final rank = profile['rank'] ?? 'Bronze';
     final badgeIconString = profile['badge_icon'] ?? 'military_tech';
     final fines = profile['total_fines_pending']?.toString() ?? '0';
+    final hasPendingPayment = profile['has_pending_payment'] ?? false;
 
     IconData badgeIcon = Icons.military_tech;
     if (badgeIconString == 'emoji_events') badgeIcon = Icons.emoji_events;
@@ -197,34 +201,45 @@ class ProfileScreen extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.red.withValues(alpha: 0.1),
+                  color: hasPendingPayment 
+                      ? AppColors.amber.withValues(alpha: 0.1) 
+                      : AppColors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.red.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: hasPendingPayment 
+                        ? AppColors.amber.withValues(alpha: 0.3) 
+                        : AppColors.red.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.money_off, color: AppColors.red),
+                    Icon(
+                      hasPendingPayment ? Icons.hourglass_empty_rounded : Icons.money_off, 
+                      color: hasPendingPayment ? AppColors.amber : AppColors.red
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Pending Fines: \$$fines',
-                        style: const TextStyle(
-                          color: AppColors.red,
+                        hasPendingPayment 
+                            ? 'Fines: \$$fines (Pending Approval)'
+                            : 'Pending Fines: \$$fines',
+                        style: TextStyle(
+                          color: hasPendingPayment ? AppColors.amber : AppColors.red,
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 15,
                         ),
                       ),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.red,
+                        backgroundColor: hasPendingPayment ? Colors.grey : AppColors.red,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                       ),
-                      onPressed: () {
-                        // Implement pay fine
+                      onPressed: hasPendingPayment ? null : () {
+                        _showReceiptUploadSheet(context, ref, authState.userId);
                       },
-                      child: const Text('Pay'),
+                      child: Text(hasPendingPayment ? 'Pending' : 'Upload Slip'),
                     )
                   ],
                 ),
@@ -318,6 +333,15 @@ class ProfileScreen extends ConsumerWidget {
                     'Reading History',
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const ReadingHistoryScreen()));
+                    },
+                  ),
+                  _buildDivider(),
+                  _buildListTile(
+                    context,
+                    Icons.receipt_long_rounded,
+                    'Payment History',
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentHistoryScreen()));
                     },
                   ),
                   _buildDivider(),
@@ -484,6 +508,251 @@ class _ThemeOptionTile extends StatelessWidget {
           ? const Icon(Icons.check_circle_rounded, color: AppColors.cyan) 
           : null,
       onTap: onTap,
+    );
+  }
+}
+
+void _showReceiptUploadSheet(BuildContext context, WidgetRef ref, int userId) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => _ReceiptUploadBottomSheet(userId: userId),
+  );
+}
+
+class _ReceiptUploadBottomSheet extends ConsumerStatefulWidget {
+  final int userId;
+
+  const _ReceiptUploadBottomSheet({required this.userId});
+
+  @override
+  ConsumerState<_ReceiptUploadBottomSheet> createState() => _ReceiptUploadBottomSheetState();
+}
+
+class _ReceiptUploadBottomSheetState extends ConsumerState<_ReceiptUploadBottomSheet> {
+  File? _selectedImage;
+  int? _selectedBorrowId;
+  bool _isUploading = false;
+  String? _uploadError;
+  List<dynamic> _unpaidFines = [];
+  bool _isLoadingFines = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnpaidFines();
+  }
+
+  void _loadUnpaidFines() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final res = await api.getUnpaidFines();
+      if (mounted) {
+        setState(() {
+          _unpaidFines = res['fines'] ?? [];
+          if (_unpaidFines.isNotEmpty) {
+            _selectedBorrowId = _unpaidFines[0]['borrow_id'];
+          }
+          _isLoadingFines = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingFines = false);
+      }
+    }
+  }
+
+  void _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: source);
+      if (picked != null && mounted) {
+        setState(() => _selectedImage = File(picked.path));
+      }
+    } catch (e) {
+      setState(() => _uploadError = 'Failed to select image: $e');
+    }
+  }
+
+  void _submitReceipt() async {
+    if (_selectedBorrowId == null || _selectedImage == null) return;
+
+    setState(() {
+      _isUploading = true;
+      _uploadError = null;
+    });
+
+    try {
+      final api = ref.read(apiServiceProvider);
+      final res = await api.uploadReceipt(_selectedBorrowId!, _selectedImage!.path);
+      
+      if (res['status'] == 'success') {
+        ref.invalidate(userProfileProvider(widget.userId));
+        ref.invalidate(paymentHistoryProvider);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Slip uploaded successfully! Pending verification.'),
+              backgroundColor: AppColors.cyan,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        setState(() {
+          _isUploading = false;
+          _uploadError = res['message'] ?? 'Upload failed';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isUploading = false;
+        _uploadError = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2130) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Upload Payment Slip',
+                style: AppTextStyles.heading3.copyWith(fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => Navigator.pop(context),
+              )
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_isLoadingFines) ...[
+            const Center(child: CircularProgressIndicator(color: AppColors.cyan)),
+          ] else if (_unpaidFines.isEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                'No outstanding fines found to upload a receipt for.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ] else ...[
+            // Select book fine dropdown
+            const Text(
+              'Select Overdue Book Fine',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<int>(
+              value: _selectedBorrowId,
+              dropdownColor: isDark ? const Color(0xFF1E2130) : Colors.white,
+              decoration: const InputDecoration(
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              items: _unpaidFines.map<DropdownMenuItem<int>>((f) {
+                final text = '${f['book_title']} (\$${f['fine_amount']})';
+                return DropdownMenuItem<int>(
+                  value: f['borrow_id'],
+                  child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
+                );
+              }).toList(),
+              onChanged: (val) {
+                setState(() => _selectedBorrowId = val);
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // Select receipt image
+            const Text(
+              'Select Payment Slip Image',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            if (_selectedImage != null) ...[
+              Container(
+                height: 140,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                  image: DecorationImage(
+                    image: FileImage(_selectedImage!),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    icon: const Icon(Icons.cancel_rounded, color: Colors.white, size: 28),
+                    onPressed: () => setState(() => _selectedImage = null),
+                  ),
+                ),
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.photo_library_outlined),
+                      label: const Text('Gallery'),
+                      onPressed: () => _pickImage(ImageSource.gallery),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.camera_alt_outlined),
+                      label: const Text('Camera'),
+                      onPressed: () => _pickImage(ImageSource.camera),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 24),
+            if (_uploadError != null) ...[
+              Text(
+                _uploadError!,
+                style: const TextStyle(color: AppColors.red, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            ElevatedButton(
+              onPressed: (_selectedImage == null || _isUploading) ? null : _submitReceipt,
+              child: _isUploading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Text('Submit Slip for Verification'),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

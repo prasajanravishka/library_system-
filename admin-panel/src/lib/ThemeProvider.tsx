@@ -21,18 +21,11 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
  * @param children - The child components to be wrapped by the provider.
  */
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Initialize the theme state with 'light' as the default
-  const [theme, setTheme] = useState<Theme>('light');
-
-  // Effect to load the saved theme from localStorage on component mount
-  useEffect(() => {
-    // Attempt to retrieve the saved theme
+  // Initialize the theme state by reading from localStorage synchronously
+  const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('app-theme') as Theme | null;
-    if (savedTheme) {
-      // Update the theme state if a saved theme is found
-      setTheme(savedTheme);
-    }
-  }, []);
+    return savedTheme || 'light';
+  });
 
   // Effect to apply the theme to the document and save it to localStorage whenever it changes
   useEffect(() => {

@@ -9,12 +9,14 @@ router = APIRouter()
 class LocationCreate(BaseModel):
     name: str
     description: Optional[str] = None
-    floor: Optional[str] = None  # Accepted but ignored as it's not in the DB schema
+    floor: Optional[str] = None
+    rack_no: Optional[str] = None
 
 class LocationUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     floor: Optional[str] = None
+    rack_no: Optional[str] = None
 
 def get_admin_user(current_user: dict = Depends(get_current_user)):
     if current_user.get('role') != 'librarian':
@@ -24,7 +26,7 @@ def get_admin_user(current_user: dict = Depends(get_current_user)):
 @router.get("/locations")
 def get_all_locations(db = Depends(get_db)):
     with db.cursor() as cursor:
-        cursor.execute("SELECT location_id, name, description, created_at FROM locations ORDER BY name ASC")
+        cursor.execute("SELECT location_id, name, floor, rack_no, description, created_at FROM locations ORDER BY name ASC")
         locations = cursor.fetchall()
     return {"status": "success", "locations": locations}
 
@@ -38,12 +40,12 @@ def create_location(req: LocationCreate, admin = Depends(get_admin_user), db = D
                 raise HTTPException(status_code=400, detail="Location name already exists")
                 
             cursor.execute(
-                "INSERT INTO locations (name, description) VALUES (%s, %s)",
-                (req.name, req.description)
+                "INSERT INTO locations (name, floor, rack_no, description) VALUES (%s, %s, %s, %s)",
+                (req.name, req.floor, req.rack_no, req.description)
             )
             location_id = cursor.lastrowid
             
-            cursor.execute("SELECT location_id, name, description, created_at FROM locations WHERE location_id = %s", (location_id,))
+            cursor.execute("SELECT location_id, name, floor, rack_no, description, created_at FROM locations WHERE location_id = %s", (location_id,))
             location = cursor.fetchone()
             
         db.commit()
@@ -63,6 +65,12 @@ def update_location(location_id: int, req: LocationUpdate, admin = Depends(get_a
     if req.name is not None:
         updates.append("name = %s")
         params.append(req.name)
+    if req.floor is not None:
+        updates.append("floor = %s")
+        params.append(req.floor)
+    if req.rack_no is not None:
+        updates.append("rack_no = %s")
+        params.append(req.rack_no)
     if req.description is not None:
         updates.append("description = %s")
         params.append(req.description)
@@ -81,7 +89,7 @@ def update_location(location_id: int, req: LocationUpdate, admin = Depends(get_a
                     
             cursor.execute(f"UPDATE locations SET {', '.join(updates)} WHERE location_id = %s", tuple(params))
             
-            cursor.execute("SELECT location_id, name, description, created_at FROM locations WHERE location_id = %s", (location_id,))
+            cursor.execute("SELECT location_id, name, floor, rack_no, description, created_at FROM locations WHERE location_id = %s", (location_id,))
             location = cursor.fetchone()
             
             if not location:

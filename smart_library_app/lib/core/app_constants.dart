@@ -5,7 +5,7 @@ class AppConstants {
   /// API Base URL (FastAPI Backend)
   // 127.0.0.1 only works with USB adb reverse. Use your PC's local IP for Wi-Fi/physical device.
   // Find your IPv4 address by running 'ipconfig' (Windows) or 'ifconfig' (Mac/Linux) in your terminal.
-  static String get apiBaseUrl => 'http://192.168.72.5:8001/api';
+  static String get apiBaseUrl => 'http://172.16.203.155:8001/api';
 
   /// API key — must match both backends exactly
   static const String apiKey = 'LIBRARY_SECRET_API_KEY_2026';

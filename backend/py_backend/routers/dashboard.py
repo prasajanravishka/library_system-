@@ -11,10 +11,10 @@ def get_global_stats(db = Depends(get_db)):
         cursor.execute("SELECT COUNT(*) as count FROM books")
         total_books = cursor.fetchone()['count']
         
-        cursor.execute("SELECT COUNT(*) as count FROM borrow_records WHERE status = 'borrowed'")
+        cursor.execute("SELECT COUNT(*) as count FROM borrow_records WHERE status IN ('borrowed', 'overdue')")
         active_borrows = cursor.fetchone()['count']
         
-        cursor.execute("SELECT COUNT(*) as count FROM borrow_records WHERE status = 'borrowed' AND due_date < CURDATE()")
+        cursor.execute("SELECT COUNT(*) as count FROM borrow_records WHERE status = 'overdue' OR (status = 'borrowed' AND due_date < CURDATE())")
         overdue = cursor.fetchone()['count']
         
         # Trending Books query
@@ -104,10 +104,15 @@ def get_categories(db = Depends(get_db)):
     with db.cursor() as cursor:
         try:
             cursor.execute(
-                """SELECT c.category_id AS id, c.name, c.icon,
-                          COUNT(bc.book_id) AS book_count
+                """SELECT c.category_id AS id, c.name, c.code_range, c.description, c.icon,
+                          COUNT(DISTINCT bc.book_id) AS book_count,
+                          COALESCE(SUM(CASE WHEN cp.status = 'available' THEN 1 ELSE 0 END), 0) AS available_copies,
+                          COALESCE(SUM(CASE WHEN cp.status = 'borrowed' AND br.status = 'borrowed' AND (br.due_date >= CURDATE() OR br.due_date IS NULL) THEN 1 ELSE 0 END), 0) AS borrowed_copies,
+                          COALESCE(SUM(CASE WHEN cp.status = 'borrowed' AND (br.status = 'overdue' OR br.due_date < CURDATE()) THEN 1 ELSE 0 END), 0) AS overdue_copies
                    FROM categories c
                    LEFT JOIN book_categories bc ON c.category_id = bc.category_id
+                   LEFT JOIN book_copies cp ON bc.book_id = cp.book_id
+                   LEFT JOIN borrow_records br ON cp.copy_id = br.copy_id AND br.status IN ('borrowed', 'overdue')
                    GROUP BY c.category_id
                    ORDER BY c.sort_order ASC, c.name ASC"""
             )
@@ -182,6 +187,44 @@ def get_book_details(book_id: int, db = Depends(get_db)):
         if not book:
             raise HTTPException(status_code=404, detail="Book not found")
             
+        # Fetch Copies
+        cursor.execute("""
+            SELECT c.copy_id, c.barcode, c.isbn, c.condition, c.added_at,
+                   CASE 
+                       WHEN c.status = 'borrowed' AND (SELECT due_date FROM borrow_records br WHERE br.copy_id = c.copy_id AND br.status IN ('borrowed', 'overdue') LIMIT 1) < CURDATE() THEN 'overdue'
+                       WHEN c.status = 'borrowed' AND (SELECT status FROM borrow_records br WHERE br.copy_id = c.copy_id AND br.status IN ('borrowed', 'overdue') LIMIT 1) = 'overdue' THEN 'overdue'
+                       ELSE c.status 
+                   END as status
+            FROM book_copies c 
+            WHERE c.book_id = %s
+        """, (book_id,))
+        book['copies'] = cursor.fetchall()
+        
+        # Fetch Borrow History
+        cursor.execute(
+            """SELECT br.borrow_id, br.borrow_date, br.due_date, br.return_date, 
+                      CASE WHEN br.status = 'borrowed' AND br.due_date < CURDATE() THEN 'overdue' ELSE br.status END as status,
+                      br.fine_amount, br.fine_paid, u.full_name as user_name, c.barcode
+               FROM borrow_records br
+               JOIN users u ON br.user_id = u.user_id
+               LEFT JOIN book_copies c ON br.copy_id = c.copy_id
+               WHERE br.book_id = %s
+               ORDER BY br.borrow_date DESC""",
+            (book_id,)
+        )
+        book['history'] = cursor.fetchall()
+        
+        # Fetch Reviews
+        cursor.execute(
+            """SELECT r.review_id, r.rating, r.review_text, r.created_at, u.full_name as user_name
+               FROM reviews r
+               JOIN users u ON r.user_id = u.user_id
+               WHERE r.book_id = %s
+               ORDER BY r.created_at DESC""",
+            (book_id,)
+        )
+        book['reviews'] = cursor.fetchall()
+
     return {
         "status": "success",
         "book": book

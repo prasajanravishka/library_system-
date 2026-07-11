@@ -6,8 +6,38 @@
  * Represents a physical copy of a book.
  */
 export interface BookCopy {
+  copy_id?: number;
   barcode: string;
   isbn?: string | null;
+  condition?: 'New' | 'Good' | 'Fair' | 'Poor' | 'Damaged';
+  status?: 'available' | 'borrowed' | 'lost' | 'maintenance';
+  added_at?: string;
+}
+
+/**
+ * Represents a historical borrow record.
+ */
+export interface BorrowHistory {
+  borrow_id: number;
+  borrow_date: string;
+  due_date: string;
+  return_date?: string | null;
+  status: 'borrowed' | 'returned' | 'overdue';
+  fine_amount: string | number;
+  fine_paid: number | boolean;
+  user_name: string;
+  barcode: string | null;
+}
+
+/**
+ * Represents a user review for a book.
+ */
+export interface Review {
+  review_id: number;
+  rating: number;
+  review_text: string | null;
+  created_at: string;
+  user_name: string;
 }
 
 /**
@@ -35,6 +65,8 @@ export interface Book {
   location_name?: string | null;
   borrowed_by?: string | null;
   copies?: BookCopy[];
+  history?: BorrowHistory[];
+  reviews?: Review[];
 }
 
 /**

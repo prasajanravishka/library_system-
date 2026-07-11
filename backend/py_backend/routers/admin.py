@@ -543,6 +543,7 @@ def delete_user(user_id: int, admin = Depends(get_admin_user), db = Depends(get_
 
 class CategoryRequest(BaseModel):
     name: str
+    code_range: Optional[str] = None
     description: Optional[str] = None
     icon: Optional[str] = None
 
@@ -555,12 +556,12 @@ def create_category(req: CategoryRequest, admin = Depends(get_admin_user), db = 
                 raise HTTPException(status_code=400, detail="Category name already exists")
                 
             cursor.execute(
-                "INSERT INTO categories (name, description, icon) VALUES (%s, %s, %s)",
-                (req.name, req.description, req.icon)
+                "INSERT INTO categories (name, code_range, description, icon) VALUES (%s, %s, %s, %s)",
+                (req.name, req.code_range, req.description, req.icon)
             )
             category_id = cursor.lastrowid
             
-            cursor.execute("SELECT category_id AS id, name, description, icon FROM categories WHERE category_id = %s", (category_id,))
+            cursor.execute("SELECT category_id AS id, name, code_range, description, icon FROM categories WHERE category_id = %s", (category_id,))
             category = cursor.fetchone()
             
         db.commit()
@@ -581,11 +582,11 @@ def update_category(category_id: int, req: CategoryRequest, admin = Depends(get_
                 raise HTTPException(status_code=400, detail="Category name already exists")
                 
             cursor.execute(
-                "UPDATE categories SET name = %s, description = %s, icon = %s WHERE category_id = %s", 
-                (req.name, req.description, req.icon, category_id)
+                "UPDATE categories SET name = %s, code_range = %s, description = %s, icon = %s WHERE category_id = %s", 
+                (req.name, req.code_range, req.description, req.icon, category_id)
             )
             
-            cursor.execute("SELECT category_id AS id, name, description, icon FROM categories WHERE category_id = %s", (category_id,))
+            cursor.execute("SELECT category_id AS id, name, code_range, description, icon FROM categories WHERE category_id = %s", (category_id,))
             category = cursor.fetchone()
             if not category:
                 raise HTTPException(status_code=404, detail="Category not found")

@@ -47,12 +47,13 @@ export default function LocationsPage() {
     fetchLocations();
   }, []);
 
-  // Memoized array of locations filtered by search query matching name or floor
+  // Memoized array of locations filtered by search query matching name, floor, or rack no
   const filteredLocations = useMemo(() => {
     return locations.filter((l) =>
       !searchQuery ||
       l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (l.floor && l.floor.toLowerCase().includes(searchQuery.toLowerCase()))
+      (l.floor && l.floor.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (l.rack_no && l.rack_no.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   }, [locations, searchQuery]);
 
@@ -162,10 +163,10 @@ export default function LocationsPage() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-md shadow-sm">
                 <tr className="border-b border-slate-200">
-                  {['Location Name', 'Floor', 'Description', 'Actions'].map((col) => (
+                  {['Location Name', 'Floor', 'Rack No', 'Description', 'Actions'].map((col) => (
                     <th
-                      key={col}
-                      className="text-left py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                       key={col}
+                       className="text-left py-3.5 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider"
                     >
                       {col}
                     </th>
@@ -188,6 +189,9 @@ export default function LocationsPage() {
                     </td>
                     <td className="py-3 px-4 text-slate-600">
                       {location.floor || '—'}
+                    </td>
+                    <td className="py-3 px-4 text-slate-600 font-mono text-[13px]">
+                      {location.rack_no || '—'}
                     </td>
                     <td className="py-3 px-4 text-slate-500 max-w-[250px] truncate">
                       {location.description || '—'}

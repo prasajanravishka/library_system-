@@ -116,6 +116,7 @@ DROP TABLE IF EXISTS `categories`;
 CREATE TABLE `categories` (
   `category_id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
+  `code_range` varchar(50) DEFAULT NULL,
   `description` varchar(500) DEFAULT NULL,
   `icon` varchar(50) NOT NULL DEFAULT 'category',
   `sort_order` int(11) NOT NULL DEFAULT 0,
@@ -140,6 +141,8 @@ DROP TABLE IF EXISTS `locations`;
 CREATE TABLE `locations` (
   `location_id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
+  `floor` varchar(50) DEFAULT NULL,
+  `rack_no` varchar(50) DEFAULT NULL,
   `description` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`location_id`),

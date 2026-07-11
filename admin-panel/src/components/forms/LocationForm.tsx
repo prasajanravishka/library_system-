@@ -11,6 +11,7 @@ import type { Location } from '../../types/location.types';
 const locationSchema = z.object({
   name: z.string().min(1, 'Location name is required'),
   floor: z.string().optional(),
+  rack_no: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -47,6 +48,7 @@ export default function LocationForm({ location, onSubmit, isSubmitting }: Props
     defaultValues: {
       name: location?.name || '',
       floor: location?.floor || '',
+      rack_no: location?.rack_no || '',
       description: location?.description || '',
     },
   });
@@ -73,11 +75,19 @@ export default function LocationForm({ location, onSubmit, isSubmitting }: Props
         {errors.name && <p className={errorClass}>{errors.name.message}</p>}
       </div>
 
-      {/* Floor */}
-      <div>
-        <label className={labelClass}>Floor</label>
-        <input {...register('floor')} className={inputClass(!!errors.floor)} placeholder="e.g. 1st Floor" />
-        {errors.floor && <p className={errorClass}>{errors.floor.message}</p>}
+      {/* Floor & Rack No */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div>
+          <label className={labelClass}>Floor</label>
+          <input {...register('floor')} className={inputClass(!!errors.floor)} placeholder="e.g. 1st Floor" />
+          {errors.floor && <p className={errorClass}>{errors.floor.message}</p>}
+        </div>
+
+        <div>
+          <label className={labelClass}>Rack No</label>
+          <input {...register('rack_no')} className={inputClass(!!errors.rack_no)} placeholder="e.g. Rack A-12" />
+          {errors.rack_no && <p className={errorClass}>{errors.rack_no.message}</p>}
+        </div>
       </div>
 
       {/* Description */}

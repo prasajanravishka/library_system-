@@ -32,7 +32,7 @@ const iconMap: Record<string, React.ElementType> = {
   Banknote,
 };
 
-const navItems = [
+const topNavItems = [
   { label: 'Dashboard', path: '/', icon: 'LayoutDashboard' },
   { label: 'Books', path: '/books', icon: 'BookOpen' },
   { label: 'Users', path: '/users', icon: 'Users' },
@@ -41,6 +41,9 @@ const navItems = [
   { label: 'Fines & Payments', path: '/fines', icon: 'Banknote' },
   { label: 'Categories', path: '/categories', icon: 'Tags' },
   { label: 'Locations', path: '/locations', icon: 'MapPin' },
+];
+
+const bottomNavItems = [
   { label: 'Support', path: '/support', icon: 'LifeBuoy' },
   { label: 'Profile', path: '/profile', icon: 'Settings' },
 ];
@@ -92,43 +95,76 @@ export default function Sidebar() {
       </div>
 
       {/* ── Navigation Links ────────────────────────────────────────────── */}
-      <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-        {/* Iterate over navItems to render navigation links */}
-        {navItems.map((item) => {
-          // Resolve icon component dynamically from iconMap
-          const Icon = iconMap[item.icon];
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              // Close mobile menu upon navigation link click
-              onClick={() => setMobileMenuOpen(false)}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group active:scale-[0.98]',
-                  isActive
-                    ? 'bg-indigo-50 text-indigo-700 shadow-sm border-l-4 border-indigo-600 rounded-sm'
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 border-l-4 border-transparent rounded-sm'
-                )
-              }
-            >
-              <Icon
-                size={20}
-                className={cn(
-                  'transition-colors',
-                  // Highlight icon if the current path matches the link path
-                  window.location.pathname === item.path
-                    ? 'text-indigo-600'
-                    : 'text-slate-500 group-hover:text-indigo-600'
+      <nav className="flex-1 px-3 py-6 flex flex-col overflow-y-auto custom-scrollbar">
+        {/* Top Navigation Items */}
+        <div className="space-y-2 flex-1">
+          {topNavItems.map((item) => {
+            const Icon = iconMap[item.icon];
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => setMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group active:scale-[0.98]',
+                    isActive
+                      ? 'bg-indigo-50 text-indigo-700 shadow-sm border-l-4 border-indigo-600 rounded-sm'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 border-l-4 border-transparent rounded-sm'
+                  )
+                }
+              >
+                <Icon
+                  size={20}
+                  className={cn(
+                    'transition-colors',
+                    window.location.pathname === item.path
+                      ? 'text-indigo-600'
+                      : 'text-slate-500 group-hover:text-indigo-600'
+                  )}
+                />
+                {!collapsed && (
+                  <span className="font-medium whitespace-nowrap">{item.label}</span>
                 )}
-              />
-              {/* Link label - hidden when sidebar is collapsed */}
-              {!collapsed && (
-                <span className="font-medium whitespace-nowrap">{item.label}</span>
-              )}
-            </NavLink>
-          );
-        })}
+              </NavLink>
+            );
+          })}
+        </div>
+
+        {/* Bottom Navigation Items */}
+        <div className="space-y-2">
+          {bottomNavItems.map((item) => {
+            const Icon = iconMap[item.icon];
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => setMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group active:scale-[0.98]',
+                    isActive
+                      ? 'bg-indigo-50 text-indigo-700 shadow-sm border-l-4 border-indigo-600 rounded-sm'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 border-l-4 border-transparent rounded-sm'
+                  )
+                }
+              >
+                <Icon
+                  size={20}
+                  className={cn(
+                    'transition-colors',
+                    window.location.pathname === item.path
+                      ? 'text-indigo-600'
+                      : 'text-slate-500 group-hover:text-indigo-600'
+                  )}
+                />
+                {!collapsed && (
+                  <span className="font-medium whitespace-nowrap">{item.label}</span>
+                )}
+              </NavLink>
+            );
+          })}
+        </div>
       </nav>
 
       {/* ── Collapse Toggle ─────────────────────────────────────────────── */}

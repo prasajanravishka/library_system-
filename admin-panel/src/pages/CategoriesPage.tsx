@@ -169,7 +169,14 @@ export default function CategoriesPage() {
                   {renderIcon(cat.icon)}
                 </div>
                 <div className="text-left">
-                  <h3 className="text-base font-semibold text-slate-900">{cat.name}</h3>
+                  <div className="flex items-center gap-2">
+                    {cat.code_range && (
+                      <span className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 py-0.5 px-1.5 rounded-md">
+                        {cat.code_range}
+                      </span>
+                    )}
+                    <h3 className="text-base font-semibold text-slate-900">{cat.name}</h3>
+                  </div>
                   {cat.description && (
                     <p className="text-xs text-slate-500 mt-0.5">{cat.description}</p>
                   )}

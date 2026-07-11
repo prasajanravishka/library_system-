@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="16d03bf0-a2d7-43fb-a2f1-084d7b881f23" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/admin-panel/src/components/forms/CategoryForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/admin-panel/src/components/forms/CategoryForm.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin-panel/src/components/forms/LocationForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/admin-panel/src/components/forms/LocationForm.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin-panel/src/components/layout/Sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/admin-panel/src/components/layout/Sidebar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin-panel/src/lib/ThemeProvider.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/admin-panel/src/lib/ThemeProvider.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin-panel/src/pages/BookDetailsPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/admin-panel/src/pages/BookDetailsPage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin-panel/src/pages/CategoriesPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/admin-panel/src/pages/CategoriesPage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin-panel/src/pages/DashboardPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/admin-panel/src/pages/DashboardPage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin-panel/src/pages/LocationsPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/admin-panel/src/pages/LocationsPage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin-panel/src/types/book.types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/admin-panel/src/types/book.types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin-panel/src/types/category.types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/admin-panel/src/types/category.types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin-panel/src/types/location.types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/admin-panel/src/types/location.types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/current_database_schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/backend/current_database_schema.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/inject_fines.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/py_backend/routers/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/py_backend/routers/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/py_backend/routers/dashboard.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/py_backend/routers/dashboard.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/py_backend/routers/locations.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/py_backend/routers/locations.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
+  "associatedIndex": 7
+}]]></component>
+  <component name="ProjectId" id="3GLvh3TCXzliIlIXXACJhiZ22En" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "dart.analysis.tool.window.visible": "false",
+    "settings.editor.selected.configurable": "AndroidSdkUpdater",
+    "show.migrate.to.gradle.popup": "false"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="16d03bf0-a2d7-43fb-a2f1-084d7b881f23" name="Changes" comment="" />
+      <created>1783763781109</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1783763781109</updated>
+    </task>
+    <servers />
+  </component>
+</project>

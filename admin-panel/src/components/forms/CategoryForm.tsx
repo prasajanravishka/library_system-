@@ -10,6 +10,7 @@ import type { Category } from '../../types/category.types';
 
 const categorySchema = z.object({
   name: z.string().min(1, 'Category name is required'),
+  code_range: z.string().optional(),
   description: z.string().optional(),
   icon: z.string().optional(),
 });
@@ -46,6 +47,7 @@ export default function CategoryForm({ category, onSubmit, isSubmitting }: Props
     resolver: zodResolver(categorySchema) as any,
     defaultValues: {
       name: category?.name || '',
+      code_range: category?.code_range || '',
       description: category?.description || '',
       icon: category?.icon || '',
     },
@@ -71,6 +73,13 @@ export default function CategoryForm({ category, onSubmit, isSubmitting }: Props
         <label className={labelClass}>Name *</label>
         <input {...register('name')} className={inputClass(!!errors.name)} placeholder="e.g. Science Fiction" />
         {errors.name && <p className={errorClass}>{errors.name.message}</p>}
+      </div>
+
+      {/* Code Range */}
+      <div>
+        <label className={labelClass}>Code Range</label>
+        <input {...register('code_range')} className={inputClass(!!errors.code_range)} placeholder="e.g. 000 – 099" />
+        {errors.code_range && <p className={errorClass}>{errors.code_range.message}</p>}
       </div>
 
       {/* Description */}

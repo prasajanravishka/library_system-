@@ -10,6 +10,10 @@ export interface Category {
   name: string;
   icon: string;
   book_count: number;
+  available_copies?: number;
+  borrowed_copies?: number;
+  overdue_copies?: number;
+  code_range?: string | null;
   description?: string | null;
 }
 

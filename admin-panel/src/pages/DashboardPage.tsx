@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { BookOpen, Users, ArrowRightLeft, AlertTriangle, TrendingUp, Flame } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import StatCard from '../components/ui/StatCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -86,14 +86,24 @@ export default function DashboardPage() {
 
   // Transform category data into the format required for the PieChart component
   const categoryChartData = categories
-    .filter((c) => c.book_count > 0)
     .map((c) => ({ name: c.name, value: c.book_count }));
 
-  // Prepare bar chart data from categories (top 7)
+  // Helper for axis label (keeps it ultra-clean and short)
+  const formatAxisLabel = (name: string) => {
+    // Split by comma or ampersand to get just the primary single subject (e.g. "Philosophy & psychology" -> "Philosophy")
+    const primary = name.split(',')[0].split('&')[0].trim();
+    return primary.length > 15 ? primary.substring(0, 13) + '...' : primary;
+  };
+
+  // Prepare bar chart data from categories (all categories)
   const barChartData = [...categories]
-    .sort((a, b) => b.book_count - a.book_count)
-    .slice(0, 7)
-    .map((c) => ({ name: c.name, books: c.book_count }));
+    .map((c) => ({ 
+      name: formatAxisLabel(c.name), 
+      fullName: c.name,
+      Available: c.available_copies || 0,
+      Borrowed: c.borrowed_copies || 0,
+      Overdue: c.overdue_copies || 0
+    }));
 
   return (
     <div className="space-y-6">
@@ -205,14 +215,20 @@ export default function DashboardPage() {
             <h2 className="text-base font-semibold text-slate-900">Books per Category</h2>
           </div>
           {barChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={barChartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+            <ResponsiveContainer width="100%" height={380}>
+              <BarChart data={barChartData} margin={{ top: 5, right: 10, left: 10, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
                 <XAxis
                   dataKey="name"
                   tick={{ fill: '#94a3b8', fontSize: 11 }}
                   axisLine={{ stroke: 'rgba(148,163,184,0.08)' }}
                   tickLine={false}
+                  angle={-35}
+                  textAnchor="end"
+                  height={100}
+                  interval={0}
+                  dx={0}
+                  dy={15}
                 />
                 <YAxis
                   tick={{ fill: '#94a3b8', fontSize: 11 }}
@@ -229,11 +245,10 @@ export default function DashboardPage() {
                     boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
                   }}
                 />
-                <Bar dataKey="books" radius={[6, 6, 0, 0]}>
-                  {barChartData.map((_, i) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Bar>
+                <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: '20px', fontSize: '13px', fontWeight: 500 }} />
+                <Bar dataKey="Available" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Borrowed" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Overdue" fill="#f43f5e" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (

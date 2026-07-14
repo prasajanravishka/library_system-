@@ -185,7 +185,7 @@ export default function BorrowsPage() {
                     {record.fine_amount > 0 ? (
                       <div className="flex flex-col gap-1">
                         <span className={`font-medium ${record.fine_paid ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          ${record.fine_amount.toFixed(2)}
+                          LKR {record.fine_amount.toFixed(2)}
                         </span>
                         <span className={`text-[10px] uppercase font-bold tracking-wider ${record.fine_paid ? 'text-emerald-500' : 'text-rose-500'}`}>
                           {record.fine_paid ? 'Paid' : 'Unpaid'}
@@ -265,7 +265,7 @@ export default function BorrowsPage() {
                   <strong className="text-slate-900 font-semibold">{returnModal.record.full_name}</strong> is returning <strong className="text-slate-900 font-semibold">"{returnModal.record.title}"</strong>.
                 </p>
                 <p className="text-sm text-slate-600">
-                  This book has accrued a fine of <span className="text-rose-600 font-bold text-base">${returnModal.record.fine_amount.toFixed(2)}</span>. Has the student paid this fine at the desk?
+                  This book has accrued a fine of <span className="text-rose-600 font-bold text-base">LKR {returnModal.record.fine_amount.toFixed(2)}</span>. Has the student paid this fine at the desk?
                 </p>
               </div>
               <div className="flex flex-col gap-3">

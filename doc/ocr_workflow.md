@@ -14,6 +14,8 @@ The scanning process can be initiated from the client interfaces.
 ## 🐍 2. Backend Service (FastAPI)
 The request is processed by the dedicated AI microservice endpoint: `POST /api/scan-book`.
 
+*Note: The backend also exposes auxiliary computer vision endpoints `POST /api/analyze-cover` (for image quality & feature extraction without OCR) and `POST /api/detect-spines` (for shelf spatial analysis).*
+
 *   **Ingestion**: FastAPI receives the raw image payload into memory.
 *   **Routing**: The payload is immediately dispatched to the Computer Vision pipeline for synchronous processing.
 
@@ -47,11 +49,11 @@ sequenceDiagram
     participant LLM as Gemini API
 
     User->>Client: Capture/Upload Cover Image
-    Client->>API: POST /api/scan-book (Multipart)
+    Client->>API: POST /api/scan-book (Multipart + X-API-Key)
     API->>CV: Dispatch for Preprocessing & OCR
     CV-->>API: Yield Raw Extracted Text
     API->>LLM: Send Text + Structuring Prompt
-    LLM-->>API: Return Structured JSON
+    LLM-->>API: Return Structured JSON (or fallback to Raw Text on failure)
     API-->>Client: 200 OK (JSON Payload)
     Client->>User: Render Pre-filled Form for Validation
 ```

@@ -221,8 +221,8 @@ class ProfileScreen extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         hasPendingPayment 
-                            ? 'Fines: \$$fines (Pending Approval)'
-                            : 'Pending Fines: \$$fines',
+                            ? 'Fines: LKR $fines (Pending Approval)'
+                            : 'Pending Fines: LKR $fines',
                         style: TextStyle(
                           color: hasPendingPayment ? AppColors.amber : AppColors.red,
                           fontWeight: FontWeight.bold,
@@ -672,7 +672,7 @@ class _ReceiptUploadBottomSheetState extends ConsumerState<_ReceiptUploadBottomS
                 contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               items: _unpaidFines.map<DropdownMenuItem<int>>((f) {
-                final text = '${f['book_title']} (\$${f['fine_amount']})';
+                final text = '${f['book_title']} (LKR ${f['fine_amount']})';
                 return DropdownMenuItem<int>(
                   value: f['borrow_id'],
                   child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),

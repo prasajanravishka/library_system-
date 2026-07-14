@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from database import get_db
 from auth import verify_password, create_access_token, get_current_user, get_password_hash
 import secrets
@@ -12,6 +12,11 @@ router = APIRouter()
 class UpdateSettingsRequest(BaseModel):
     fine_per_day: Optional[str] = None
     exempt_days: Optional[str] = None
+
+class AddVacationRequest(BaseModel):
+    start_date: str
+    end_date: str
+    description: Optional[str] = None
 
 class AdminLoginRequest(BaseModel):
     username: str
@@ -34,7 +39,6 @@ class PasswordResetRequest(BaseModel):
 
 class BookCopyInput(BaseModel):
     barcode: str
-    isbn: Optional[str] = None
 
 class AddBookRequest(BaseModel):
     title: str
@@ -46,11 +50,10 @@ class AddBookRequest(BaseModel):
     cover_image_path: Optional[str] = ""
     cover_image_url: Optional[str] = ""
     added_by: Optional[int] = None
-    total_copies: Optional[int] = 1
-    available_copies: Optional[int] = None
     location_id: Optional[int] = None
     category_ids: Optional[List[int]] = []
     synopsis: Optional[str] = None
+    keywords: Optional[str] = None
     copies: Optional[List[BookCopyInput]] = []
 
 class UpdateBookRequest(BaseModel):
@@ -60,11 +63,14 @@ class UpdateBookRequest(BaseModel):
     publisher: Optional[str] = None
     publication_year: Optional[int] = None
     language: Optional[str] = None
+    cover_image_path: Optional[str] = None
+    cover_image_url: Optional[str] = None
     total_copies: Optional[int] = None
     available_copies: Optional[int] = None
     location_id: Optional[int] = None
     category_ids: Optional[List[int]] = None
     synopsis: Optional[str] = None
+    keywords: Optional[str] = None
     copies: Optional[List[BookCopyInput]] = None
 
 class CirculationCheckoutRequest(BaseModel):
@@ -130,11 +136,78 @@ def update_settings(req: UpdateSettingsRequest, admin = Depends(get_admin_user),
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/admin/vacations")
+def get_vacations(admin = Depends(get_admin_user), db = Depends(get_db)):
+    with db.cursor() as cursor:
+        cursor.execute("SELECT range_id, start_date, end_date, description FROM excluded_date_ranges ORDER BY start_date ASC")
+        vacations = cursor.fetchall()
+        for v in vacations:
+            if isinstance(v['start_date'], (datetime, date)):
+                v['start_date'] = v['start_date'].isoformat()
+            elif hasattr(v['start_date'], 'strftime'):
+                v['start_date'] = v['start_date'].strftime('%Y-%m-%d')
+            else:
+                v['start_date'] = str(v['start_date'])
+
+            if isinstance(v['end_date'], (datetime, date)):
+                v['end_date'] = v['end_date'].isoformat()
+            elif hasattr(v['end_date'], 'strftime'):
+                v['end_date'] = v['end_date'].strftime('%Y-%m-%d')
+            else:
+                v['end_date'] = str(v['end_date'])
+    return {"status": "success", "vacations": vacations}
+
+@router.post("/admin/vacations")
+def add_vacation(req: AddVacationRequest, admin = Depends(get_admin_user), db = Depends(get_db)):
+    try:
+        start = datetime.strptime(req.start_date, '%Y-%m-%d').date()
+        end = datetime.strptime(req.end_date, '%Y-%m-%d').date()
+        if start > end:
+            raise HTTPException(status_code=400, detail="Start date must be before or equal to end date")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Dates must be in YYYY-MM-DD format")
+
+    try:
+        with db.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO excluded_date_ranges (start_date, end_date, description) VALUES (%s, %s, %s)",
+                (req.start_date, req.end_date, req.description)
+            )
+        db.commit()
+        return {"status": "success", "message": "Vacation range added successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/admin/vacations/{range_id}")
+def delete_vacation(range_id: int, admin = Depends(get_admin_user), db = Depends(get_db)):
+    try:
+        with db.cursor() as cursor:
+            cursor.execute("SELECT range_id FROM excluded_date_ranges WHERE range_id = %s", (range_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=404, detail="Vacation range not found")
+            cursor.execute("DELETE FROM excluded_date_ranges WHERE range_id = %s", (range_id,))
+        db.commit()
+        return {"status": "success", "message": "Vacation range deleted successfully"}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/admin/books")
 def add_book(req: AddBookRequest, admin = Depends(get_admin_user), db = Depends(get_db)):
-    # Calculate copies from req.copies if provided, else use the request values
-    total_copies = len(req.copies) if req.copies else req.total_copies
-    available_copies = req.available_copies if req.available_copies is not None else total_copies
+    total_copies = len(req.copies) if req.copies else 0
+    available_copies = total_copies
+    
+    isbn_clean = req.isbn.strip() if req.isbn else None
+    cover_image_url = req.cover_image_url.strip() if req.cover_image_url else ""
+    if not cover_image_url and isbn_clean:
+        cover_image_url = f"https://covers.openlibrary.org/b/isbn/{isbn_clean}-L.jpg"
+
     try:
         with db.cursor() as cursor:
             # Use the currently logged-in admin's ID
@@ -142,11 +215,11 @@ def add_book(req: AddBookRequest, admin = Depends(get_admin_user), db = Depends(
             cursor.execute(
                 """INSERT INTO books (title, author, isbn, publisher, publication_year, language, 
                                       cover_image_path, cover_image_url, added_by, total_copies, 
-                                      available_copies, location_id, synopsis)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                (req.title, req.author, req.isbn, req.publisher, req.publication_year, req.language,
-                 req.cover_image_path, req.cover_image_url, added_by_id, total_copies,
-                 available_copies, req.location_id, req.synopsis)
+                                      available_copies, location_id, synopsis, keywords)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (req.title, req.author, isbn_clean, req.publisher, req.publication_year, req.language,
+                 req.cover_image_path, cover_image_url, added_by_id, total_copies,
+                 available_copies, req.location_id, req.synopsis, req.keywords)
             )
             book_id = cursor.lastrowid
             
@@ -161,7 +234,7 @@ def add_book(req: AddBookRequest, admin = Depends(get_admin_user), db = Depends(
                     if clean_barcode:
                         cursor.execute(
                             "INSERT INTO book_copies (book_id, barcode, isbn, status, `condition`) VALUES (%s, %s, %s, %s, %s)",
-                            (book_id, clean_barcode, copy.isbn, 'available', 'Good')
+                            (book_id, clean_barcode, req.isbn, 'available', 'Good')
                         )
         db.commit()
         return {"status": "success", "message": "Book added successfully", "book_id": book_id}
@@ -171,12 +244,37 @@ def add_book(req: AddBookRequest, admin = Depends(get_admin_user), db = Depends(
 
 @router.put("/admin/books/{book_id}")
 def update_book(book_id: int, req: UpdateBookRequest, admin = Depends(get_admin_user), db = Depends(get_db)):
-    updates = []
-    params = []
     update_data = req.dict(exclude_unset=True)
     category_ids = update_data.pop('category_ids', None)
     copies = update_data.pop('copies', None)
 
+    isbn = update_data.get('isbn')
+    
+    if ('cover_image_url' in update_data and not str(update_data['cover_image_url'] or '').strip()) or (isbn and 'cover_image_url' not in update_data):
+        actual_isbn = isbn.strip() if isbn else None
+        if not actual_isbn:
+            with db.cursor() as cursor:
+                cursor.execute("SELECT isbn FROM books WHERE book_id = %s", (book_id,))
+                row = cursor.fetchone()
+                actual_isbn = row['isbn'] if row else None
+                
+        if actual_isbn:
+            should_update_cover = False
+            if 'cover_image_url' in update_data and not str(update_data['cover_image_url'] or '').strip():
+                should_update_cover = True
+            else:
+                with db.cursor() as cursor:
+                    cursor.execute("SELECT cover_image_url FROM books WHERE book_id = %s", (book_id,))
+                    row = cursor.fetchone()
+                    existing_cover = row['cover_image_url'] if row else None
+                    if not existing_cover or "openlibrary.org" in str(existing_cover):
+                        should_update_cover = True
+                        
+            if should_update_cover:
+                update_data['cover_image_url'] = f"https://covers.openlibrary.org/b/isbn/{actual_isbn.strip()}-L.jpg"
+
+    updates = []
+    params = []
     for key, value in update_data.items():
         updates.append(f"{key} = %s")
         params.append(value)
@@ -198,23 +296,21 @@ def update_book(book_id: int, req: UpdateBookRequest, admin = Depends(get_admin_
             if copies is not None:
                 cursor.execute("SELECT barcode FROM book_copies WHERE book_id = %s", (book_id,))
                 current_barcodes = {row['barcode'] for row in cursor.fetchall()}
-                new_copies_map = {c.barcode.strip(): c.isbn for c in copies if c.barcode.strip()}
-                new_barcodes = set(new_copies_map.keys())
+                new_barcodes = {c.barcode.strip() for c in copies if c.barcode.strip()}
+                
+                # Fetch book's main ISBN for new copies
+                book_isbn = req.isbn
+                if not book_isbn:
+                    cursor.execute("SELECT isbn FROM books WHERE book_id = %s", (book_id,))
+                    isbn_row = cursor.fetchone()
+                    book_isbn = isbn_row['isbn'] if isbn_row else None
                 
                 # Add new barcodes
                 to_add = new_barcodes - current_barcodes
                 for bc in to_add:
                     cursor.execute(
                         "INSERT IGNORE INTO book_copies (book_id, barcode, isbn, status, `condition`) VALUES (%s, %s, %s, %s, %s)",
-                        (book_id, bc, new_copies_map[bc], 'available', 'Good')
-                    )
-                
-                # Update existing barcodes with new ISBNs if they changed
-                to_update = current_barcodes.intersection(new_barcodes)
-                for bc in to_update:
-                    cursor.execute(
-                        "UPDATE book_copies SET isbn = %s WHERE book_id = %s AND barcode = %s",
-                        (new_copies_map[bc], book_id, bc)
+                        (book_id, bc, book_isbn, 'available', 'Good')
                     )
                 
                 # Remove removed barcodes (only if they have no borrow records, else mark as maintenance)
@@ -457,10 +553,32 @@ def get_user_details(user_id: int, admin = Depends(get_admin_user), db = Depends
         )
         borrowing_history = cursor.fetchall()
         
+        # Recalculate dynamic fines for their history
+        cursor.execute("SELECT setting_key, setting_value FROM library_settings")
+        settings = {row['setting_key']: row['setting_value'] for row in cursor.fetchall()}
+        fine_per_day = float(settings.get('fine_per_day', '0.50'))
+        exempt_days_str = settings.get('exempt_days', '')
+        exempt_days_list = [int(x.strip()) for x in exempt_days_str.split(',')] if exempt_days_str else []
+
+        cursor.execute("SELECT start_date, end_date FROM excluded_date_ranges")
+        ranges = cursor.fetchall()
+        excluded_ranges = [(r['start_date'], r['end_date']) for r in ranges]
+
+        for r in borrowing_history:
+            new_fine, new_status = calculate_dynamic_fine(cursor, r, fine_per_day, exempt_days_list, excluded_ranges)
+            r['fine_amount'] = new_fine
+            r['status'] = new_status
+            
+            if r['borrow_date']: r['borrow_date'] = str(r['borrow_date'])
+            if r['due_date']: r['due_date'] = str(r['due_date'])
+            if r['return_date']: r['return_date'] = str(r['return_date'])
+
         # Calculate stats
         total_borrowed = len(borrowing_history)
         currently_overdue = sum(1 for r in borrowing_history if r['status'] == 'overdue')
         unpaid_fines = sum(float(r['fine_amount']) for r in borrowing_history if r['fine_amount'] is not None and not r['fine_paid'])
+        
+        db.commit()
         
     return {
         "status": "success",
@@ -476,6 +594,16 @@ def get_user_details(user_id: int, admin = Depends(get_admin_user), db = Depends
 @router.get("/admin/fines")
 def get_all_fines(admin = Depends(get_admin_user), db = Depends(get_db)):
     with db.cursor() as cursor:
+        cursor.execute("SELECT setting_key, setting_value FROM library_settings")
+        settings = {row['setting_key']: row['setting_value'] for row in cursor.fetchall()}
+        fine_per_day = float(settings.get('fine_per_day', '0.50'))
+        exempt_days_str = settings.get('exempt_days', '')
+        exempt_days_list = [int(x.strip()) for x in exempt_days_str.split(',')] if exempt_days_str else []
+
+        cursor.execute("SELECT start_date, end_date FROM excluded_date_ranges")
+        ranges = cursor.fetchall()
+        excluded_ranges = [(r['start_date'], r['end_date']) for r in ranges]
+
         cursor.execute(
             """SELECT br.borrow_id, br.user_id, br.book_id, b.title, u.student_id, u.full_name,
                       br.borrow_date, br.due_date, br.return_date, 
@@ -483,10 +611,21 @@ def get_all_fines(admin = Depends(get_admin_user), db = Depends(get_db)):
                FROM borrow_records br 
                JOIN books b ON br.book_id = b.book_id
                JOIN users u ON br.user_id = u.user_id
-               WHERE br.fine_amount > 0
+               WHERE br.fine_amount > 0 OR br.status = 'overdue'
                ORDER BY br.borrow_date DESC"""
         )
         fines = cursor.fetchall()
+        
+        for f in fines:
+            new_fine, new_status = calculate_dynamic_fine(cursor, f, fine_per_day, exempt_days_list, excluded_ranges)
+            f['fine_amount'] = new_fine
+            f['status'] = new_status
+            
+            if f['borrow_date']: f['borrow_date'] = str(f['borrow_date'])
+            if f['due_date']: f['due_date'] = str(f['due_date'])
+            if f['return_date']: f['return_date'] = str(f['return_date'])
+            
+        db.commit()
     return {"status": "success", "fines": fines}
 
 @router.delete("/admin/users/{user_id}")
@@ -613,40 +752,93 @@ def delete_category(category_id: int, admin = Depends(get_admin_user), db = Depe
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-def calculate_dynamic_fine(cursor, borrow_record, fine_per_day, exempt_days_list):
+def calculate_dynamic_fine(cursor, borrow_record, fine_per_day, exempt_days_list, excluded_ranges=None):
     status = borrow_record['status']
     due_date = borrow_record['due_date']
     fine_amount = borrow_record['fine_amount']
+    fine_paid = borrow_record.get('fine_paid', False)
     
-    if status not in ('borrowed', 'overdue') or not due_date:
+    is_active = status in ('borrowed', 'overdue')
+    is_unpaid = not fine_paid
+    
+    # We only recalculate active borrows, or returned borrows that are not yet paid
+    if (not is_active and not (status == 'returned' and is_unpaid)) or not due_date:
         return fine_amount, status
         
     if isinstance(due_date, str):
         due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
         
+    return_date = borrow_record.get('return_date')
+    if isinstance(return_date, str):
+        return_date = datetime.strptime(return_date, '%Y-%m-%d').date()
+    elif isinstance(return_date, datetime):
+        return_date = return_date.date()
+        
     today = datetime.now().date()
-    days_overdue = (today - due_date).days
+    end_date = return_date if return_date else today
+    days_overdue = (end_date - due_date).days
     
     if days_overdue > 0:
-        if exempt_days_list:
-            current_date = due_date + timedelta(days=1)
-            exempt_count = 0
-            while current_date <= today:
-                if current_date.weekday() in exempt_days_list:
-                    exempt_count += 1
-                current_date += timedelta(days=1)
-            days_overdue -= exempt_count
-            days_overdue = max(0, days_overdue)
+        if excluded_ranges is None:
+            cursor.execute("SELECT start_date, end_date FROM excluded_date_ranges")
+            ranges = cursor.fetchall()
+            excluded_ranges = [(r['start_date'], r['end_date']) for r in ranges]
+
+        current_date = due_date + timedelta(days=1)
+        exempt_count = 0
+        while current_date <= end_date:
+            is_exempt_day = exempt_days_list and (current_date.weekday() in exempt_days_list)
+            is_vacation_day = False
+            if excluded_ranges:
+                for start_date, end_date in excluded_ranges:
+                    start = start_date if isinstance(start_date, date) else datetime.strptime(str(start_date), '%Y-%m-%d').date()
+                    end = end_date if isinstance(end_date, date) else datetime.strptime(str(end_date), '%Y-%m-%d').date()
+                    if start <= current_date <= end:
+                        is_vacation_day = True
+                        break
+            
+            if is_exempt_day or is_vacation_day:
+                exempt_count += 1
+            current_date += timedelta(days=1)
+            
+        days_overdue -= exempt_count
+        days_overdue = max(0, days_overdue)
             
         calculated_fine = round(days_overdue * fine_per_day, 2)
         
-        if status != 'overdue' or float(fine_amount or 0) != calculated_fine:
+        # If the fine amount has changed or status of an active overdue borrow needs updating, save it in the database
+        current_fine_val = float(fine_amount or 0)
+        new_status = 'overdue' if is_active else status
+        if current_fine_val != calculated_fine or status != new_status:
             cursor.execute(
-                "UPDATE borrow_records SET status = 'overdue', fine_amount = %s WHERE borrow_id = %s",
-                (calculated_fine, borrow_record['borrow_id'])
+                "UPDATE borrow_records SET status = %s, fine_amount = %s WHERE borrow_id = %s",
+                (new_status, calculated_fine, borrow_record['borrow_id'])
             )
-        return calculated_fine, 'overdue'
-    return fine_amount, status
+            # Update corresponding fine in fines table if it exists
+            cursor.execute("SELECT fine_id FROM fines WHERE borrow_id = %s LIMIT 1", (borrow_record['borrow_id'],))
+            fine_row = cursor.fetchone()
+            if fine_row:
+                cursor.execute(
+                    "UPDATE fines SET amount = %s WHERE fine_id = %s",
+                    (calculated_fine, fine_row['fine_id'])
+                )
+        
+        return calculated_fine, new_status
+    else:
+        # If overdue days are 0 or less, the fine should be 0.00
+        if float(fine_amount or 0) != 0.00:
+            cursor.execute(
+                "UPDATE borrow_records SET fine_amount = 0.00 WHERE borrow_id = %s",
+                (borrow_record['borrow_id'],)
+            )
+            cursor.execute("SELECT fine_id FROM fines WHERE borrow_id = %s LIMIT 1", (borrow_record['borrow_id'],))
+            fine_row = cursor.fetchone()
+            if fine_row:
+                cursor.execute(
+                    "UPDATE fines SET amount = 0.00 WHERE fine_id = %s",
+                    (fine_row['fine_id'],)
+                )
+        return 0.00, status
 
 @router.get("/admin/borrows")
 def all_borrows(admin = Depends(get_admin_user), db = Depends(get_db)):
@@ -668,9 +860,12 @@ def all_borrows(admin = Depends(get_admin_user), db = Depends(get_db)):
                ORDER BY br.borrow_date DESC"""
         )
         records = cursor.fetchall()
-        
+        cursor.execute("SELECT start_date, end_date FROM excluded_date_ranges")
+        ranges = cursor.fetchall()
+        excluded_ranges = [(r['start_date'], r['end_date']) for r in ranges]
+
         for r in records:
-            new_fine, new_status = calculate_dynamic_fine(cursor, r, fine_per_day, exempt_days_list)
+            new_fine, new_status = calculate_dynamic_fine(cursor, r, fine_per_day, exempt_days_list, excluded_ranges)
             r['fine_amount'] = new_fine
             r['status'] = new_status
 
@@ -781,7 +976,7 @@ def circulation_checkout(req: CirculationCheckoutRequest, admin = Depends(get_ad
             cursor.execute("SELECT SUM(fine_amount) as total_fine FROM borrow_records WHERE user_id = %s AND fine_paid = 0", (user['user_id'],))
             fine_record = cursor.fetchone()
             if fine_record and fine_record['total_fine'] and fine_record['total_fine'] > 0:
-                raise HTTPException(status_code=400, detail=f"Student has unpaid fines (${float(fine_record['total_fine']):.2f})")
+                raise HTTPException(status_code=400, detail=f"Student has unpaid fines (LKR {float(fine_record['total_fine']):.2f})")
             
             # Check book
             cursor.execute("SELECT availability_status, available_copies FROM books WHERE book_id = %s", (req.book_id,))
@@ -858,6 +1053,10 @@ def circulation_checkin(req: CirculationCheckinRequest, admin = Depends(get_admi
             exempt_days_str = settings.get('exempt_days', '')
             exempt_days_list = [int(x.strip()) for x in exempt_days_str.split(',')] if exempt_days_str else []
 
+            cursor.execute("SELECT start_date, end_date FROM excluded_date_ranges")
+            ranges = cursor.fetchall()
+            excluded_ranges = [(r['start_date'], r['end_date']) for r in ranges]
+
             due_date = borrow['due_date']
             if isinstance(due_date, str):
                 due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
@@ -865,15 +1064,24 @@ def circulation_checkin(req: CirculationCheckinRequest, admin = Depends(get_admi
             days_overdue = (today - due_date).days
             
             if days_overdue > 0:
-                if exempt_days_list:
-                    current_date = due_date + timedelta(days=1)
-                    exempt_count = 0
-                    while current_date <= today:
-                        if current_date.weekday() in exempt_days_list:
-                            exempt_count += 1
-                        current_date += timedelta(days=1)
-                    days_overdue -= exempt_count
-                    days_overdue = max(0, days_overdue)
+                current_date = due_date + timedelta(days=1)
+                exempt_count = 0
+                while current_date <= today:
+                    is_exempt_day = exempt_days_list and (current_date.weekday() in exempt_days_list)
+                    is_vacation_day = False
+                    if excluded_ranges:
+                        for start_date, end_date in excluded_ranges:
+                            start = start_date if isinstance(start_date, date) else datetime.strptime(str(start_date), '%Y-%m-%d').date()
+                            end = end_date if isinstance(end_date, date) else datetime.strptime(str(end_date), '%Y-%m-%d').date()
+                            if start <= current_date <= end:
+                                is_vacation_day = True
+                                break
+                    
+                    if is_exempt_day or is_vacation_day:
+                        exempt_count += 1
+                    current_date += timedelta(days=1)
+                days_overdue -= exempt_count
+                days_overdue = max(0, days_overdue)
                 fine_amount = round(days_overdue * fine_per_day, 2)
             else:
                 fine_amount = 0.00
@@ -995,7 +1203,7 @@ def action_payment(payment_id: int, req: PaymentActionRequest, admin = Depends(g
             # Send notification to student
             title = "Fine Payment Approved" if req.action == 'approved' else "Fine Payment Rejected"
             message = (
-                f"Your payment of ${amount} for txn {txn_ref} has been approved."
+                f"Your payment of LKR {amount} for txn {txn_ref} has been approved."
                 if req.action == 'approved' else
                 f"Your payment receipt for txn {txn_ref} was rejected. Please upload a valid bank slip."
             )
@@ -1007,6 +1215,44 @@ def action_payment(payment_id: int, req: PaymentActionRequest, admin = Depends(g
             
         db.commit()
         return {"status": "success", "message": f"Payment status updated to {req.action}"}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/admin/reviews")
+def get_all_reviews(admin = Depends(get_admin_user), db = Depends(get_db)):
+    try:
+        with db.cursor() as cursor:
+            cursor.execute(
+                """SELECT r.review_id, r.user_id, r.rating, r.review_text, r.created_at, 
+                          u.full_name as student_name, u.student_id,
+                          b.title as book_title, b.author, b.book_id
+                   FROM reviews r
+                   JOIN users u ON r.user_id = u.user_id
+                   JOIN books b ON r.book_id = b.book_id
+                   ORDER BY r.created_at DESC"""
+            )
+            reviews = cursor.fetchall()
+            for r in reviews:
+                if r['created_at']:
+                    r['created_at'] = str(r['created_at'])
+            return {"status": "success", "reviews": reviews}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/admin/reviews/{review_id}")
+def delete_book_review(review_id: int, admin = Depends(get_admin_user), db = Depends(get_db)):
+    try:
+        with db.cursor() as cursor:
+            cursor.execute("SELECT review_id FROM reviews WHERE review_id = %s", (review_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=404, detail="Review not found")
+            cursor.execute("DELETE FROM reviews WHERE review_id = %s", (review_id,))
+        db.commit()
+        return {"status": "success", "message": "Review deleted successfully"}
     except HTTPException:
         db.rollback()
         raise

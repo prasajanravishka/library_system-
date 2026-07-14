@@ -302,7 +302,7 @@ export default function BookDetailsPage() {
                     <td className="py-3 px-4 text-right">
                       {parseFloat(record.fine_amount as string) > 0 ? (
                         <span className={`px-2 py-1 rounded text-xs font-semibold ${record.fine_paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          ${parseFloat(record.fine_amount as string).toFixed(2)}
+                          LKR {parseFloat(record.fine_amount as string).toFixed(2)}
                         </span>
                       ) : (
                         <span className="text-slate-400">-</span>

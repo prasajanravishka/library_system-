@@ -28,7 +28,7 @@ graph TB
     end
 
     subgraph "Python FastAPI — Port 8001"
-        PY_CRUD["user.py / borrow.py / admin.py / dashboard.py"]
+        PY_CRUD["user.py / borrow.py / admin.py / dashboard.py / settings.py / locations.py"]
         PY_SCAN["/api/scan-book"]
         PY_ANALYZE["/api/analyze-cover"]
         OCR["OpenCV + Tesseract OCR"]
@@ -38,9 +38,13 @@ graph TB
 
     subgraph "MySQL Database"
         T_USERS["users / admins"]
-        T_BOOKS["books"]
+        T_BOOKS["books / authors / publishers"]
         T_COPIES["book_copies"]
         T_BORROW["borrow_records"]
+        T_TAXONOMY["categories / locations"]
+        T_FINANCE["fines / payments"]
+        T_SOCIAL["reviews / saved_books"]
+        T_SYSTEM["support_tickets / settings / notifications"]
     end
 
     APP -- "Auth / CRUD / Vision" --> PY_CRUD
@@ -54,6 +58,10 @@ graph TB
     DB_CONN --> T_BOOKS
     DB_CONN --> T_COPIES
     DB_CONN --> T_BORROW
+    DB_CONN --> T_TAXONOMY
+    DB_CONN --> T_FINANCE
+    DB_CONN --> T_SOCIAL
+    DB_CONN --> T_SYSTEM
 ```
 
 ### 1.2 Strengths
@@ -124,7 +132,7 @@ graph TB
 
 ### 5.1 Strengths
 
-- **React Admin Panel**: Introduces an incredibly fluid Glassmorphism UI utilizing Tailwind CSS and robust form management (React Hook Form + Zod).
+- **React Admin Panel**: Introduces an incredibly fluid Glassmorphism UI utilizing Tailwind CSS and robust form management (React Hook Form + Zod). Built on React 19 and Vite.
 - **Design System Cohesion**: `app_theme.dart` in Flutter implements a strict token-based system for colors, typography, and styling, avoiding ad-hoc inline styles.
 - **Progressive Disclosure**: Skeleton loaders correctly manage user expectations during asynchronous AI processing and network fetches across both clients.
 

@@ -16,6 +16,7 @@ import {
   MapPin,
   Settings,
   Banknote,
+  MessageSquare,
 } from 'lucide-react';
 import { useUiStore } from '../../store/uiStore';
 import { cn } from '../../lib/utils';
@@ -30,6 +31,7 @@ const iconMap: Record<string, React.ElementType> = {
   MapPin,
   Settings,
   Banknote,
+  MessageSquare,
 };
 
 const topNavItems = [
@@ -41,6 +43,7 @@ const topNavItems = [
   { label: 'Fines & Payments', path: '/fines', icon: 'Banknote' },
   { label: 'Categories', path: '/categories', icon: 'Tags' },
   { label: 'Locations', path: '/locations', icon: 'MapPin' },
+  { label: 'Book Feedback', path: '/feedback', icon: 'MessageSquare' },
 ];
 
 const bottomNavItems = [

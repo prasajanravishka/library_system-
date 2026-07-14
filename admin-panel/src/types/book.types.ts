@@ -8,7 +8,6 @@
 export interface BookCopy {
   copy_id?: number;
   barcode: string;
-  isbn?: string | null;
   condition?: 'New' | 'Good' | 'Fair' | 'Poor' | 'Damaged';
   status?: 'available' | 'borrowed' | 'lost' | 'maintenance';
   added_at?: string;
@@ -60,6 +59,7 @@ export interface Book {
   added_at?: string;
   synopsis?: string | null;
   shelf_location?: string | null;
+  keywords?: string;
   // Extra fields returned by details endpoint
   category_name?: string | null;
   location_name?: string | null;
@@ -82,11 +82,10 @@ export interface AddBookPayload {
   cover_image_path?: string;
   cover_image_url?: string;
   added_by?: number | null;
-  total_copies?: number;
-  available_copies?: number | null;
   location_id?: number | null;
   category_ids?: number[];
   synopsis?: string | null;
+  keywords?: string | null;
   copies?: BookCopy[];
 }
 
@@ -100,10 +99,9 @@ export interface UpdateBookPayload {
   publisher?: string;
   publication_year?: number;
   language?: string;
-  total_copies?: number;
-  available_copies?: number;
   location_id?: number | null;
   category_ids?: number[];
   synopsis?: string | null;
+  keywords?: string | null;
   copies?: BookCopy[];
 }

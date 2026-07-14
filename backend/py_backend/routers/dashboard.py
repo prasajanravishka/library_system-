@@ -167,7 +167,7 @@ def get_book_details(book_id: int, db = Depends(get_db)):
         cursor.execute(
             """SELECT b.book_id, b.title, b.author, b.isbn, b.publisher,
                       b.publication_year, b.language, b.total_copies, b.available_copies, 
-                      b.cover_image_path, b.cover_image_url, b.synopsis, b.shelf_location, b.availability_status,
+                      b.cover_image_path, b.cover_image_url, b.synopsis, b.keywords, b.shelf_location, b.availability_status,
                       c.name as category_name,
                       l.name as location_name,
                       (SELECT u.full_name 

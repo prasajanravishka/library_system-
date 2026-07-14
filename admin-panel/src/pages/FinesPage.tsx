@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Banknote, Search, CheckCircle2, AlertCircle, Settings, X, Copy, Eye, Check, FileText } from 'lucide-react';
+import { Banknote, Search, CheckCircle2, AlertCircle, Settings, X, Copy, Eye, Check, FileText, Trash2, Plus, Calendar } from 'lucide-react';
 import { AdminBorrowRecord, borrowsApi, type AdminPaymentSlip } from '../api/borrows.api';
-import { settingsApi, LibrarySettings } from '../api/settings.api';
+import { settingsApi, LibrarySettings, LibraryVacation } from '../api/settings.api';
 import { toast } from 'sonner';
 import { getErrorMessage, formatDate } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -37,6 +37,60 @@ export function FinesPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<LibrarySettings>({ fine_per_day: '0.50', exempt_days: '' });
   const [savingSettings, setSavingSettings] = useState(false);
+
+  // Vacation States
+  const [vacations, setVacations] = useState<LibraryVacation[]>([]);
+  const [loadingVacations, setLoadingVacations] = useState(false);
+  const [vacationStart, setVacationStart] = useState('');
+  const [vacationEnd, setVacationEnd] = useState('');
+  const [vacationDesc, setVacationDesc] = useState('');
+
+  const fetchVacations = async () => {
+    try {
+      setLoadingVacations(true);
+      const data = await settingsApi.getVacations();
+      setVacations(data);
+    } catch (err) {
+      toast.error('Failed to load vacation dates');
+    } finally {
+      setLoadingVacations(false);
+    }
+  };
+
+  const handleAddVacation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!vacationStart || !vacationEnd) {
+      toast.error('Start and end dates are required');
+      return;
+    }
+    try {
+      await settingsApi.addVacation({
+        start_date: vacationStart,
+        end_date: vacationEnd,
+        description: vacationDesc
+      });
+      toast.success('Vacation range added successfully');
+      setVacationStart('');
+      setVacationEnd('');
+      setVacationDesc('');
+      fetchVacations();
+      fetchFines();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const handleDeleteVacation = async (rangeId: number) => {
+    if (!window.confirm('Are you sure you want to delete this vacation date range?')) return;
+    try {
+      await settingsApi.deleteVacation(rangeId);
+      toast.success('Vacation range deleted successfully');
+      fetchVacations();
+      fetchFines();
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
 
   const fetchFines = async () => {
     try {
@@ -75,6 +129,7 @@ export function FinesPage() {
     fetchFines();
     fetchPendingPayments();
     fetchSettings();
+    fetchVacations();
   };
 
   useEffect(() => {
@@ -175,11 +230,11 @@ export function FinesPage() {
           <div className="flex gap-4">
             <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex flex-col items-end">
               <span className="text-xs text-slate-500 font-medium">Total Unpaid</span>
-              <span className="text-lg font-bold text-rose-600">${totalUnpaid.toFixed(2)}</span>
+              <span className="text-lg font-bold text-rose-600">LKR {totalUnpaid.toFixed(2)}</span>
             </div>
             <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex flex-col items-end">
               <span className="text-xs text-slate-500 font-medium">Total Collected</span>
-              <span className="text-lg font-bold text-emerald-600">${totalPaid.toFixed(2)}</span>
+              <span className="text-lg font-bold text-emerald-600">LKR {totalPaid.toFixed(2)}</span>
             </div>
             
             <button
@@ -315,7 +370,7 @@ export function FinesPage() {
                             )}
                           </td>
                           <td className="px-6 py-4">
-                            <span className="text-sm font-bold text-slate-900">${record.fine_amount.toFixed(2)}</span>
+                            <span className="text-sm font-bold text-slate-900">LKR {record.fine_amount.toFixed(2)}</span>
                           </td>
                           <td className="px-6 py-4">
                             {record.fine_paid ? (
@@ -433,7 +488,7 @@ export function FinesPage() {
                           </td>
                           <td className="px-6 py-4">
                             <p className="text-slate-900 line-clamp-1">{p.book_title}</p>
-                            <p className="text-xs text-rose-500 font-bold mt-0.5">${p.amount_paid.toFixed(2)}</p>
+                            <p className="text-xs text-rose-500 font-bold mt-0.5">LKR {p.amount_paid.toFixed(2)}</p>
                           </td>
                           <td className="px-6 py-4 font-mono text-xs font-semibold text-indigo-600">
                             {p.transaction_reference}
@@ -474,7 +529,7 @@ export function FinesPage() {
       {/* ── Settings Modal ──────────────────────────────────────────────── */}
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-100">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-100">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <Settings size={20} className="text-slate-400" />
@@ -488,66 +543,153 @@ export function FinesPage() {
               </button>
             </div>
             
-            <div className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Daily Fine Amount ($)
-                </label>
-                <input 
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={settings.fine_per_day}
-                  onChange={(e) => setSettings({ ...settings, fine_per_day: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
-                />
-                <p className="text-xs text-slate-500 mt-2">
-                  The amount charged per day when a book is overdue.
-                </p>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column: General Rules */}
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Daily Fine Amount (LKR)
+                  </label>
+                  <input 
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={settings.fine_per_day}
+                    onChange={(e) => setSettings({ ...settings, fine_per_day: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-mono"
+                  />
+                  <p className="text-xs text-slate-500 mt-2">
+                    The amount charged per day when a book is overdue.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Exempt Days
+                  </label>
+                  <p className="text-xs text-slate-500 mb-3">
+                    Select the days of the week when overdue fines should NOT be calculated.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    {[
+                      { id: 0, label: 'M', full: 'Monday' },
+                      { id: 1, label: 'T', full: 'Tuesday' },
+                      { id: 2, label: 'W', full: 'Wednesday' },
+                      { id: 3, label: 'T', full: 'Thursday' },
+                      { id: 4, label: 'F', full: 'Friday' },
+                      { id: 5, label: 'S', full: 'Saturday' },
+                      { id: 6, label: 'S', full: 'Sunday' },
+                    ].map(day => {
+                      const currentExempt = settings.exempt_days ? settings.exempt_days.split(',') : [];
+                      const isExempt = currentExempt.includes(day.id.toString());
+                      return (
+                        <button
+                          key={day.id}
+                          type="button"
+                          title={`Exempt ${day.full}`}
+                          onClick={() => {
+                            let newExempt = [...currentExempt];
+                            if (isExempt) {
+                              newExempt = newExempt.filter(d => d !== day.id.toString());
+                            } else {
+                              newExempt.push(day.id.toString());
+                            }
+                            setSettings({ ...settings, exempt_days: newExempt.join(',') });
+                          }}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 ${
+                            isExempt 
+                              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-110' 
+                              : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Exempt Days
-                </label>
-                <p className="text-xs text-slate-500 mb-3">
-                  Select the days of the week when overdue fines should NOT be calculated.
-                </p>
-                <div className="flex items-center gap-2">
-                  {[
-                    { id: 0, label: 'M', full: 'Monday' },
-                    { id: 1, label: 'T', full: 'Tuesday' },
-                    { id: 2, label: 'W', full: 'Wednesday' },
-                    { id: 3, label: 'T', full: 'Thursday' },
-                    { id: 4, label: 'F', full: 'Friday' },
-                    { id: 5, label: 'S', full: 'Saturday' },
-                    { id: 6, label: 'S', full: 'Sunday' },
-                  ].map(day => {
-                    const currentExempt = settings.exempt_days ? settings.exempt_days.split(',') : [];
-                    const isExempt = currentExempt.includes(day.id.toString());
-                    return (
-                      <button
-                        key={day.id}
-                        title={`Exempt ${day.full}`}
-                        onClick={() => {
-                          let newExempt = [...currentExempt];
-                          if (isExempt) {
-                            newExempt = newExempt.filter(d => d !== day.id.toString());
-                          } else {
-                            newExempt.push(day.id.toString());
-                          }
-                          setSettings({ ...settings, exempt_days: newExempt.join(',') });
-                        }}
-                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 ${
-                          isExempt 
-                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-110' 
-                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                        }`}
-                      >
-                        {day.label}
-                      </button>
-                    )
-                  })}
+              {/* Right Column: Vacation Date Exclusions */}
+              <div className="flex flex-col pl-6 border-l border-slate-200 h-[380px] overflow-hidden">
+                <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2 mb-3">
+                  <Calendar size={16} className="text-indigo-500" />
+                  Vacation Date Exclusions
+                </h3>
+
+                {/* Exclusions List */}
+                <div className="flex-1 overflow-y-auto mb-4 border border-slate-100 rounded-xl bg-slate-50 p-3 min-h-[140px] space-y-2.5 custom-scrollbar">
+                  {loadingVacations ? (
+                    <div className="flex justify-center items-center h-full py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
+                    </div>
+                  ) : vacations.length === 0 ? (
+                    <div className="flex flex-col justify-center items-center h-full text-slate-400 py-6 text-center">
+                      <span className="text-xs">No vacation date ranges configured.</span>
+                    </div>
+                  ) : (
+                    vacations.map((vac) => (
+                      <div key={vac.range_id} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200/60 shadow-sm text-xs group">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <p className="font-semibold text-slate-800 truncate">
+                            {vac.description || 'Vacation Period'}
+                          </p>
+                          <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                            {new Date(vac.start_date).toLocaleDateString()} – {new Date(vac.end_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteVacation(vac.range_id)}
+                          className="p-1 rounded text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                          title="Delete range"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Form to Add Vacation */}
+                <div className="space-y-2 border-t border-slate-100 pt-3 flex-none">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <label className="block text-slate-500 font-semibold mb-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={vacationStart}
+                        onChange={(e) => setVacationStart(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-xs font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-500 font-semibold mb-1">End Date</label>
+                      <input
+                        type="date"
+                        value={vacationEnd}
+                        onChange={(e) => setVacationEnd(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Description (e.g. Summer Vacation)"
+                      value={vacationDesc}
+                      onChange={(e) => setVacationDesc(e.target.value)}
+                      className="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-xs truncate"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddVacation}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white p-1.5 rounded-lg flex items-center justify-center shrink-0 shadow-sm"
+                      title="Add vacation exclusion"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -558,7 +700,7 @@ export function FinesPage() {
                 className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
                 disabled={savingSettings}
               >
-                Cancel
+                Close Settings
               </button>
               <button
                 onClick={handleSaveSettings}
@@ -591,7 +733,7 @@ export function FinesPage() {
               <div>
                 <span className="block text-slate-400 font-medium uppercase tracking-wider">Fine Amount</span>
                 <span className="font-bold text-rose-600 mt-1 block text-sm">
-                  ${selectedPayment.amount_paid.toFixed(2)}
+                  LKR {selectedPayment.amount_paid.toFixed(2)}
                 </span>
               </div>
               <div className="col-span-2">

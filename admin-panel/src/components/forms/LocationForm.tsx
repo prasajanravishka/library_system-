@@ -2,6 +2,7 @@
    LocationForm — Add/Edit location form with React Hook Form + Zod validation
    ══════════════════════════════════════════════════════════════════════════ */
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -41,6 +42,8 @@ export default function LocationForm({ location, onSubmit, isSubmitting }: Props
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<LocationFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,6 +55,16 @@ export default function LocationForm({ location, onSubmit, isSubmitting }: Props
       description: location?.description || '',
     },
   });
+
+  const floorValue = watch('floor');
+  const rackValue = watch('rack_no');
+
+  useEffect(() => {
+    if (floorValue && rackValue) {
+      const proposedName = `${floorValue} - ${rackValue}`;
+      setValue('name', proposedName, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [floorValue, rackValue, setValue]);
 
   // Generates conditional styling for input elements, highlighting errors if present
   const inputClass = (hasError?: boolean) =>
@@ -79,13 +92,25 @@ export default function LocationForm({ location, onSubmit, isSubmitting }: Props
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
           <label className={labelClass}>Floor</label>
-          <input {...register('floor')} className={inputClass(!!errors.floor)} placeholder="e.g. 1st Floor" />
+          <select {...register('floor')} className={inputClass(!!errors.floor)}>
+            <option value="">Select Floor</option>
+            <option value="Floor 1">Floor 1</option>
+            <option value="Floor 2">Floor 2</option>
+          </select>
           {errors.floor && <p className={errorClass}>{errors.floor.message}</p>}
         </div>
 
         <div>
           <label className={labelClass}>Rack No</label>
-          <input {...register('rack_no')} className={inputClass(!!errors.rack_no)} placeholder="e.g. Rack A-12" />
+          <select {...register('rack_no')} className={inputClass(!!errors.rack_no)}>
+            <option value="">Select Rack</option>
+            <option value="Rack A">Rack A</option>
+            <option value="Rack B">Rack B</option>
+            <option value="Rack C">Rack C</option>
+            <option value="Rack D">Rack D</option>
+            <option value="Rack E">Rack E</option>
+            <option value="Rack F">Rack F</option>
+          </select>
           {errors.rack_no && <p className={errorClass}>{errors.rack_no.message}</p>}
         </div>
       </div>

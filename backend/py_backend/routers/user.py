@@ -74,8 +74,32 @@ def get_profile(current_user: dict = Depends(get_current_user), db = Depends(get
         cursor.execute("SELECT COUNT(*) as count FROM borrow_records WHERE user_id = %s AND status = 'borrowed' AND due_date < CURDATE()", (user_id,))
         total_overdue = cursor.fetchone()['count']
         
-        cursor.execute("SELECT COALESCE(SUM(fine_amount), 0) as total FROM borrow_records WHERE user_id = %s AND fine_paid = FALSE AND fine_amount > 0", (user_id,))
-        total_fines_pending = float(cursor.fetchone()['total'])
+        # Recalculate dynamic fines first so total_fines_pending is accurate
+        from routers.admin import calculate_dynamic_fine
+        cursor.execute("SELECT setting_key, setting_value FROM library_settings")
+        settings = {row['setting_key']: row['setting_value'] for row in cursor.fetchall()}
+        fine_per_day = float(settings.get('fine_per_day', '0.50'))
+        exempt_days_str = settings.get('exempt_days', '')
+        exempt_days_list = [int(x.strip()) for x in exempt_days_str.split(',')] if exempt_days_str else []
+
+        cursor.execute("SELECT start_date, end_date FROM excluded_date_ranges")
+        ranges = cursor.fetchall()
+        excluded_ranges = [(r['start_date'], r['end_date']) for r in ranges]
+
+        cursor.execute(
+            """SELECT borrow_id, user_id, book_id, borrow_date, due_date, return_date, status, fine_amount, fine_paid 
+               FROM borrow_records 
+               WHERE user_id = %s AND fine_paid = FALSE AND (fine_amount > 0 OR status = 'overdue')""",
+            (user_id,)
+        )
+        unpaid_records = cursor.fetchall()
+        
+        total_fines_pending = 0.0
+        for f in unpaid_records:
+            new_fine, _ = calculate_dynamic_fine(cursor, f, fine_per_day, exempt_days_list, excluded_ranges)
+            total_fines_pending += float(new_fine or 0)
+            
+        db.commit()
         
         cursor.execute("SELECT COUNT(*) as count FROM payments WHERE user_id = %s AND status = 'pending'", (user_id,))
         has_pending_payment = cursor.fetchone()['count'] > 0
@@ -150,11 +174,11 @@ def search_books(q: str, category_id: Optional[int] = None, db = Depends(get_db)
                 SELECT b.book_id, b.title, b.author, b.isbn, b.publisher,
                        b.publication_year, b.language, b.total_copies, b.available_copies, b.location_id,
                        b.cover_image_path, b.cover_image_url, b.availability_status,
-                       MATCH(b.title, b.author, b.isbn) AGAINST(%s IN BOOLEAN MODE) as relevance
+                       MATCH(b.title, b.author, b.isbn, b.keywords) AGAINST(%s IN BOOLEAN MODE) as relevance
                 FROM books b
                 JOIN book_categories bc ON b.book_id = bc.book_id
                 WHERE bc.category_id = %s
-                  AND MATCH(b.title, b.author, b.isbn) AGAINST(%s IN BOOLEAN MODE)
+                  AND MATCH(b.title, b.author, b.isbn, b.keywords) AGAINST(%s IN BOOLEAN MODE)
                 ORDER BY relevance DESC
                 LIMIT 50
             """
@@ -164,9 +188,9 @@ def search_books(q: str, category_id: Optional[int] = None, db = Depends(get_db)
                 SELECT b.book_id, b.title, b.author, b.isbn, b.publisher,
                        b.publication_year, b.language, b.total_copies, b.available_copies, b.location_id,
                        b.cover_image_path, b.cover_image_url, b.availability_status,
-                       MATCH(b.title, b.author, b.isbn) AGAINST(%s IN BOOLEAN MODE) as relevance
+                       MATCH(b.title, b.author, b.isbn, b.keywords) AGAINST(%s IN BOOLEAN MODE) as relevance
                 FROM books b
-                WHERE MATCH(b.title, b.author, b.isbn) AGAINST(%s IN BOOLEAN MODE)
+                WHERE MATCH(b.title, b.author, b.isbn, b.keywords) AGAINST(%s IN BOOLEAN MODE)
                 ORDER BY relevance DESC
                 LIMIT 50
             """

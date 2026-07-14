@@ -69,6 +69,7 @@ CREATE TABLE `books` (
   `cover_image_path` varchar(255) DEFAULT NULL,
   `cover_image_url` varchar(500) DEFAULT NULL,
   `synopsis` text DEFAULT NULL,
+  `keywords` varchar(255) DEFAULT NULL,
   `language` varchar(50) DEFAULT 'English',
   `shelf_location` varchar(100) DEFAULT NULL,
   `availability_status` enum('available','borrowed','lost') DEFAULT 'available',
@@ -83,7 +84,7 @@ CREATE TABLE `books` (
   KEY `location_id` (`location_id`),
   KEY `fk_books_publisher` (`publisher_id`),
   FULLTEXT KEY `idx_book_search` (`title`,`author`),
-  FULLTEXT KEY `ft_idx_books` (`title`,`author`,`isbn`),
+  FULLTEXT KEY `ft_idx_books` (`title`,`author`,`isbn`,`keywords`),
   CONSTRAINT `books_ibfk_1` FOREIGN KEY (`added_by`) REFERENCES `admins` (`admin_id`) ON DELETE SET NULL,
   CONSTRAINT `books_ibfk_2` FOREIGN KEY (`location_id`) REFERENCES `locations` (`location_id`) ON DELETE SET NULL,
   CONSTRAINT `fk_books_publisher` FOREIGN KEY (`publisher_id`) REFERENCES `publishers` (`publisher_id`) ON DELETE SET NULL

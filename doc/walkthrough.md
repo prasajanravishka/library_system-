@@ -22,6 +22,13 @@ Defined in `backend/current_database_schema.sql`.
 | `books` | Master catalog metadata | `FULLTEXT` indices, FK to admins/locations |
 | `book_copies` | Physical copy tracking | Unique barcode tracking per physical item |
 | `borrow_records` | Transaction history | Linked to specific `copy_id`, due date computations |
+| `categories` | Book taxonomy | Managed hierarchically for UI discovery |
+| `locations` | Physical placement | Zones/shelving coordinate tracking |
+| `authors` / `publishers` | Deep catalog metadata | Normalization of book entities |
+| `fines` / `payments` | Financial accountability | Tracks overdue penalties and settlements |
+| `reviews` / `saved_books` | Social features | Patron gamification and bookmarks |
+| `support_tickets` | Help desk | Patron support queries |
+| `notifications` | Alerts | Overdue and fine system alerts |
 
 *Note: Seed data is provided in `backend/sample_data.sql` for rapid local provisioning.*
 
@@ -33,7 +40,7 @@ Unified monolithic backend (`main.py`) handling both RESTful CRUD operations and
 
 | Router / Endpoint | Purpose | Subsystems |
 |---|---|---|
-| `user.py`, `borrow.py`, `admin.py`, `dashboard.py`, `settings.py` | Core CRUD operations, authentication, and data aggregation | PyMySQL database queries |
+| `user.py`, `borrow.py`, `admin.py`, `dashboard.py`, `settings.py`, `locations.py` | Core CRUD operations, authentication, and data aggregation | PyMySQL database queries |
 | `POST /api/scan-book` | OCR and structured metadata extraction | `ocr_engine.py` + `llm_parser.py` |
 | `POST /api/analyze-cover` | Cover quality, dominant color mapping | `feature_matcher.py` |
 | `POST /api/detect-spines` | Shelf spatial analysis and spine detection | `feature_matcher.py` |
@@ -49,7 +56,7 @@ Unified monolithic backend (`main.py`) handling both RESTful CRUD operations and
 
 ### A. React Admin Panel (Librarians)
 A fully functional administrative dashboard.
-- **Framework**: React 18 + Vite.
+- **Framework**: React 19 + Vite.
 - **Styling**: Tailwind CSS ensuring a responsive, Glassmorphism-inspired aesthetic.
 - **Capabilities**: Inventory tracking, multi-copy barcode assignment, location tracking, and real-time dashboard analytics.
 
@@ -73,6 +80,7 @@ mysql -u root -p smart_library < backend/sample_data.sql
 # 2. Start Python Service (Terminal 1)
 cd backend/py_backend
 pip install -r requirements.txt
+# Ensure you configure your .env file with API_KEY and DB credentials
 python main.py
 
 # 3. Launch React Admin Panel (Terminal 2)
@@ -100,3 +108,4 @@ flutter run
 ## 6. Change Log
 
 - **[July 2026] Dual-Frontend & Architecture**: Introduced the React Admin Panel, transitioned to physical copy tracking (`book_copies`), and unified all API calls into the robust Python FastAPI backend. Completed a comprehensive update of all related system documentation.
+- **[July 2026] Keyword Search Enhancement**: Added custom keyword/tagging system for books. Expanded database `FULLTEXT` indexing, updated FastAPI backend SQL queries, and added new interactive UI fields to the React Admin Panel for enhanced book discovery.

@@ -22,6 +22,7 @@ import LocationsPage from './pages/LocationsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
 import CirculationPage from './pages/CirculationPage';
 import ProfileSettingsPage from './pages/ProfileSettingsPage';
+import FeedbackPage from './pages/FeedbackPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 /**
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/locations" element={<LocationsPage />} />
           <Route path="/support" element={<SupportTicketsPage />} />
+          <Route path="/feedback" element={<FeedbackPage />} />
           <Route path="/profile" element={<ProfileSettingsPage />} />
         </Route>
 

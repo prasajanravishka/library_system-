@@ -437,7 +437,7 @@ export default function UsersPage() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-semibold text-slate-700">Unpaid Fines</span>
-                <span className="font-mono text-sm font-bold text-red-600">${deletionBlocked.unpaid_fines.toFixed(2)}</span>
+                <span className="font-mono text-sm font-bold text-red-600">LKR {deletionBlocked.unpaid_fines.toFixed(2)}</span>
               </div>
             </div>
 

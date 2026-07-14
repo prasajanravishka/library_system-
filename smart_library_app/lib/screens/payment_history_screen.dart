@@ -160,7 +160,7 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        '\$$amount',
+                                        'LKR $amount',
                                         style: AppTextStyles.bodyLarge.copyWith(
                                           fontWeight: FontWeight.bold,
                                           color: _getStatusColor(status),

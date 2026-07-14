@@ -803,4 +803,32 @@ class ApiService {
       rethrow;
     }
   }
+
+  /// Submit book rating and review feedback
+  Future<Map<String, dynamic>> submitReview({
+    required int bookId,
+    required int rating,
+    String? reviewText,
+  }) async {
+    try {
+      final url = Uri.parse('$_base/borrow/reviews');
+      final body = jsonEncode({
+        'book_id': bookId,
+        'rating': rating,
+        'review_text': reviewText,
+      });
+      final response = await http.post(url, headers: _headers, body: body);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final errorMsg = jsonDecode(response.body)['detail'] ?? 'Failed to submit review';
+        throw Exception(errorMsg);
+      }
+    } on SocketException catch (_) {
+      throw Exception('Network error: Cannot connect to backend at $_base');
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

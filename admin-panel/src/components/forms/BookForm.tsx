@@ -20,7 +20,8 @@ const bookSchema = z.object({
   location_id: z.coerce.number().optional(),
   cover_image_url: z.string().optional(),
   synopsis: z.string().optional(),
-  copies: z.array(z.object({ barcode: z.string(), isbn: z.string().optional() })).optional(),
+  keywords: z.string().optional(),
+  copies: z.array(z.object({ barcode: z.string() })).optional(),
   category_ids: z.preprocess((val) => {
     if (Array.isArray(val)) return val.map(Number);
     if (typeof val === 'string') return [Number(val)];
@@ -74,10 +75,11 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
       location_id: book?.location_id || undefined,
       cover_image_url: book?.cover_image_url || '',
       synopsis: book?.synopsis || '',
+      keywords: book?.keywords || '',
       category_ids: [],
       copies: book?.copies && book.copies.length > 0
-        ? book.copies.map(c => ({ barcode: c.barcode, isbn: c.isbn || '' }))
-        : [{ barcode: '', isbn: '' }],
+        ? book.copies.map(c => ({ barcode: c.barcode }))
+        : [{ barcode: '' }],
     },
   });
 
@@ -142,7 +144,22 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
         {/* Language & Location ID */}
         <div>
           <label className={labelClass}>Language</label>
-          <input {...register('language')} className={inputClass(!!errors.language)} placeholder="English" />
+          <select {...register('language')} className={inputClass(!!errors.language)}>
+            <option value="English">English</option>
+            <option value="Sinhala">Sinhala</option>
+            <option value="Tamil">Tamil</option>
+            <option value="Spanish">Spanish</option>
+            <option value="French">French</option>
+            <option value="German">German</option>
+            <option value="Chinese">Chinese</option>
+            <option value="Japanese">Japanese</option>
+            <option value="Russian">Russian</option>
+            <option value="Arabic">Arabic</option>
+            <option value="Hindi">Hindi</option>
+            <option value="Korean">Korean</option>
+            <option value="Italian">Italian</option>
+            <option value="Portuguese">Portuguese</option>
+          </select>
           {errors.language && <p className={errorClass}>{errors.language.message}</p>}
         </div>
         <div>
@@ -180,13 +197,24 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
         {errors.synopsis && <p className={errorClass}>{errors.synopsis.message}</p>}
       </div>
 
+      {/* Keywords */}
+      <div>
+        <label className={labelClass}>Keywords / Tags</label>
+        <input 
+          {...register('keywords')} 
+          className={inputClass(!!errors.keywords)} 
+          placeholder="e.g. sci-fi, space, future (comma separated)" 
+        />
+        {errors.keywords && <p className={errorClass}>{errors.keywords.message}</p>}
+      </div>
+
       {/* Book Copies (Barcodes & ISBNs) */}
       <div className="pt-2">
         <div className="flex items-center justify-between mb-2">
-          <label className={labelClass + " !mb-0"}>Book Copies (Barcode & ISBN)</label>
+          <label className={labelClass + " !mb-0"}>Book Copies (Barcode)</label>
           <button
             type="button"
-            onClick={() => append({ barcode: '', isbn: '' })}
+            onClick={() => append({ barcode: '' })}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
           >
             <Plus size={14} />
@@ -200,11 +228,6 @@ export default function BookForm({ book, categories = [], locations = [], onSubm
                 {...register(`copies.${index}.barcode` as const)}
                 className={inputClass(!!errors.copies?.[index]?.barcode)}
                 placeholder={`Copy ${index + 1} Barcode`}
-              />
-              <input
-                {...register(`copies.${index}.isbn` as const)}
-                className={inputClass(!!errors.copies?.[index]?.isbn)}
-                placeholder={`Copy ${index + 1} ISBN (Optional)`}
               />
               {fields.length > 1 && (
                 <button

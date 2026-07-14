@@ -13,6 +13,11 @@ router = APIRouter()
 class BorrowRequest(BaseModel):
     book_id: int
 
+class BookReviewRequest(BaseModel):
+    book_id: int
+    rating: int
+    review_text: Optional[str] = None
+
 @router.post("/borrow")
 def borrow_book(req: BorrowRequest, current_user: dict = Depends(get_current_user), db = Depends(get_db)):
     user_id = current_user['user_id']
@@ -85,12 +90,15 @@ def return_book(req: BorrowRequest, current_user: dict = Depends(get_current_use
                 raise HTTPException(status_code=400, detail="No active borrow record found")
                 
             # Calculate fine if overdue
-            # Calculate fine if overdue
             cursor.execute("SELECT setting_key, setting_value FROM library_settings")
             settings = {row['setting_key']: row['setting_value'] for row in cursor.fetchall()}
             fine_per_day = float(settings.get('fine_per_day', '0.50'))
             exempt_days_str = settings.get('exempt_days', '')
             exempt_days_list = [int(x.strip()) for x in exempt_days_str.split(',')] if exempt_days_str else []
+
+            cursor.execute("SELECT start_date, end_date FROM excluded_date_ranges")
+            ranges = cursor.fetchall()
+            excluded_ranges = [(r['start_date'], r['end_date']) for r in ranges]
 
             due_date = borrow['due_date']
             if isinstance(due_date, str):
@@ -100,15 +108,24 @@ def return_book(req: BorrowRequest, current_user: dict = Depends(get_current_use
             days_overdue = (today - due_date).days
             
             if days_overdue > 0:
-                if exempt_days_list:
-                    current_date = due_date + timedelta(days=1)
-                    exempt_count = 0
-                    while current_date <= today:
-                        if current_date.weekday() in exempt_days_list:
-                            exempt_count += 1
-                        current_date += timedelta(days=1)
-                    days_overdue -= exempt_count
-                    days_overdue = max(0, days_overdue)
+                current_date = due_date + timedelta(days=1)
+                exempt_count = 0
+                while current_date <= today:
+                    is_exempt_day = exempt_days_list and (current_date.weekday() in exempt_days_list)
+                    is_vacation_day = False
+                    if excluded_ranges:
+                        for start_date, end_date in excluded_ranges:
+                            start = start_date if isinstance(start_date, date) else datetime.strptime(str(start_date), '%Y-%m-%d').date()
+                            end = end_date if isinstance(end_date, date) else datetime.strptime(str(end_date), '%Y-%m-%d').date()
+                            if start <= current_date <= end:
+                                is_vacation_day = True
+                                break
+                    
+                    if is_exempt_day or is_vacation_day:
+                        exempt_count += 1
+                    current_date += timedelta(days=1)
+                days_overdue -= exempt_count
+                days_overdue = max(0, days_overdue)
                 fine_amount = round(days_overdue * fine_per_day, 2)
             else:
                 fine_amount = 0.00
@@ -155,7 +172,7 @@ def return_book(req: BorrowRequest, current_user: dict = Depends(get_current_use
         response = {"status": "success", "message": "Book returned successfully"}
         if fine_amount > 0:
             response["fine_amount"] = fine_amount
-            response["fine_message"] = f"Overdue fine of ${fine_amount} has been applied."
+            response["fine_message"] = f"Overdue fine of LKR {fine_amount} has been applied."
             
         return response
     except Exception as e:
@@ -319,14 +336,76 @@ def get_payments(current_user: dict = Depends(get_current_user), db = Depends(ge
 @router.get("/borrow/unpaid-fines")
 def get_unpaid_fines(current_user: dict = Depends(get_current_user), db = Depends(get_db)):
     user_id = current_user['user_id']
+    from routers.admin import calculate_dynamic_fine
     with db.cursor() as cursor:
-        sql = """
-            SELECT br.borrow_id, br.fine_amount, b.title as book_title, b.author
-            FROM borrow_records br
-            JOIN books b ON br.book_id = b.book_id
-            WHERE br.user_id = %s AND br.fine_paid = FALSE AND br.fine_amount > 0
-        """
-        cursor.execute(sql, (user_id,))
+        cursor.execute("SELECT setting_key, setting_value FROM library_settings")
+        settings = {row['setting_key']: row['setting_value'] for row in cursor.fetchall()}
+        fine_per_day = float(settings.get('fine_per_day', '0.50'))
+        exempt_days_str = settings.get('exempt_days', '')
+        exempt_days_list = [int(x.strip()) for x in exempt_days_str.split(',')] if exempt_days_str else []
+
+        cursor.execute("SELECT start_date, end_date FROM excluded_date_ranges")
+        ranges = cursor.fetchall()
+        excluded_ranges = [(r['start_date'], r['end_date']) for r in ranges]
+
+        cursor.execute(
+            """SELECT br.borrow_id, br.user_id, br.book_id, br.borrow_date, br.due_date, br.return_date, 
+                      br.status, br.fine_amount, br.fine_paid, b.title as book_title, b.author
+               FROM borrow_records br
+               JOIN books b ON br.book_id = b.book_id
+               WHERE br.user_id = %s AND br.fine_paid = FALSE AND (br.fine_amount > 0 OR br.status = 'overdue')""",
+            (user_id,)
+        )
         unpaid = cursor.fetchall()
-    return {"status": "success", "fines": unpaid}
+        
+        filtered_unpaid = []
+        for f in unpaid:
+            new_fine, new_status = calculate_dynamic_fine(cursor, f, fine_per_day, exempt_days_list, excluded_ranges)
+            f['fine_amount'] = new_fine
+            f['status'] = new_status
+            
+            if f['fine_amount'] > 0:
+                filtered_unpaid.append({
+                    'borrow_id': f['borrow_id'],
+                    'fine_amount': f['fine_amount'],
+                    'book_title': f['book_title'],
+                    'author': f['author']
+                })
+        db.commit()
+    return {"status": "success", "fines": filtered_unpaid}
+
+@router.post("/borrow/reviews")
+def add_book_review(req: BookReviewRequest, current_user: dict = Depends(get_current_user), db = Depends(get_db)):
+    user_id = current_user['user_id']
+    rating = req.rating
+    if rating < 1 or rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+        
+    try:
+        with db.cursor() as cursor:
+            cursor.execute(
+                "SELECT COUNT(*) as count FROM borrow_records WHERE user_id = %s AND book_id = %s",
+                (user_id, req.book_id)
+            )
+            count_res = cursor.fetchone()
+            if not count_res or count_res['count'] == 0:
+                raise HTTPException(
+                    status_code=403, 
+                    detail="You can only review books that you have borrowed previously"
+                )
+                
+            cursor.execute(
+                """INSERT INTO reviews (user_id, book_id, rating, review_text)
+                   VALUES (%s, %s, %s, %s)
+                   ON DUPLICATE KEY UPDATE rating = VALUES(rating), review_text = VALUES(review_text)""",
+                (user_id, req.book_id, rating, req.review_text)
+            )
+        db.commit()
+        return {"status": "success", "message": "Review submitted successfully"}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 

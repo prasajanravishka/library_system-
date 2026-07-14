@@ -90,6 +90,17 @@ class ReadingHistoryScreen extends ConsumerWidget {
                                     Text('Read', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 12)),
                                     SizedBox(height: 8),
                                     Text('Borrowed: ${item.borrowDate}', style: TextStyle(color: (Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey).withValues(alpha: 0.8), fontSize: 12)),
+                                    const SizedBox(height: 8),
+                                    TextButton.icon(
+                                      onPressed: () => _showReviewDialog(context, ref, item.bookId, item.title),
+                                      icon: const Icon(Icons.rate_review_outlined, size: 14, color: AppColors.cyan),
+                                      label: const Text('Review', style: TextStyle(color: AppColors.cyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -126,5 +137,103 @@ class ReadingHistoryScreen extends ConsumerWidget {
 
   Widget _buildPlaceholderCover(BuildContext context) {
     return Icon(Icons.book, color: Theme.of(context).textTheme.bodyMedium?.color, size: 30);
+  }
+
+  void _showReviewDialog(BuildContext context, WidgetRef ref, int bookId, String bookTitle) {
+    int rating = 5;
+    final textController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Theme.of(context).cardColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text('Review "$bookTitle"', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('How would you rate this book?', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color)),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        final starValue = index + 1;
+                        return IconButton(
+                          onPressed: () {
+                            setState(() {
+                              rating = starValue;
+                            });
+                          },
+                          icon: Icon(
+                            rating >= starValue ? Icons.star : Icons.star_border,
+                            color: Colors.amber,
+                            size: 32,
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: textController,
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                      decoration: InputDecoration(
+                        labelText: 'Write your feedback (optional)',
+                        labelStyle: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+                        border: const OutlineInputBorder(),
+                      ),
+                      maxLines: 3,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.cyan,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () async {
+                    final reviewText = textController.text.trim();
+                    Navigator.pop(context);
+                    
+                    try {
+                      final response = await ref.read(apiServiceProvider).submitReview(
+                        bookId: bookId,
+                        rating: rating,
+                        reviewText: reviewText.isNotEmpty ? reviewText : null,
+                      );
+                      
+                      if (response['status'] == 'success') {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Review submitted successfully! Thank you for your feedback.')),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Failed to submit review')),
+                        );
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}')),
+                      );
+                    }
+                  },
+                  child: const Text('Submit'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }

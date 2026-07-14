@@ -9,7 +9,7 @@ import {
   ShieldOff,
   BookOpen,
   AlertTriangle,
-  DollarSign
+  Coins as CoinsIcon
 } from 'lucide-react';
 import { usersApi } from '../api/users.api';
 import Badge from '../components/ui/Badge';
@@ -155,11 +155,11 @@ export default function UserDetailsPage() {
         </div>
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-red-50 rounded-xl">
-            <DollarSign size={24} className="text-red-600" />
+            <CoinsIcon size={24} className="text-red-600" />
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">Unpaid Fines</p>
-            <p className="text-2xl font-bold text-slate-900">${stats.unpaid_fines.toFixed(2)}</p>
+            <p className="text-2xl font-bold text-slate-900">LKR {stats.unpaid_fines.toFixed(2)}</p>
           </div>
         </div>
       </div>
@@ -206,7 +206,7 @@ export default function UserDetailsPage() {
                     <td className="py-4 px-6 text-right font-mono">
                       {record.fine_amount > 0 ? (
                         <span className={record.fine_paid ? 'text-slate-400 line-through' : 'text-red-600 font-bold'}>
-                          ${Number(record.fine_amount).toFixed(2)}
+                          LKR {Number(record.fine_amount).toFixed(2)}
                         </span>
                       ) : (
                         <span className="text-slate-400">-</span>

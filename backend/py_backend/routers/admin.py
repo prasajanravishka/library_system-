@@ -766,11 +766,16 @@ def calculate_dynamic_fine(cursor, borrow_record, fine_per_day, exempt_days_list
         return fine_amount, status
         
     if isinstance(due_date, str):
+        if due_date.startswith('0000'):
+            return fine_amount, status
         due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
         
     return_date = borrow_record.get('return_date')
     if isinstance(return_date, str):
-        return_date = datetime.strptime(return_date, '%Y-%m-%d').date()
+        if return_date.startswith('0000'):
+            return_date = None
+        else:
+            return_date = datetime.strptime(return_date, '%Y-%m-%d').date()
     elif isinstance(return_date, datetime):
         return_date = return_date.date()
         
@@ -1059,7 +1064,10 @@ def circulation_checkin(req: CirculationCheckinRequest, admin = Depends(get_admi
 
             due_date = borrow['due_date']
             if isinstance(due_date, str):
-                due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
+                if due_date.startswith('0000'):
+                    due_date = datetime.now().date()
+                else:
+                    due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
             today = datetime.now().date()
             days_overdue = (today - due_date).days
             

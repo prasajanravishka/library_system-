@@ -102,7 +102,10 @@ def return_book(req: BorrowRequest, current_user: dict = Depends(get_current_use
 
             due_date = borrow['due_date']
             if isinstance(due_date, str):
-                due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
+                if due_date.startswith('0000'):
+                    due_date = datetime.now().date()
+                else:
+                    due_date = datetime.strptime(due_date, '%Y-%m-%d').date()
             
             today = datetime.now().date()
             days_overdue = (today - due_date).days

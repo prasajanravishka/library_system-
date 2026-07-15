@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/app_theme.dart';
 import 'providers/providers.dart';
 import 'providers/theme_provider.dart';
@@ -11,6 +12,13 @@ import 'screens/change_password_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables gracefully
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print("Could not load .env file: $e");
+  }
 
   // Initialize SharedPreferences before the app starts
   final sharedPrefs = await SharedPreferences.getInstance();
